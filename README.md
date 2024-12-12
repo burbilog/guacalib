@@ -122,8 +122,36 @@ All errors are reported with clear messages to help diagnose issues.
 ## Limitations
 
 - Currently supports only VNC connections
-- Requires direct access to Guacamole's MySQL database
 - Must be run on a machine with MySQL client access to the Guacamole database
+
+## TODO
+
+Current limitations and planned improvements:
+
+- [ ] Separate connection management from user creation
+  - Currently each user gets a single hardcoded VNC connection
+  - Future `conn` command will allow flexible connection management:
+    ```bash
+    # Planned syntax
+    gcmanager.py conn new --type vnc --name dev-server --host 192.168.1.100 --port 5901
+    gcmanager.py conn grant --name dev-server --user john.doe
+    gcmanager.py conn list
+    gcmanager.py conn del --name dev-server
+    ```
+
+- [ ] Support for other connection types
+  - RDP (Remote Desktop Protocol)
+  - SSH
+
+- [ ] User permissions management
+  - More granular permissions control
+  - Permission templates
+
+- [ ] Connection parameters management
+  - Custom parameters for different connection types
+  - Connection groups
+
+PRs implementing any of these features are welcome!
 
 ## Contributing
 
