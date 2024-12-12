@@ -49,6 +49,32 @@ class GuacamoleDB:
             print(f"Error connecting to database: {e}")
             sys.exit(1)
 
+    def list_users(self):
+        try:
+            self.cursor.execute("""
+                SELECT name 
+                FROM guacamole_entity 
+                WHERE type = 'USER' 
+                ORDER BY name
+            """)
+            return [row[0] for row in self.cursor.fetchall()]
+        except mysql.connector.Error as e:
+            print(f"Error listing users: {e}")
+            raise
+
+    def list_groups(self):
+        try:
+            self.cursor.execute("""
+                SELECT name 
+                FROM guacamole_entity 
+                WHERE type = 'USER_GROUP' 
+                ORDER BY name
+            """)
+            return [row[0] for row in self.cursor.fetchall()]
+        except mysql.connector.Error as e:
+            print(f"Error listing groups: {e}")
+            raise
+
     def get_group_id(self, group_name):
         try:
             self.cursor.execute("""
