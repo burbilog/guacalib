@@ -1,0 +1,5 @@
+[mysql]
+host = localhost
+user = guacamole_user
+password = your_password
+database = guacamole_db
