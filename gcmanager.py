@@ -82,11 +82,12 @@ def main():
                     print(f"Successfully created user '{args.username}' and VNC connection '{connection_name}'")
 
                 elif args.user_command == 'list':
-                    users = guacdb.list_users()
-                    if users:
+                    users_and_groups = guacdb.list_users_with_groups()
+                    if users_and_groups:
                         print("\nExisting users:")
-                        for user in users:
-                            print(f"- {user}")
+                        for user, groups in users_and_groups.items():
+                            groups_str = ", ".join(groups) if groups else "no groups"
+                            print(f"- {user} ({groups_str})")
                     else:
                         print("No users found")
 
@@ -97,11 +98,12 @@ def main():
                     print(f"Successfully created group '{args.name}'")
 
                 elif args.group_command == 'list':
-                    groups = guacdb.list_groups()
-                    if groups:
+                    groups_and_users = guacdb.list_groups_with_users()
+                    if groups_and_users:
                         print("\nExisting groups:")
-                        for group in groups:
-                            print(f"- {group}")
+                        for group, users in groups_and_users.items():
+                            users_str = ", ".join(users) if users else "no users"
+                            print(f"- {group} ({users_str})")
                     else:
                         print("No groups found")
 

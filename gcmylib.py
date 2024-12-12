@@ -340,3 +340,55 @@ class GuacamoleDB:
         except mysql.connector.Error as e:
             print(f"Error granting connection permission: {e}")
             raise
+
+    def list_users_with_groups(self):
+        query = """
+            SELECT DISTINCT 
+                e1.name as username,
+                GROUP_CONCAT(e2.name) as groupnames
+            FROM guacamole_entity e1
+            JOIN guacamole_user u ON e1.entity_id = u.entity_id
+            LEFT JOIN guacamole_user_group_member ugm 
+                ON e1.entity_id = ugm.member_entity_id
+            LEFT JOIN guacamole_user_group ug
+                ON ugm.user_group_id = ug.user_group_id
+            LEFT JOIN guacamole_entity e2
+                ON ug.entity_id = e2.entity_id
+            WHERE e1.type = 'USER'
+            GROUP BY e1.name
+        """
+        self.cursor.execute(query)
+        results = self.cursor.fetchall()
+        
+        users_groups = {}
+        for row in results:
+            username = row[0]
+            groupnames = row[1].split(',') if row[1] else []
+            users_groups[username] = groupnames
+        
+        return users_groups
+
+    def list_groups_with_users(self):
+        query = """
+            SELECT DISTINCT 
+                e1.name as groupname,
+                GROUP_CONCAT(e2.name) as usernames
+            FROM guacamole_entity e1
+            JOIN guacamole_user_group ug ON e1.entity_id = ug.entity_id
+            LEFT JOIN guacamole_user_group_member ugm 
+                ON ug.user_group_id = ugm.user_group_id
+            LEFT JOIN guacamole_entity e2
+                ON ugm.member_entity_id = e2.entity_id
+            WHERE e1.type = 'USER_GROUP'
+            GROUP BY e1.name
+        """
+        self.cursor.execute(query)
+        results = self.cursor.fetchall()
+        
+        groups_users = {}
+        for row in results:
+            groupname = row[0]
+            usernames = row[1].split(',') if row[1] else []
+            groups_users[groupname] = usernames
+        
+        return groups_users
