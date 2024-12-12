@@ -31,6 +31,10 @@ def setup_group_subcommands(subparsers):
     # Group list command
     group_subparsers.add_parser('list', help='List all groups')
 
+    # Group delete command
+    del_group = group_subparsers.add_parser('del', help='Delete a group')
+    del_group.add_argument('--name', required=True, help='Group name to delete')
+
 def main():
     parser = argparse.ArgumentParser(description='Manage Guacamole users, groups, and connections')
     parser.add_argument('--config', default='db_config.ini', help='Path to database config file')
@@ -100,6 +104,10 @@ def main():
                             print(f"- {group}")
                     else:
                         print("No groups found")
+
+                elif args.group_command == 'del':
+                    guacdb.delete_existing_group(args.name)
+                    print(f"Successfully deleted group '{args.name}'")
 
     except Exception as e:
         print(f"An error occurred: {e}")
