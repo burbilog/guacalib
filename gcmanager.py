@@ -20,6 +20,10 @@ def setup_user_subcommands(subparsers):
     # User list command
     user_subparsers.add_parser('list', help='List all users')
 
+    # NEW: User delete command
+    del_user = user_subparsers.add_parser('del', help='Delete a user')
+    del_user.add_argument('--username', required=True, help='Username to delete')
+
 def setup_group_subcommands(subparsers):
     group_parser = subparsers.add_parser('group', help='Manage Guacamole groups')
     group_subparsers = group_parser.add_subparsers(dest='group_command', help='Group commands')
@@ -90,6 +94,13 @@ def main():
                             print(f"- {user} ({groups_str})")
                     else:
                         print("No users found")
+
+                # NEW: User deletion command implementation
+                elif args.user_command == 'del':
+                    connection_name = f"vnc-{args.username}"
+                    guacdb.delete_existing_connection(connection_name)
+                    guacdb.delete_existing_user(args.username)
+                    print(f"Successfully deleted user '{args.username}' and associated connection")
 
             elif args.command == 'group':
                 if args.group_command == 'new':
