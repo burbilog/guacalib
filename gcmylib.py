@@ -325,22 +325,26 @@ class GuacamoleDB:
             groups = group_path.split('/')
             parent_group_id = None
             
+            print(f"[DEBUG] Resolving group path: {group_path}")  # Debug message
+            
             for group_name in groups:
-                # Corrected column names and reference:
                 sql = """
-                    SELECT connection_group_id 
-                    FROM guacamole_connection_group 
-                    WHERE name = %s  # Changed from connection_group_name
+                    SELECT cg.connection_group_id 
+                    FROM guacamole_connection_group cg
+                    JOIN guacamole_entity e ON cg.entity_id = e.entity_id
+                    WHERE e.name = %s
                 """
                 params = [group_name]
                 
                 if parent_group_id is not None:
-                    sql += " AND parent_id = %s"  # Correct column name for parent reference
+                    sql += " AND cg.parent_id = %s"
                     params.append(parent_group_id)
                 else:
-                    sql += " AND parent_id IS NULL"  # Correct column name
+                    sql += " AND cg.parent_id IS NULL"
                     
-                sql += " ORDER BY connection_group_id LIMIT 1"
+                sql += " ORDER BY cg.connection_group_id LIMIT 1"
+                
+                print(f"[DEBUG] Executing SQL:\n{sql}\nWith params: {params}")  # Debug SQL
                 
                 self.cursor.execute(sql, tuple(params))
                 
@@ -349,6 +353,7 @@ class GuacamoleDB:
                     raise ValueError(f"Group '{group_name}' not found in path '{group_path}'")
                 
                 parent_group_id = result[0]
+                print(f"[DEBUG] Found group ID {parent_group_id} for '{group_name}'")  # Trace
                 
             return parent_group_id
 
@@ -397,28 +402,18 @@ class GuacamoleDB:
 
     def grant_connection_permission(self, entity_name, entity_type, connection_id, group_path=None):
         try:
-            # If group path is specified
             if group_path:
+                print(f"[DEBUG] Processing group path: {group_path}")  # Added debug
                 parent_group_id = self.get_connection_group_id(group_path)
                 
-                # Get existing connection group assignment
-                self.cursor.execute("""
-                    SELECT connection_group_id FROM guacamole_connection_group
-                    WHERE connection_group_name = %s
-                """, (group_path.split('/')[-1],))
-                group_id_result = self.cursor.fetchone()
-                
-                if not group_id_result:
-                    raise ValueError(f"Final group in path '{group_path}' not found")
-                
-                # Assign connection to the group
+                print(f"[DEBUG] Assigning connection {connection_id} to parent group {parent_group_id}")  # Debug
                 self.cursor.execute("""
                     UPDATE guacamole_connection
                     SET parent_id = %s
                     WHERE connection_id = %s
                 """, (parent_group_id, connection_id))
 
-            # Grant permission
+            print(f"[DEBUG] Granting permission to {entity_type}:{entity_name}")  # Debug
             self.cursor.execute("""
                 INSERT INTO guacamole_connection_permission (entity_id, connection_id, permission)
                 SELECT entity.entity_id, %s, 'READ'
