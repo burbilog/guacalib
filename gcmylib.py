@@ -187,29 +187,45 @@ class GuacamoleDB:
 
     def delete_existing_connection(self, connection_name):
         try:
-            # Delete connection parameters first (foreign key constraint)
+            # Get connection_id first
             self.cursor.execute("""
-                DELETE FROM guacamole_connection_parameter 
-                WHERE connection_id IN (
-                    SELECT connection_id FROM guacamole_connection 
-                    WHERE connection_name = %s
-                )
+                SELECT connection_id FROM guacamole_connection
+                WHERE connection_name = %s
             """, (connection_name,))
+            result = self.cursor.fetchone()
+            if not result:
+                raise Exception(f"Connection '{connection_name}' not found")
+            connection_id = result[0]
+
+            # Delete connection history
+            self.cursor.execute("""
+                DELETE FROM guacamole_connection_history
+                WHERE connection_id = %s
+            """, (connection_id,))
+
+            # Delete connection parameters
+            self.cursor.execute("""
+                DELETE FROM guacamole_connection_parameter
+                WHERE connection_id = %s
+            """, (connection_id,))
 
             # Delete connection permissions
             self.cursor.execute("""
-                DELETE FROM guacamole_connection_permission 
-                WHERE connection_id IN (
-                    SELECT connection_id FROM guacamole_connection 
-                    WHERE connection_name = %s
-                )
-            """, (connection_name,))
+                DELETE FROM guacamole_connection_permission
+                WHERE connection_id = %s
+            """, (connection_id,))
 
-            # Delete connection
+            # Delete connection group permissions
             self.cursor.execute("""
-                DELETE FROM guacamole_connection 
-                WHERE connection_name = %s
-            """, (connection_name,))
+                DELETE FROM guacamole_connection_group_permission
+                WHERE connection_id = %s
+            """, (connection_id,))
+
+            # Finally delete the connection
+            self.cursor.execute("""
+                DELETE FROM guacamole_connection
+                WHERE connection_id = %s
+            """, (connection_id,))
 
         except mysql.connector.Error as e:
             print(f"Error deleting existing connection: {e}")
