@@ -325,26 +325,26 @@ class GuacamoleDB:
             groups = group_path.split('/')
             parent_group_id = None
             
-            print(f"[DEBUG] Resolving group path: {group_path}")  # Debug message
+            print(f"[DEBUG] Resolving group path: {group_path}")
             
             for group_name in groups:
+                # CORRECTED SQL - use connection_group_name directly
                 sql = """
-                    SELECT cg.connection_group_id 
-                    FROM guacamole_connection_group cg
-                    JOIN guacamole_entity e ON cg.entity_id = e.entity_id
-                    WHERE e.name = %s
+                    SELECT connection_group_id 
+                    FROM guacamole_connection_group
+                    WHERE connection_group_name = %s
                 """
                 params = [group_name]
                 
                 if parent_group_id is not None:
-                    sql += " AND cg.parent_id = %s"
+                    sql += " AND parent_id = %s"
                     params.append(parent_group_id)
                 else:
-                    sql += " AND cg.parent_id IS NULL"
+                    sql += " AND parent_id IS NULL"
                     
-                sql += " ORDER BY cg.connection_group_id LIMIT 1"
+                sql += " ORDER BY connection_group_id LIMIT 1"
                 
-                print(f"[DEBUG] Executing SQL:\n{sql}\nWith params: {params}")  # Debug SQL
+                print(f"[DEBUG] Executing SQL:\n{sql}\nWith params: {params}")
                 
                 self.cursor.execute(sql, tuple(params))
                 
@@ -353,7 +353,7 @@ class GuacamoleDB:
                     raise ValueError(f"Group '{group_name}' not found in path '{group_path}'")
                 
                 parent_group_id = result[0]
-                print(f"[DEBUG] Found group ID {parent_group_id} for '{group_name}'")  # Trace
+                print(f"[DEBUG] Found group ID {parent_group_id} for '{group_name}'")
                 
             return parent_group_id
 
