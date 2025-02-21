@@ -38,14 +38,10 @@ database = guacamole_db
 ### Managing Users
 
 #### Create a new user
-Creates a new user with an associated VNC connection:
 ```bash
 ./gcmanager.py user new \
     --username john.doe \
-    --password secretpass \
-    --vnc-host 192.168.1.100 \
-    --vnc-port 5901 \
-    --vnc-password vncpass
+    --password secretpass
 ```
 
 To create a user and add them to a group:
@@ -53,10 +49,24 @@ To create a user and add them to a group:
 ./gcmanager.py user new \
     --username john.doe \
     --password secretpass \
-    --group developers \
-    --vnc-host 192.168.1.100 \
-    --vnc-port 5901 \
-    --vnc-password vncpass
+    --group developers
+```
+
+#### Create a new VNC connection
+```bash
+./gcmanager.py conn new \
+    --name dev-server \
+    --hostname 192.168.1.100 \
+    --port 5901 \
+    --vnc-password vncpass \
+    --group developers
+```
+
+#### Grant access to a user
+```bash
+./gcmanager.py conn grant \
+    --connection dev-server \
+    --user john.doe
 ```
 
 #### List all users

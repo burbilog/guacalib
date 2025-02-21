@@ -13,9 +13,6 @@ def setup_user_subcommands(subparsers):
     new_user.add_argument('--username', required=True, help='Username for Guacamole')
     new_user.add_argument('--password', required=True, help='Password for Guacamole user')
     new_user.add_argument('--group', help='Group to add user to')
-    new_user.add_argument('--vnc-host', required=True, help='VNC server hostname/IP')
-    new_user.add_argument('--vnc-port', required=True, help='VNC server port')
-    new_user.add_argument('--vnc-password', required=True, help='VNC server password')
 
     # User list command
     user_subparsers.add_parser('list', help='List all users')
@@ -89,25 +86,14 @@ def main():
         with GuacamoleDB(args.config) as guacdb:
             if args.command == 'user':
                 if args.user_command == 'new':
-                    connection_name = f"vnc-{args.username}"
                     guacdb.delete_existing_user(args.username)
-                    guacdb.delete_existing_connection(connection_name)
-
                     guacdb.create_user(args.username, args.password)
-                    connection_id = guacdb.create_vnc_connection(
-                        connection_name, 
-                        args.vnc_host, 
-                        args.vnc_port, 
-                        args.vnc_password
-                    )
-                    
-                    guacdb.grant_connection_permission(args.username, 'USER', connection_id)
 
                     if args.group:
                         guacdb.add_user_to_group(args.username, args.group)
                         print(f"Added user '{args.username}' to group '{args.group}'")
 
-                    print(f"Successfully created user '{args.username}' and VNC connection '{connection_name}'")
+                    print(f"Successfully created user '{args.username}'")
 
                 elif args.user_command == 'list':
                     users_and_groups = guacdb.list_users_with_groups()
