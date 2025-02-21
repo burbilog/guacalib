@@ -221,13 +221,6 @@ class GuacamoleDB:
                 WHERE connection_id = %s
             """, (connection_id,))
 
-            # Delete connection group permissions
-            print("Deleting connection group permissions...")
-            self.cursor.execute("""
-                DELETE FROM guacamole_connection_group_permission
-                WHERE connection_id = %s
-            """, (connection_id,))
-
             # Finally delete the connection
             print("Deleting connection...")
             self.cursor.execute("""
