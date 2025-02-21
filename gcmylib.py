@@ -326,17 +326,23 @@ class GuacamoleDB:
             parent_group_id = None
             
             for group_name in groups:
-                self.cursor.execute("""
+                # Dynamically build the query based on parent existence
+                sql = """
                     SELECT connection_group_id 
                     FROM guacamole_connection_group 
                     WHERE connection_group_name = %s
-                    AND parent_group_id %s
-                    ORDER BY connection_group_id
-                    LIMIT 1
-                """, (
-                    group_name, 
-                    "IS NULL" if parent_group_id is None else "= %s"
-                ) + ((parent_group_id,) if parent_group_id is not None else ()))
+                """
+                params = [group_name]
+                
+                if parent_group_id is not None:
+                    sql += " AND parent_group_id = %s"
+                    params.append(parent_group_id)
+                else:
+                    sql += " AND parent_group_id IS NULL"
+                    
+                sql += " ORDER BY connection_group_id LIMIT 1"
+                
+                self.cursor.execute(sql, tuple(params))
                 
                 result = self.cursor.fetchone()
                 if not result:
