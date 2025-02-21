@@ -246,18 +246,17 @@ class GuacamoleDB:
             # Generate random 32-byte salt
             salt = os.urandom(32)
             
-            # Create password hash using PBKDF2-SHA256 with 1000 iterations
-            digest = hashlib.pbkdf2_hmac(
-                'sha256',
-                password.encode('utf-8'),
-                salt,
-                1000,
-                dklen=32  # Force 32 byte output for SHA256
-            )
+            # Convert salt to uppercase hex string as Guacamole expects
+            salt_hex = binascii.hexlify(salt).upper()
             
-            # Get binary representations (no hex encoding)
-            password_hash = digest  # Raw 32-byte binary
-            password_salt = salt    # Raw 32-byte binary
+            # Create password hash using Guacamole's method: SHA256(password + hex(salt))
+            digest = hashlib.sha256(
+                password.encode('utf-8') + salt_hex
+            ).digest()
+
+            # Get binary representations
+            password_hash = digest  # SHA256 hash of (password + hex(salt))
+            password_salt = salt    # Original raw bytes salt
 
             # Create entity
             self.cursor.execute("""
