@@ -227,6 +227,9 @@ class GuacamoleDB:
                 WHERE connection_id = %s
             """, (connection_id,))
 
+            # Commit the transaction
+            self.conn.commit()
+
         except mysql.connector.Error as e:
             print(f"Error deleting existing connection: {e}")
             raise
