@@ -3,6 +3,9 @@
 import mysql.connector
 import configparser
 import sys
+import hashlib
+import os
+import binascii
 
 class GuacamoleDB:
     def __init__(self, config_file='db_config.ini'):
@@ -240,22 +243,39 @@ class GuacamoleDB:
 
     def create_user(self, username, password):
         try:
+            # Generate random 32-byte salt
+            salt = os.urandom(32)
+            
+            # Create password hash using PBKDF2-SHA256 with 1000 iterations
+            digest = hashlib.pbkdf2_hmac(
+                'sha256',
+                password.encode('utf-8'),
+                salt,
+                1000  # Number of iterations
+            )
+            
+            # Format digest according to Guacamole requirements
+            password_hash = b"$hex$" + binascii.hexlify(digest)
+            password_salt = b"$hex$" + binascii.hexlify(salt)
+
             # Create entity
             self.cursor.execute("""
                 INSERT INTO guacamole_entity (name, type) 
                 VALUES (%s, 'USER')
             """, (username,))
 
-            # Create user
+            # Create user with proper password hash
             self.cursor.execute("""
-                INSERT INTO guacamole_user (entity_id, password_hash, password_salt, password_date)
-                SELECT entity_id, 
-                       UNHEX(SHA2(CONCAT(%s, HEX(RANDOM_BYTES(32))), 256)),
-                       RANDOM_BYTES(32),
-                       NOW()
+                INSERT INTO guacamole_user 
+                    (entity_id, password_hash, password_salt, password_date)
+                SELECT 
+                    entity_id,
+                    %s,
+                    %s,
+                    NOW()
                 FROM guacamole_entity 
                 WHERE name = %s AND type = 'USER'
-            """, (password, username))
+            """, (password_hash, password_salt, username))
 
         except mysql.connector.Error as e:
             print(f"Error creating user: {e}")
