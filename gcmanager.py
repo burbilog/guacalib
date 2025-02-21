@@ -147,8 +147,20 @@ def main():
                     print(f"Successfully deleted group '{args.name}'")
 
             elif args.command == 'conn':
-                print("Connection management is not yet implemented")
-                sys.exit(1)
+                if args.conn_command == 'list':
+                    connections = guacdb.list_connections()
+                    if connections:
+                        print("\nExisting VNC connections:")
+                        for conn in connections:
+                            name, host, port, password = conn
+                            print(f"- {name}")
+                            print(f"  Host: {host}:{port}")
+                            print(f"  Password: {'*' * 8 if password else 'not set'}")
+                    else:
+                        print("No VNC connections found")
+                else:
+                    print("Connection management is not yet implemented")
+                    sys.exit(1)
 
     except Exception as e:
         print(f"An error occurred: {e}")

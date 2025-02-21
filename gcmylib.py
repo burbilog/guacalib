@@ -368,6 +368,30 @@ class GuacamoleDB:
         
         return users_groups
 
+    def list_connections(self):
+        """List all VNC connections with their parameters"""
+        try:
+            self.cursor.execute("""
+                SELECT 
+                    c.connection_name,
+                    p1.parameter_value AS hostname,
+                    p2.parameter_value AS port,
+                    p3.parameter_value AS password
+                FROM guacamole_connection c
+                JOIN guacamole_connection_parameter p1 
+                    ON c.connection_id = p1.connection_id AND p1.parameter_name = 'hostname'
+                JOIN guacamole_connection_parameter p2 
+                    ON c.connection_id = p2.connection_id AND p2.parameter_name = 'port'
+                LEFT JOIN guacamole_connection_parameter p3 
+                    ON c.connection_id = p3.connection_id AND p3.parameter_name = 'password'
+                WHERE c.protocol = 'vnc'
+                ORDER BY c.connection_name
+            """)
+            return self.cursor.fetchall()
+        except mysql.connector.Error as e:
+            print(f"Error listing connections: {e}")
+            raise
+
     def list_groups_with_users(self):
         query = """
             SELECT DISTINCT 
