@@ -91,14 +91,22 @@ def main():
 
                     if args.group:
                         groups = [g.strip() for g in args.group.split(',')]
+                        success = True
+                        
                         for group in groups:
                             try:
                                 guacdb.add_user_to_group(args.username, group)
-                                print(f"Added user '{args.username}' to group '{group}'")
+                                print(f"[+] Added user '{args.username}' to group '{group}'")
                             except Exception as e:
-                                print(f"Failed to add to group '{group}': {e}")
+                                print(f"[-] Failed to add to group '{group}': {e}")
+                                success = False
+                        
+                        if not success:
+                            raise RuntimeError("Failed to add to one or more groups")
 
-                    print(f"Successfully created user '{args.username}'")
+                    print(f"\n[+] Successfully created user '{args.username}'")
+                    if groups:
+                        print(f"    Group memberships: {', '.join(groups)}")
 
                 elif args.user_command == 'list':
                     users_and_groups = guacdb.list_users_with_groups()
