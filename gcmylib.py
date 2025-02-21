@@ -319,6 +319,9 @@ class GuacamoleDB:
             raise
 
     def create_vnc_connection(self, connection_name, hostname, port, vnc_password):
+        if not all([connection_name, hostname, port]):
+            raise ValueError("Missing required connection parameters")
+            
         try:
             # Create connection
             self.cursor.execute("""

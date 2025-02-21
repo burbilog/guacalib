@@ -159,6 +159,29 @@ def main():
                     else:
                         print("No VNC connections found")
                         
+                elif args.conn_command == 'new':
+                    try:
+                        # Delete existing connection if it exists
+                        guacdb.delete_existing_connection(args.name)
+                        
+                        # Create new connection
+                        connection_id = guacdb.create_vnc_connection(
+                            args.name,
+                            args.hostname,
+                            args.port,
+                            args.vnc_password
+                        )
+                        
+                        # Grant to group if specified
+                        if args.group:
+                            guacdb.grant_connection_permission(args.group, 'USER_GROUP', connection_id)
+                        
+                        print(f"Successfully created VNC connection '{args.name}'")
+                        
+                    except Exception as e:
+                        print(f"Error creating connection: {e}")
+                        sys.exit(1)
+
                 elif args.conn_command == 'del':
                     try:
                         # Try exact match first
@@ -166,10 +189,6 @@ def main():
                     except Exception as e:
                         print(f"Error deleting connection: {e}")
                         sys.exit(1)
-                    
-                else:
-                    print("Connection management is not yet implemented")
-                    sys.exit(1)
 
     except Exception as e:
         print(f"An error occurred: {e}")
