@@ -196,7 +196,8 @@ class GuacamoleDB:
             """, (connection_name,))
             result = self.cursor.fetchone()
             if not result:
-                raise Exception(f"Connection '{connection_name}' not found")
+                print(f"Connection '{connection_name}' doesn't exist - skipping deletion")
+                return  # Exit early instead of raising error
             connection_id = result[0]
             print(f"Found connection_id: {connection_id}")
 
