@@ -89,6 +89,7 @@ def main():
                     guacdb.delete_existing_user(args.username)
                     guacdb.create_user(args.username, args.password)
 
+                    groups = []
                     if args.group:
                         groups = [g.strip() for g in args.group.split(',')]
                         success = True
