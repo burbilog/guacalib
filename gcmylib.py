@@ -17,11 +17,14 @@ class GuacamoleDB:
         if self.cursor:
             self.cursor.close()
         if self.conn:
-            if exc_type is not None:
-                self.conn.rollback()
-            else:
-                self.conn.commit()
-            self.conn.close()
+            try:
+                # Always commit unless there was an exception
+                if exc_type is None:
+                    self.conn.commit()
+                else:
+                    self.conn.rollback()
+            finally:
+                self.conn.close()
 
     @staticmethod
     def read_config(config_file):
