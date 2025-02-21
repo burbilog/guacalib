@@ -46,7 +46,7 @@ def setup_conn_subcommands(subparsers):
     new_conn.add_argument('--hostname', required=True, help='VNC server hostname/IP')
     new_conn.add_argument('--port', required=True, help='VNC server port')
     new_conn.add_argument('--vnc-password', required=True, help='VNC server password')
-    new_conn.add_argument('--group', help='Group to grant access to')
+    new_conn.add_argument('--group', help='Comma-separated list of groups to grant access to')
 
     # Connection list command
     conn_subparsers.add_parser('list', help='List all VNC connections')
@@ -171,14 +171,26 @@ def main():
                             args.vnc_password
                         )
                         
-                        # Grant to group if specified
+                        # Grant to groups if specified
                         if args.group:
-                            guacdb.grant_connection_permission(
-                                args.group.split('/')[0],  # Base group name
-                                'USER_GROUP', 
-                                connection_id,
-                                group_path=args.group  # Full path for nesting
-                            )
+                            groups = [g.strip() for g in args.group.split(',')]
+                            success = True
+                            
+                            for group in groups:
+                                try:
+                                    guacdb.grant_connection_permission(
+                                        group.split('/')[0],  # Base group name
+                                        'USER_GROUP', 
+                                        connection_id,
+                                        group_path=group  # Full path for nesting
+                                    )
+                                    print(f"[+] Granted access to group '{group}'")
+                                except Exception as e:
+                                    print(f"[-] Failed to grant access to group '{group}': {e}")
+                                    success = False
+                            
+                            if not success:
+                                raise RuntimeError("Failed to grant access to one or more groups")
                         
                         print(f"Successfully created VNC connection '{args.name}'")
                         
