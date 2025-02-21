@@ -319,16 +319,48 @@ class GuacamoleDB:
             print(f"Error adding user to group: {e}")
             raise
 
-    def create_vnc_connection(self, connection_name, hostname, port, vnc_password):
+    def get_connection_group_id(self, group_path):
+        """Resolve nested connection group path to group_id"""
+        try:
+            groups = group_path.split('/')
+            parent_group_id = None
+            
+            for group_name in groups:
+                self.cursor.execute("""
+                    SELECT connection_group_id 
+                    FROM guacamole_connection_group 
+                    WHERE connection_group_name = %s
+                    AND parent_group_id %s
+                    ORDER BY connection_group_id
+                    LIMIT 1
+                """, (
+                    group_name, 
+                    "IS NULL" if parent_group_id is None else "= %s"
+                ) + ((parent_group_id,) if parent_group_id is not None else ()))
+                
+                result = self.cursor.fetchone()
+                if not result:
+                    raise ValueError(f"Group '{group_name}' not found in path '{group_path}'")
+                
+                parent_group_id = result[0]
+                
+            return parent_group_id
+
+        except mysql.connector.Error as e:
+            print(f"Error resolving group path: {e}")
+            raise
+
+    def create_vnc_connection(self, connection_name, hostname, port, vnc_password, parent_group_id=None):
         if not all([connection_name, hostname, port]):
             raise ValueError("Missing required connection parameters")
             
         try:
             # Create connection
             self.cursor.execute("""
-                INSERT INTO guacamole_connection (connection_name, protocol)
-                VALUES (%s, 'vnc')
-            """, (connection_name,))
+                INSERT INTO guacamole_connection 
+                (connection_name, protocol, parent_id)
+                VALUES (%s, 'vnc', %s)
+            """, (connection_name, parent_group_id))
 
             # Get connection_id
             self.cursor.execute("""
@@ -357,8 +389,30 @@ class GuacamoleDB:
             print(f"Error creating VNC connection: {e}")
             raise
 
-    def grant_connection_permission(self, entity_name, entity_type, connection_id):
+    def grant_connection_permission(self, entity_name, entity_type, connection_id, group_path=None):
         try:
+            # If group path is specified
+            if group_path:
+                parent_group_id = self.get_connection_group_id(group_path)
+                
+                # Get existing connection group assignment
+                self.cursor.execute("""
+                    SELECT connection_group_id FROM guacamole_connection_group
+                    WHERE connection_group_name = %s
+                """, (group_path.split('/')[-1],))
+                group_id_result = self.cursor.fetchone()
+                
+                if not group_id_result:
+                    raise ValueError(f"Final group in path '{group_path}' not found")
+                
+                # Assign connection to the group
+                self.cursor.execute("""
+                    UPDATE guacamole_connection
+                    SET parent_id = %s
+                    WHERE connection_id = %s
+                """, (parent_group_id, connection_id))
+
+            # Grant permission
             self.cursor.execute("""
                 INSERT INTO guacamole_connection_permission (entity_id, connection_id, permission)
                 SELECT entity.entity_id, %s, 'READ'

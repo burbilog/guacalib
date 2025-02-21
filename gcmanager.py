@@ -174,7 +174,12 @@ def main():
                         
                         # Grant to group if specified
                         if args.group:
-                            guacdb.grant_connection_permission(args.group, 'USER_GROUP', connection_id)
+                            guacdb.grant_connection_permission(
+                                args.group.split('/')[0],  # Base group name
+                                'USER_GROUP', 
+                                connection_id,
+                                group_path=args.group  # Full path for nesting
+                            )
                         
                         print(f"Successfully created VNC connection '{args.name}'")
                         
