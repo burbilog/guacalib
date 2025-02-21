@@ -158,6 +158,11 @@ def main():
                             print(f"  Password: {'*' * 8 if password else 'not set'}")
                     else:
                         print("No VNC connections found")
+                        
+                elif args.conn_command == 'del':
+                    guacdb.delete_existing_connection(args.name)
+                    print(f"Successfully deleted connection '{args.name}'")
+                    
                 else:
                     print("Connection management is not yet implemented")
                     sys.exit(1)
