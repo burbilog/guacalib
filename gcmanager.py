@@ -179,10 +179,10 @@ def main():
                             for group in groups:
                                 try:
                                     guacdb.grant_connection_permission(
-                                        group.split('/')[0],  # Base group name
+                                        group,  # Direct group name
                                         'USER_GROUP', 
                                         connection_id,
-                                        group_path=group  # Full path for nesting
+                                        group_path=None  # No path nesting
                                     )
                                     print(f"[+] Granted access to group '{group}'")
                                 except Exception as e:
