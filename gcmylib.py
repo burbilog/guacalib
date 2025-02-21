@@ -326,19 +326,19 @@ class GuacamoleDB:
             parent_group_id = None
             
             for group_name in groups:
-                # Dynamically build the query based on parent existence
+                # Corrected column names and reference:
                 sql = """
                     SELECT connection_group_id 
                     FROM guacamole_connection_group 
-                    WHERE connection_group_name = %s
+                    WHERE name = %s  # Changed from connection_group_name
                 """
                 params = [group_name]
                 
                 if parent_group_id is not None:
-                    sql += " AND parent_group_id = %s"
+                    sql += " AND parent_id = %s"  # Correct column name for parent reference
                     params.append(parent_group_id)
                 else:
-                    sql += " AND parent_group_id IS NULL"
+                    sql += " AND parent_id IS NULL"  # Correct column name
                     
                 sql += " ORDER BY connection_group_id LIMIT 1"
                 
