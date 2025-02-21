@@ -160,8 +160,18 @@ def main():
                         print("No VNC connections found")
                         
                 elif args.conn_command == 'del':
-                    guacdb.delete_existing_connection(args.name)
-                    print(f"Successfully deleted connection '{args.name}'")
+                    # Try exact match first
+                    try:
+                        guacdb.delete_existing_connection(args.name)
+                        print(f"Successfully deleted connection '{args.name}'")
+                    except Exception:
+                        # Try matching connection name with port number
+                        try:
+                            guacdb.delete_existing_connection(f"{args.name}(7333)")
+                            print(f"Successfully deleted connection '{args.name}(7333)'")
+                        except Exception as e:
+                            print(f"Error: Connection '{args.name}' not found")
+                            sys.exit(1)
                     
                 else:
                     print("Connection management is not yet implemented")
