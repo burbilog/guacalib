@@ -251,12 +251,13 @@ class GuacamoleDB:
                 'sha256',
                 password.encode('utf-8'),
                 salt,
-                1000  # Number of iterations
+                1000,
+                dklen=32  # Force 32 byte output for SHA256
             )
             
-            # Convert to hex strings and add prefixes
-            password_hash = "$hex$" + binascii.hexlify(digest).decode('utf-8')
-            password_salt = "$hex$" + binascii.hexlify(salt).decode('utf-8')
+            # Get binary representations (no hex encoding)
+            password_hash = digest  # Raw 32-byte binary
+            password_salt = salt    # Raw 32-byte binary
 
             # Create entity
             self.cursor.execute("""
@@ -264,7 +265,7 @@ class GuacamoleDB:
                 VALUES (%s, 'USER')
             """, (username,))
 
-            # Create user with proper password hash
+            # Create user with proper binary data
             self.cursor.execute("""
                 INSERT INTO guacamole_user 
                     (entity_id, password_hash, password_salt, password_date)
@@ -273,8 +274,8 @@ class GuacamoleDB:
                     %s,
                     %s,
                     NOW()
-                FROM guacamole_entity 
-                WHERE name = %s AND type = 'USER'
+            FROM guacamole_entity 
+            WHERE name = %s AND type = 'USER'
             """, (password_hash, password_salt, username))
 
         except mysql.connector.Error as e:
