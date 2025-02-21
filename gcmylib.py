@@ -254,9 +254,9 @@ class GuacamoleDB:
                 1000  # Number of iterations
             )
             
-            # Format digest according to Guacamole requirements
-            password_hash = b"$hex$" + binascii.hexlify(digest)
-            password_salt = b"$hex$" + binascii.hexlify(salt)
+            # Convert to hex strings and add prefixes
+            password_hash = "$hex$" + binascii.hexlify(digest).decode('utf-8')
+            password_salt = "$hex$" + binascii.hexlify(salt).decode('utf-8')
 
             # Create entity
             self.cursor.execute("""
