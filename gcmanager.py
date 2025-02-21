@@ -12,7 +12,7 @@ def setup_user_subcommands(subparsers):
     new_user = user_subparsers.add_parser('new', help='Create a new user')
     new_user.add_argument('--username', required=True, help='Username for Guacamole')
     new_user.add_argument('--password', required=True, help='Password for Guacamole user')
-    new_user.add_argument('--group', help='Group to add user to')
+    new_user.add_argument('--group', help='Comma-separated list of groups to add user to')
 
     # User list command
     user_subparsers.add_parser('list', help='List all users')
@@ -90,8 +90,13 @@ def main():
                     guacdb.create_user(args.username, args.password)
 
                     if args.group:
-                        guacdb.add_user_to_group(args.username, args.group)
-                        print(f"Added user '{args.username}' to group '{args.group}'")
+                        groups = [g.strip() for g in args.group.split(',')]
+                        for group in groups:
+                            try:
+                                guacdb.add_user_to_group(args.username, group)
+                                print(f"Added user '{args.username}' to group '{group}'")
+                            except Exception as e:
+                                print(f"Failed to add to group '{group}': {e}")
 
                     print(f"Successfully created user '{args.username}'")
 

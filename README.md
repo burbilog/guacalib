@@ -52,6 +52,14 @@ To create a user and add them to a group:
     --group developers
 ```
 
+To create a user in multiple groups:
+```bash
+./gcmanager.py user new \
+    --username john.doe \
+    --password secretpass \
+    --group developers,managers,qa
+```
+
 #### Create a new VNC connection
 ```bash
 ./gcmanager.py conn new \
