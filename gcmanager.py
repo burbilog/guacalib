@@ -39,6 +39,25 @@ def setup_group_subcommands(subparsers):
     del_group = group_subparsers.add_parser('del', help='Delete a group')
     del_group.add_argument('--name', required=True, help='Group name to delete')
 
+def setup_conn_subcommands(subparsers):
+    conn_parser = subparsers.add_parser('conn', help='Manage VNC connections')
+    conn_subparsers = conn_parser.add_subparsers(dest='conn_command', help='Connection commands')
+
+    # Connection new command
+    new_conn = conn_subparsers.add_parser('new', help='Create a new VNC connection')
+    new_conn.add_argument('--name', required=True, help='Connection name')
+    new_conn.add_argument('--hostname', required=True, help='VNC server hostname/IP')
+    new_conn.add_argument('--port', required=True, help='VNC server port')
+    new_conn.add_argument('--vnc-password', required=True, help='VNC server password')
+    new_conn.add_argument('--group', help='Group to grant access to')
+
+    # Connection list command
+    conn_subparsers.add_parser('list', help='List all VNC connections')
+
+    # Connection delete command
+    del_conn = conn_subparsers.add_parser('del', help='Delete a VNC connection')
+    del_conn.add_argument('--name', required=True, help='Connection name to delete')
+
 def main():
     parser = argparse.ArgumentParser(description='Manage Guacamole users, groups, and connections')
     parser.add_argument('--config', default='db_config.ini', help='Path to database config file')
@@ -46,6 +65,7 @@ def main():
 
     setup_user_subcommands(subparsers)
     setup_group_subcommands(subparsers)
+    setup_conn_subcommands(subparsers)
 
     args = parser.parse_args()
 
@@ -59,6 +79,10 @@ def main():
 
     if args.command == 'group' and not args.group_command:
         subparsers.choices['group'].print_help()
+        sys.exit(1)
+        
+    if args.command == 'conn' and not args.conn_command:
+        subparsers.choices['conn'].print_help()
         sys.exit(1)
 
     try:
@@ -121,6 +145,10 @@ def main():
                 elif args.group_command == 'del':
                     guacdb.delete_existing_group(args.name)
                     print(f"Successfully deleted group '{args.name}'")
+
+            elif args.command == 'conn':
+                print("Connection management is not yet implemented")
+                sys.exit(1)
 
     except Exception as e:
         print(f"An error occurred: {e}")
