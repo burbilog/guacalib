@@ -528,14 +528,14 @@ class GuacamoleDB:
             self.cursor.execute("""
                 SELECT 
                     c.connection_name,
-                    p1.parameter_value AS hostname,
-                    p2.parameter_value AS port,
+                    MAX(CASE WHEN p1.parameter_name = 'hostname' THEN p1.parameter_value END) AS hostname,
+                    MAX(CASE WHEN p2.parameter_name = 'port' THEN p2.parameter_value END) AS port,
                     GROUP_CONCAT(DISTINCT e.name) AS groups
                 FROM guacamole_connection c
-                JOIN guacamole_connection_parameter p1 
-                    ON c.connection_id = p1.connection_id AND p1.parameter_name = 'hostname'
-                JOIN guacamole_connection_parameter p2 
-                    ON c.connection_id = p2.connection_id AND p2.parameter_name = 'port'
+                LEFT JOIN guacamole_connection_parameter p1 
+                    ON c.connection_id = p1.connection_id
+                LEFT JOIN guacamole_connection_parameter p2 
+                    ON c.connection_id = p2.connection_id
                 LEFT JOIN guacamole_connection_permission cp 
                     ON c.connection_id = cp.connection_id
                 LEFT JOIN guacamole_entity e 
