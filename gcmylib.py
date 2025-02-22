@@ -106,6 +106,7 @@ class GuacamoleDB:
 
     def delete_existing_user(self, username):
         try:
+            self.debug_print(f"Deleting user: {username}")
             # Delete user group permissions first
             self.cursor.execute("""
                 DELETE FROM guacamole_user_group_permission 
@@ -154,6 +155,7 @@ class GuacamoleDB:
 
     def delete_existing_group(self, group_name):
         try:
+            self.debug_print(f"Deleting group: {group_name}")
             # Delete group memberships
             self.cursor.execute("""
                 DELETE FROM guacamole_user_group_member 
@@ -196,7 +198,7 @@ class GuacamoleDB:
 
     def delete_existing_connection(self, connection_name):
         try:
-            print(f"Attempting to delete connection: {connection_name}")
+            self.debug_print(f"Attempting to delete connection: {connection_name}")
             
             # Get connection_id first
             self.cursor.execute("""
@@ -208,40 +210,40 @@ class GuacamoleDB:
                 print(f"Connection '{connection_name}' doesn't exist - skipping deletion")
                 return  # Exit early instead of raising error
             connection_id = result[0]
-            print(f"Found connection_id: {connection_id}")
+            self.debug_print(f"Found connection_id: {connection_id}")
 
             # Delete connection history
-            print("Deleting connection history...")
+            self.debug_print("Deleting connection history...")
             self.cursor.execute("""
                 DELETE FROM guacamole_connection_history
                 WHERE connection_id = %s
             """, (connection_id,))
 
             # Delete connection parameters
-            print("Deleting connection parameters...")
+            self.debug_print("Deleting connection parameters...")
             self.cursor.execute("""
                 DELETE FROM guacamole_connection_parameter
                 WHERE connection_id = %s
             """, (connection_id,))
 
             # Delete connection permissions
-            print("Deleting connection permissions...")
+            self.debug_print("Deleting connection permissions...")
             self.cursor.execute("""
                 DELETE FROM guacamole_connection_permission
                 WHERE connection_id = %s
             """, (connection_id,))
 
             # Finally delete the connection
-            print("Deleting connection...")
+            self.debug_print("Deleting connection...")
             self.cursor.execute("""
                 DELETE FROM guacamole_connection
                 WHERE connection_id = %s
             """, (connection_id,))
 
             # Commit the transaction
-            print("Committing transaction...")
+            self.debug_print("Committing transaction...")
             self.conn.commit()
-            print(f"Successfully deleted connection '{connection_name}'")
+            self.debug_print(f"Successfully deleted connection '{connection_name}'")
 
         except mysql.connector.Error as e:
             print(f"Error deleting existing connection: {e}")
