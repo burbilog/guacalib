@@ -47,6 +47,9 @@ def setup_group_subcommands(subparsers):
 def setup_dump_subcommand(subparsers):
     subparsers.add_parser('dump', help='Dump all groups, users and connections in YAML format')
 
+def setup_version_subcommand(subparsers):
+    subparsers.add_parser('version', help='Show version information')
+
 def setup_vconn_subcommands(subparsers):
     conn_parser = subparsers.add_parser('vconn', help='Manage VNC connections')
     conn_subparsers = conn_parser.add_subparsers(dest='vconn_command', help='Connection commands')
@@ -79,7 +82,8 @@ def main():
     setup_user_subcommands(subparsers)
     setup_group_subcommands(subparsers)
     setup_vconn_subcommands(subparsers)
-    setup_dump_subcommand(subparsers)  # Add dump command
+    setup_dump_subcommand(subparsers)
+    setup_version_subcommand(subparsers)
 
     args = parser.parse_args()
 
@@ -232,6 +236,10 @@ def main():
                     for group in (groups.split(',') if groups else []):
                         print(f"      - {group}")
 
+            elif args.command == 'version':
+                from gcmylib import VERSION
+                print(f"gcmanager version {VERSION}")
+                
             elif args.command == 'vconn':
                 if args.vconn_command == 'list':
                     connections = guacdb.list_connections_with_groups()

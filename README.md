@@ -4,6 +4,7 @@ A command-line tool for managing Apache Guacamole users, groups, and VNC connect
 
 ## Features
 
+- Version information
 - Create and delete users
 - Create and delete groups
 - Manage user group memberships
@@ -107,6 +108,13 @@ Shows all groups and their members:
 #### Delete a VNC connection
 ```bash
 ./gcmanager.py vconn del --name dev-server
+```
+
+### Version Information
+
+Check the installed version:
+```bash
+./gcmanager.py version
 ```
 
 ### Check existence
