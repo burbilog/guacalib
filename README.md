@@ -145,7 +145,7 @@ users:
   user1:
     groups:
       - group1
-connections:
+vnc-connections:
   conn1:
     hostname: 192.168.1.100
     port: 5901

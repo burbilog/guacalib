@@ -222,7 +222,7 @@ def main():
                         print(f"      - {group}")
         
                 # Print connections
-                print("connections:")
+                print("vnc-connections:")
                 for conn in connections_data:
                     name, host, port, groups = conn
                     print(f"  {name}:")
