@@ -8,10 +8,16 @@ import os
 import binascii
 
 class GuacamoleDB:
-    def __init__(self, config_file='db_config.ini'):
+    def __init__(self, config_file='db_config.ini', debug=False):
+        self.debug = debug
         self.db_config = self.read_config(config_file)
         self.conn = self.connect_db()
         self.cursor = self.conn.cursor()
+
+    def debug_print(self, *args, **kwargs):
+        """Print debug messages if debug mode is enabled"""
+        if self.debug:
+            print("[DEBUG]", *args, **kwargs)
 
     def __enter__(self):
         return self
@@ -345,7 +351,7 @@ class GuacamoleDB:
             groups = group_path.split('/')
             parent_group_id = None
             
-            print(f"[DEBUG] Resolving group path: {group_path}")
+            self.debug_print(f"Resolving group path: {group_path}")
             
             for group_name in groups:
                 # CORRECTED SQL - use connection_group_name directly
@@ -364,7 +370,7 @@ class GuacamoleDB:
                     
                 sql += " ORDER BY connection_group_id LIMIT 1"
                 
-                print(f"[DEBUG] Executing SQL:\n{sql}\nWith params: {params}")
+                self.debug_print(f"Executing SQL:\n{sql}\nWith params: {params}")
                 
                 self.cursor.execute(sql, tuple(params))
                 
@@ -373,7 +379,7 @@ class GuacamoleDB:
                     raise ValueError(f"Group '{group_name}' not found in path '{group_path}'")
                 
                 parent_group_id = result[0]
-                print(f"[DEBUG] Found group ID {parent_group_id} for '{group_name}'")
+                self.debug_print(f"Found group ID {parent_group_id} for '{group_name}'")
                 
             return parent_group_id
 
@@ -423,17 +429,17 @@ class GuacamoleDB:
     def grant_connection_permission(self, entity_name, entity_type, connection_id, group_path=None):
         try:
             if group_path:
-                print(f"[DEBUG] Processing group path: {group_path}")  # Added debug
+                self.debug_print(f"Processing group path: {group_path}")
                 parent_group_id = self.get_connection_group_id(group_path)
                 
-                print(f"[DEBUG] Assigning connection {connection_id} to parent group {parent_group_id}")  # Debug
+                self.debug_print(f"Assigning connection {connection_id} to parent group {parent_group_id}")
                 self.cursor.execute("""
                     UPDATE guacamole_connection
                     SET parent_id = %s
                     WHERE connection_id = %s
                 """, (parent_group_id, connection_id))
 
-            print(f"[DEBUG] Granting permission to {entity_type}:{entity_name}")  # Debug
+            self.debug_print(f"Granting permission to {entity_type}:{entity_name}")
             self.cursor.execute("""
                 INSERT INTO guacamole_connection_permission (entity_id, connection_id, permission)
                 SELECT entity.entity_id, %s, 'READ'

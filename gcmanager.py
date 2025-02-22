@@ -58,6 +58,7 @@ def setup_vconn_subcommands(subparsers):
 def main():
     parser = argparse.ArgumentParser(description='Manage Guacamole users, groups, and connections')
     parser.add_argument('--config', default='db_config.ini', help='Path to database config file')
+    parser.add_argument('--debug', action='store_true', help='Enable debug output')
     subparsers = parser.add_subparsers(dest='command', help='Commands')
 
     setup_user_subcommands(subparsers)
@@ -83,7 +84,7 @@ def main():
         sys.exit(1)
 
     try:
-        with GuacamoleDB(args.config) as guacdb:
+        with GuacamoleDB(args.config, debug=args.debug) as guacdb:
             if args.command == 'user':
                 if args.user_command == 'new':
                     guacdb.delete_existing_user(args.username)
