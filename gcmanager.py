@@ -122,8 +122,15 @@ def main():
 
                 # NEW: User deletion command implementation
                 elif args.user_command == 'del':
-                    guacdb.delete_existing_user(args.username)
-                    guacdb.debug_print(f"Successfully deleted user '{args.username}'")
+                    try:
+                        guacdb.delete_existing_user(args.username)
+                        print(f"Successfully deleted user '{args.username}'")
+                    except ValueError as e:
+                        print(f"Error: {e}")
+                        sys.exit(1)
+                    except Exception as e:
+                        print(f"Error deleting user: {e}")
+                        sys.exit(1)
 
             elif args.command == 'group':
                 if args.group_command == 'new':

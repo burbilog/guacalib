@@ -104,8 +104,23 @@ class GuacamoleDB:
             print(f"Error getting group ID: {e}")
             raise
 
+    def user_exists(self, username):
+        """Check if a user with the given name exists"""
+        try:
+            self.cursor.execute("""
+                SELECT COUNT(*) FROM guacamole_entity 
+                WHERE name = %s AND type = 'USER'
+            """, (username,))
+            return self.cursor.fetchone()[0] > 0
+        except mysql.connector.Error as e:
+            print(f"Error checking user existence: {e}")
+            raise
+
     def delete_existing_user(self, username):
         try:
+            if not self.user_exists(username):
+                raise ValueError(f"User '{username}' doesn't exist")
+                
             self.debug_print(f"Deleting user: {username}")
             # Delete user group permissions first
             self.cursor.execute("""
