@@ -130,7 +130,7 @@ def main():
                 elif args.user_command == 'del':
                     try:
                         guacdb.delete_existing_user(args.username)
-                        print(f"Successfully deleted user '{args.username}'")
+                        guacdb.debug_print(f"Successfully deleted user '{args.username}'")
                     except ValueError as e:
                         print(f"Error: {e}")
                         sys.exit(1)
