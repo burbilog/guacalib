@@ -10,6 +10,7 @@ A command-line tool for managing Apache Guacamole users, groups, and VNC connect
 - Automatically create VNC connections for users
 - List existing users and their group memberships
 - List existing groups and their members
+- List existing VNC connections
 
 ## Installation
 
@@ -51,29 +52,6 @@ database = guacamole_db
     --group developers,managers,qa  # Add to multiple groups
 ```
 
-#### Create a new VNC connection
-```bash
-./gcmanager.py vconn new \
-    --name dev-server \
-    --hostname 192.168.1.100 \
-    --port 5901 \
-    --vnc-password vncpass \
-    --group developers,qa  # Comma-separated list of groups
-```
-
-#### Grant access to users/groups
-```bash
-# Grant to multiple users
-./gcmanager.py vconn grant \
-    --connection dev-server \
-    --user john.doe,jane.smith
-
-# Grant to multiple groups
-./gcmanager.py vconn grant \
-    --connection dev-server \
-    --group developers,qa
-```
-
 #### List all users
 Shows all users and their group memberships:
 ```bash
@@ -102,6 +80,28 @@ Shows all groups and their members:
 #### Delete a group
 ```bash
 ./gcmanager.py group del --name developers
+```
+
+### Managing VNC Connections
+
+#### Create a new VNC connection
+```bash
+./gcmanager.py vconn new \
+    --name dev-server \
+    --hostname 192.168.1.100 \
+    --port 5901 \
+    --vnc-password vncpass \
+    --group developers,qa  # Comma-separated list of groups
+```
+
+#### List all VNC connections
+```bash
+./gcmanager.py vconn list
+```
+
+#### Delete a VNC connection
+```bash
+./gcmanager.py vconn del --name dev-server
 ```
 
 ## Configuration File Format
@@ -147,10 +147,7 @@ Current limitations and planned improvements:
   - Implemented in `vconn` command:
     ```bash
     # Create connection
-    gcmanager.py vconn new --name dev-server --hostname 192.168.1.100 --port 5901
-    
-    # Grant to multiple users/groups
-    gcmanager.py vconn grant --connection dev-server --user john.doe,jane.smith --group developers,qa
+    gcmanager.py vconn new --name dev-server --hostname 192.168.1.100 --port 5901 --vnc-password somepass
     
     # List connections
     gcmanager.py vconn list
