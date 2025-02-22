@@ -151,12 +151,12 @@ def main():
                 elif args.group_command == 'list':
                     groups_and_users = guacdb.list_groups_with_users()
                     if groups_and_users:
-                        guacdb.debug_print("Existing groups:")
+                        print("Existing groups:")
                         for group, users in groups_and_users.items():
                             users_str = ", ".join(users) if users else "no users"
-                            guacdb.debug_print(f"- {group} ({users_str})")
+                            print(f"- {group} ({users_str})")
                     else:
-                        guacdb.debug_print("No groups found")
+                        print("No groups found")
 
                 elif args.group_command == 'del':
                     # Check if group exists first
