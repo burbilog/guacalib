@@ -39,42 +39,39 @@ database = guacamole_db
 
 #### Create a new user
 ```bash
+# Basic user creation
 ./gcmanager.py user new \
     --username john.doe \
     --password secretpass
-```
 
-To create a user and add them to a group:
-```bash
+# Create with group memberships (comma-separated)
 ./gcmanager.py user new \
     --username john.doe \
     --password secretpass \
-    --group developers
-```
-
-To create a user in multiple groups:
-```bash
-./gcmanager.py user new \
-    --username john.doe \
-    --password secretpass \
-    --group developers,managers,qa
+    --group developers,managers,qa  # Add to multiple groups
 ```
 
 #### Create a new VNC connection
 ```bash
-./gcmanager.py conn new \
+./gcmanager.py vconn new \
     --name dev-server \
     --hostname 192.168.1.100 \
     --port 5901 \
     --vnc-password vncpass \
-    --group developers
+    --group developers,qa  # Comma-separated list of groups
 ```
 
-#### Grant access to a user
+#### Grant access to users/groups
 ```bash
-./gcmanager.py conn grant \
+# Grant to multiple users
+./gcmanager.py vconn grant \
     --connection dev-server \
-    --user john.doe
+    --user john.doe,jane.smith
+
+# Grant to multiple groups
+./gcmanager.py vconn grant \
+    --connection dev-server \
+    --group developers,qa
 ```
 
 #### List all users
@@ -146,15 +143,20 @@ All errors are reported with clear messages to help diagnose issues.
 
 Current limitations and planned improvements:
 
-- [ ] Separate connection management from user creation
-  - Currently each user gets a single hardcoded VNC connection
-  - Future `conn` command will allow flexible connection management:
+- [x] Separate connection management from user creation ✓
+  - Implemented in `vconn` command:
     ```bash
-    # Planned syntax
-    gcmanager.py conn new --type vnc --name dev-server --host 192.168.1.100 --port 5901
-    gcmanager.py conn grant --name dev-server --user john.doe
-    gcmanager.py conn list
-    gcmanager.py conn del --name dev-server
+    # Create connection
+    gcmanager.py vconn new --name dev-server --hostname 192.168.1.100 --port 5901
+    
+    # Grant to multiple users/groups
+    gcmanager.py vconn grant --connection dev-server --user john.doe,jane.smith --group developers,qa
+    
+    # List connections
+    gcmanager.py vconn list
+    
+    # Delete connection
+    gcmanager.py vconn del --name dev-server
     ```
 
 - [ ] Support for other connection types
