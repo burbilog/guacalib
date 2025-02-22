@@ -36,9 +36,9 @@ def setup_group_subcommands(subparsers):
     del_group = group_subparsers.add_parser('del', help='Delete a group')
     del_group.add_argument('--name', required=True, help='Group name to delete')
 
-def setup_conn_subcommands(subparsers):
-    conn_parser = subparsers.add_parser('conn', help='Manage VNC connections')
-    conn_subparsers = conn_parser.add_subparsers(dest='conn_command', help='Connection commands')
+def setup_vconn_subcommands(subparsers):
+    conn_parser = subparsers.add_parser('vconn', help='Manage VNC connections')
+    conn_subparsers = conn_parser.add_subparsers(dest='vconn_command', help='Connection commands')
 
     # Connection new command
     new_conn = conn_subparsers.add_parser('new', help='Create a new VNC connection')
@@ -62,7 +62,7 @@ def main():
 
     setup_user_subcommands(subparsers)
     setup_group_subcommands(subparsers)
-    setup_conn_subcommands(subparsers)
+    setup_vconn_subcommands(subparsers)
 
     args = parser.parse_args()
 
@@ -78,8 +78,8 @@ def main():
         subparsers.choices['group'].print_help()
         sys.exit(1)
         
-    if args.command == 'conn' and not args.conn_command:
-        subparsers.choices['conn'].print_help()
+    if args.command == 'vconn' and not args.vconn_command:
+        subparsers.choices['vconn'].print_help()
         sys.exit(1)
 
     try:
@@ -146,8 +146,8 @@ def main():
                     guacdb.delete_existing_group(args.name)
                     print(f"Successfully deleted group '{args.name}'")
 
-            elif args.command == 'conn':
-                if args.conn_command == 'list':
+            elif args.command == 'vconn':
+                if args.vconn_command == 'list':
                     connections = guacdb.list_connections()
                     if connections:
                         print("\nExisting VNC connections:")
@@ -159,7 +159,7 @@ def main():
                     else:
                         print("No VNC connections found")
                         
-                elif args.conn_command == 'new':
+                elif args.vconn_command == 'new':
                     try:
                         # Delete existing connection if it exists
                         guacdb.delete_existing_connection(args.name)
@@ -199,7 +199,7 @@ def main():
                         print(f"Error creating connection: {e}")
                         sys.exit(1)
 
-                elif args.conn_command == 'del':
+                elif args.vconn_command == 'del':
                     try:
                         # Try exact match first
                         guacdb.delete_existing_connection(args.name)
