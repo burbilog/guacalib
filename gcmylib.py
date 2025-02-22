@@ -87,6 +87,18 @@ class GuacamoleDB:
             print(f"Error listing groups: {e}")
             raise
 
+    def group_exists(self, group_name):
+        """Check if a group with the given name exists"""
+        try:
+            self.cursor.execute("""
+                SELECT COUNT(*) FROM guacamole_entity 
+                WHERE name = %s AND type = 'USER_GROUP'
+            """, (group_name,))
+            return self.cursor.fetchone()[0] > 0
+        except mysql.connector.Error as e:
+            print(f"Error checking group existence: {e}")
+            raise
+
     def get_group_id(self, group_name):
         try:
             self.cursor.execute("""
