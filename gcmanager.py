@@ -140,7 +140,11 @@ def main():
 
             elif args.command == 'group':
                 if args.group_command == 'new':
-                    guacdb.delete_existing_group(args.name)
+                    # Check if group exists first
+                    if guacdb.group_exists(args.name):
+                        print(f"Error: Group '{args.name}' already exists")
+                        sys.exit(1)
+                        
                     guacdb.create_group(args.name)
                     guacdb.debug_print(f"Successfully created group '{args.name}'")
 
@@ -155,6 +159,11 @@ def main():
                         guacdb.debug_print("No groups found")
 
                 elif args.group_command == 'del':
+                    # Check if group exists first
+                    if not guacdb.group_exists(args.name):
+                        print(f"Error: Group '{args.name}' does not exist")
+                        sys.exit(1)
+                        
                     guacdb.delete_existing_group(args.name)
                     guacdb.debug_print(f"Successfully deleted group '{args.name}'")
 
