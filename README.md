@@ -50,7 +50,7 @@ database = guacamole_db
 
 # Create with group memberships (comma-separated)
 ./gcmanager.py user new \
-    --username john.doe \
+    --name john.doe \
     --password secretpass \
     --group developers,managers,qa  # Add to multiple groups
 
