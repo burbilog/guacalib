@@ -119,12 +119,12 @@ def main():
                 elif args.user_command == 'list':
                     users_and_groups = guacdb.list_users_with_groups()
                     if users_and_groups:
-                        guacdb.debug_print("Existing users:")
+                        print("Existing users:")
                         for user, groups in users_and_groups.items():
                             groups_str = ", ".join(groups) if groups else "no groups"
-                            guacdb.debug_print(f"- {user} ({groups_str})")
+                            print(f"- {user} ({groups_str})")
                     else:
-                        guacdb.debug_print("No users found")
+                        print("No users found")
 
                 # NEW: User deletion command implementation
                 elif args.user_command == 'del':
