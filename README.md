@@ -1,8 +1,10 @@
-# Guacamole CLI Manager
+# Guacamole management library and CLI utility
 
-A command-line tool for managing Apache Guacamole users, groups, and VNC connections. This tool provides a simple way to manage Guacamole's MySQL database directly, allowing for easy automation and scripting of user management tasks.
+A command-line tool and Python library for managing Apache Guacamole users, groups, and VNC connections. Command line tool provides a simple way to manage Guacamole's MySQL database directly, allowing for easy automation and scripting of user management tasks.
 
 ## Features
+
+### CLI utility
 
 - Version information
 - Create and delete users
@@ -15,6 +17,10 @@ A command-line tool for managing Apache Guacamole users, groups, and VNC connect
 - Dump all data (users, groups, connections) in YAML format
 - Comprehensive error handling and validation
 - Secure database operations with parameterized queries
+
+### Library
+
+Do all the above in Python
 
 ## Installation
 
