@@ -162,9 +162,6 @@ def main():
                         
                 elif args.vconn_command == 'new':
                     try:
-                        # Delete existing connection if it exists
-                        guacdb.delete_existing_connection(args.name)
-                        
                         # Create new connection
                         connection_id = guacdb.create_vnc_connection(
                             args.name,

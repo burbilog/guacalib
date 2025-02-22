@@ -389,9 +389,24 @@ class GuacamoleDB:
             print(f"Error resolving group path: {e}")
             raise
 
+    def connection_exists(self, connection_name):
+        """Check if a connection with the given name exists"""
+        try:
+            self.cursor.execute("""
+                SELECT COUNT(*) FROM guacamole_connection
+                WHERE connection_name = %s
+            """, (connection_name,))
+            return self.cursor.fetchone()[0] > 0
+        except mysql.connector.Error as e:
+            print(f"Error checking connection existence: {e}")
+            raise
+
     def create_vnc_connection(self, connection_name, hostname, port, vnc_password, parent_group_id=None):
         if not all([connection_name, hostname, port]):
             raise ValueError("Missing required connection parameters")
+            
+        if self.connection_exists(connection_name):
+            raise ValueError(f"Connection '{connection_name}' already exists")
             
         try:
             # Create connection
