@@ -118,13 +118,12 @@ def main():
 
                 elif args.user_command == 'list':
                     users_and_groups = guacdb.list_users_with_groups()
-                    if users_and_groups:
-                        print("Existing users:")
-                        for user, groups in users_and_groups.items():
-                            groups_str = ", ".join(groups) if groups else "no groups"
-                            print(f"- {user} ({groups_str})")
-                    else:
-                        print("No users found")
+                    print("users:")
+                    for user, groups in users_and_groups.items():
+                        print(f"  {user}:")
+                        print("    groups:")
+                        for group in groups:
+                            print(f"      - {group}")
 
                 # NEW: User deletion command implementation
                 elif args.user_command == 'del':
@@ -149,14 +148,16 @@ def main():
                     guacdb.debug_print(f"Successfully created group '{args.name}'")
 
                 elif args.group_command == 'list':
-                    groups_and_users = guacdb.list_groups_with_users()
-                    if groups_and_users:
-                        print("Existing groups:")
-                        for group, users in groups_and_users.items():
-                            users_str = ", ".join(users) if users else "no users"
-                            print(f"- {group} ({users_str})")
-                    else:
-                        print("No groups found")
+                    groups_data = guacdb.list_groups_with_users_and_connections()
+                    print("groups:")
+                    for group, data in groups_data.items():
+                        print(f"  {group}:")
+                        print("    users:")
+                        for user in data['users']:
+                            print(f"      - {user}")
+                        print("    connections:")
+                        for conn in data['connections']:
+                            print(f"      - {conn}")
 
                 elif args.group_command == 'del':
                     # Check if group exists first
@@ -169,16 +170,16 @@ def main():
 
             elif args.command == 'vconn':
                 if args.vconn_command == 'list':
-                    connections = guacdb.list_connections()
-                    if connections:
-                        print("Existing VNC connections:")
-                        for conn in connections:
-                            name, host, port, password = conn
-                            print(f"- {name}")
-                            print(f"  Host: {host}:{port}")
-                            print(f"  Password: {'*' * 8 if password else 'not set'}")
-                    else:
-                        print("No VNC connections found")
+                    connections = guacdb.list_connections_with_groups()
+                    print("connections:")
+                    for conn in connections:
+                        name, host, port, groups = conn
+                        print(f"  {name}:")
+                        print(f"    hostname: {host}")
+                        print(f"    port: {port}")
+                        print("    groups:")
+                        for group in (groups.split(',') if groups else []):
+                            print(f"      - {group}")
                         
                 elif args.vconn_command == 'new':
                     try:

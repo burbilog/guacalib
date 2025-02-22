@@ -522,28 +522,73 @@ class GuacamoleDB:
         
         return users_groups
 
-    def list_connections(self):
-        """List all VNC connections with their parameters"""
+    def list_connections_with_groups(self):
+        """List all VNC connections with their groups"""
         try:
             self.cursor.execute("""
                 SELECT 
                     c.connection_name,
                     p1.parameter_value AS hostname,
                     p2.parameter_value AS port,
-                    p3.parameter_value AS password
+                    GROUP_CONCAT(DISTINCT e.name) AS groups
                 FROM guacamole_connection c
                 JOIN guacamole_connection_parameter p1 
                     ON c.connection_id = p1.connection_id AND p1.parameter_name = 'hostname'
                 JOIN guacamole_connection_parameter p2 
                     ON c.connection_id = p2.connection_id AND p2.parameter_name = 'port'
-                LEFT JOIN guacamole_connection_parameter p3 
-                    ON c.connection_id = p3.connection_id AND p3.parameter_name = 'password'
+                LEFT JOIN guacamole_connection_permission cp 
+                    ON c.connection_id = cp.connection_id
+                LEFT JOIN guacamole_entity e 
+                    ON cp.entity_id = e.entity_id AND e.type = 'USER_GROUP'
                 WHERE c.protocol = 'vnc'
+                GROUP BY c.connection_id
                 ORDER BY c.connection_name
             """)
             return self.cursor.fetchall()
         except mysql.connector.Error as e:
             print(f"Error listing connections: {e}")
+            raise
+
+    def list_groups_with_users_and_connections(self):
+        """List all groups with their users and connections"""
+        try:
+            # Get users per group
+            self.cursor.execute("""
+                SELECT 
+                    e.name as groupname,
+                    GROUP_CONCAT(DISTINCT ue.name) as users
+                FROM guacamole_entity e
+                LEFT JOIN guacamole_user_group ug ON e.entity_id = ug.entity_id
+                LEFT JOIN guacamole_user_group_member ugm ON ug.user_group_id = ugm.user_group_id
+                LEFT JOIN guacamole_entity ue ON ugm.member_entity_id = ue.entity_id AND ue.type = 'USER'
+                WHERE e.type = 'USER_GROUP'
+                GROUP BY e.name
+            """)
+            groups_users = {row[0]: row[1].split(',') if row[1] else [] for row in self.cursor.fetchall()}
+
+            # Get connections per group
+            self.cursor.execute("""
+                SELECT 
+                    e.name as groupname,
+                    GROUP_CONCAT(DISTINCT c.connection_name) as connections
+                FROM guacamole_entity e
+                LEFT JOIN guacamole_connection_permission cp ON e.entity_id = cp.entity_id
+                LEFT JOIN guacamole_connection c ON cp.connection_id = c.connection_id
+                WHERE e.type = 'USER_GROUP'
+                GROUP BY e.name
+            """)
+            groups_connections = {row[0]: row[1].split(',') if row[1] else [] for row in self.cursor.fetchall()}
+
+            # Combine results
+            result = {}
+            for group in set(groups_users.keys()).union(groups_connections.keys()):
+                result[group] = {
+                    'users': groups_users.get(group, []),
+                    'connections': groups_connections.get(group, [])
+                }
+            return result
+        except mysql.connector.Error as e:
+            print(f"Error listing groups: {e}")
             raise
 
     def list_groups_with_users(self):
