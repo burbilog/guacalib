@@ -207,6 +207,10 @@ Current limitations and planned improvements:
   - Custom parameters for different connection types
   - Connection groups
 
+- [ ] Implement dumping RDP connections
+  - Add RDP connection support to dump command
+  - Include RDP-specific parameters in output
+
 PRs implementing any of these features are welcome!
 
 ## Contributing
