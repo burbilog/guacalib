@@ -226,13 +226,13 @@ Current limitations and planned improvements:
   - Implemented in `vconn` command:
     ```bash
     # Create connection
-    gcmanager.py vconn new --name dev-server --hostname 192.168.1.100 --port 5901 --vnc-password somepass
+    guacaman vconn new --name dev-server --hostname 192.168.1.100 --port 5901 --vnc-password somepass
     
     # List connections
-    gcmanager.py vconn list
+    guacaman vconn list
     
     # Delete connection
-    gcmanager.py vconn del --name dev-server
+    guacaman vconn del --name dev-server
     ```
 
 - [ ] Support for other connection types

@@ -256,7 +256,7 @@ def main():
 
             elif args.command == 'version':
                 from guacalib import VERSION
-                print(f"gcmanager version {VERSION}")
+                print(f"guacaman version {VERSION}")
                 
             elif args.command == 'vconn':
                 if args.vconn_command == 'list':
