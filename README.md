@@ -59,7 +59,7 @@ Shows all users and their group memberships:
 ```
 
 #### Delete a user
-Removes a user and their associated VNC connection:
+Removes a user:
 ```bash
 ./gcmanager.py user del --username john.doe
 ```

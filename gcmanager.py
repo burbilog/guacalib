@@ -122,10 +122,8 @@ def main():
 
                 # NEW: User deletion command implementation
                 elif args.user_command == 'del':
-                    connection_name = f"vnc-{args.username}"
-                    guacdb.delete_existing_connection(connection_name)
                     guacdb.delete_existing_user(args.username)
-                    guacdb.debug_print(f"Successfully deleted user '{args.username}' and associated connection")
+                    guacdb.debug_print(f"Successfully deleted user '{args.username}'")
 
             elif args.command == 'group':
                 if args.group_command == 'new':
