@@ -171,14 +171,14 @@ def main():
                 if args.vconn_command == 'list':
                     connections = guacdb.list_connections()
                     if connections:
-                        guacdb.debug_print("Existing VNC connections:")
+                        print("Existing VNC connections:")
                         for conn in connections:
                             name, host, port, password = conn
-                            guacdb.debug_print(f"- {name}")
-                            guacdb.debug_print(f"  Host: {host}:{port}")
-                            guacdb.debug_print(f"  Password: {'*' * 8 if password else 'not set'}")
+                            print(f"- {name}")
+                            print(f"  Host: {host}:{port}")
+                            print(f"  Password: {'*' * 8 if password else 'not set'}")
                     else:
-                        guacdb.debug_print("No VNC connections found")
+                        print("No VNC connections found")
                         
                 elif args.vconn_command == 'new':
                     try:
