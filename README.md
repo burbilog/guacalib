@@ -50,6 +50,8 @@ database = guacamole_db
     --username john.doe \
     --password secretpass \
     --group developers,managers,qa  # Add to multiple groups
+
+# Note: Will fail if user already exists
 ```
 
 #### List all users

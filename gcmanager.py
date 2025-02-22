@@ -87,9 +87,15 @@ def main():
         with GuacamoleDB(args.config, debug=args.debug) as guacdb:
             if args.command == 'user':
                 if args.user_command == 'new':
-                    guacdb.delete_existing_user(args.username)
+                    # Check if user exists first
+                    if guacdb.user_exists(args.username):
+                        print(f"Error: User '{args.username}' already exists")
+                        sys.exit(1)
+                        
+                    # Create new user
                     guacdb.create_user(args.username, args.password)
 
+                    # Handle group memberships
                     groups = []
                     if args.group:
                         groups = [g.strip() for g in args.group.split(',')]
