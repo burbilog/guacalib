@@ -19,7 +19,7 @@ classifiers = [
 ]
 
 [project.scripts]
-gcmanager = "guacalib.cli:main"
+guacaman = "guacalib.cli:main"
 
 [project.optional-dependencies]
 dev = [
