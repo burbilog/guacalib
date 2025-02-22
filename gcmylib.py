@@ -548,17 +548,16 @@ class GuacamoleDB:
 
     def list_groups_with_users(self):
         query = """
-            SELECT DISTINCT 
-                e1.name as groupname,
-                GROUP_CONCAT(e2.name) as usernames
-            FROM guacamole_entity e1
-            JOIN guacamole_user_group ug ON e1.entity_id = ug.entity_id
-            LEFT JOIN guacamole_user_group_member ugm 
-                ON ug.user_group_id = ugm.user_group_id
-            LEFT JOIN guacamole_entity e2
-                ON ugm.member_entity_id = e2.entity_id
-            WHERE e1.type = 'USER_GROUP'
-            GROUP BY e1.name
+            SELECT 
+                e.name as groupname,
+                GROUP_CONCAT(DISTINCT ue.name) as usernames
+            FROM guacamole_entity e
+            LEFT JOIN guacamole_user_group ug ON e.entity_id = ug.entity_id
+            LEFT JOIN guacamole_user_group_member ugm ON ug.user_group_id = ugm.user_group_id
+            LEFT JOIN guacamole_entity ue ON ugm.member_entity_id = ue.entity_id AND ue.type = 'USER'
+            WHERE e.type = 'USER_GROUP'
+            GROUP BY e.name
+            ORDER BY e.name
         """
         self.cursor.execute(query)
         results = self.cursor.fetchall()
