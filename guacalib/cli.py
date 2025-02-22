@@ -2,7 +2,7 @@
 
 import argparse
 import sys
-from gcmylib import GuacamoleDB
+from guacalib import GuacamoleDB
 
 def setup_user_subcommands(subparsers):
     user_parser = subparsers.add_parser('user', help='Manage Guacamole users')
@@ -237,7 +237,7 @@ def main():
                         print(f"      - {group}")
 
             elif args.command == 'version':
-                from gcmylib import VERSION
+                from guacalib import VERSION
                 print(f"gcmanager version {VERSION}")
                 
             elif args.command == 'vconn':

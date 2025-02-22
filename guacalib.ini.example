@@ -1,3 +1,4 @@
+# place this file into $HOME/.guacalib.ini and adjust to your guacamole's mysql settings
 [mysql]
 host = localhost
 user = guacamole_user
