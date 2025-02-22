@@ -10,7 +10,7 @@ def setup_user_subcommands(subparsers):
 
     # User new command
     new_user = user_subparsers.add_parser('new', help='Create a new user')
-    new_user.add_argument('--username', required=True, help='Username for Guacamole')
+    new_user.add_argument('--name', required=True, help='Username for Guacamole')
     new_user.add_argument('--password', required=True, help='Password for Guacamole user')
     new_user.add_argument('--group', help='Comma-separated list of groups to add user to')
 
@@ -19,11 +19,11 @@ def setup_user_subcommands(subparsers):
 
     # User exists command
     exists_user = user_subparsers.add_parser('exists', help='Check if a user exists')
-    exists_user.add_argument('--username', required=True, help='Username to check')
+    exists_user.add_argument('--name', required=True, help='Username to check')
 
     # User delete command
     del_user = user_subparsers.add_parser('del', help='Delete a user')
-    del_user.add_argument('--username', required=True, help='Username to delete')
+    del_user.add_argument('--name', required=True, help='Username to delete')
 
 def setup_group_subcommands(subparsers):
     group_parser = subparsers.add_parser('group', help='Manage Guacamole groups')
@@ -104,12 +104,12 @@ def main():
             if args.command == 'user':
                 if args.user_command == 'new':
                     # Check if user exists first
-                    if guacdb.user_exists(args.username):
-                        print(f"Error: User '{args.username}' already exists")
+                    if guacdb.user_exists(args.name):
+                        print(f"Error: User '{args.name}' already exists")
                         sys.exit(1)
                         
                     # Create new user
-                    guacdb.create_user(args.username, args.password)
+                    guacdb.create_user(args.name, args.password)
 
                     # Handle group memberships
                     groups = []
@@ -119,8 +119,8 @@ def main():
                         
                         for group in groups:
                             try:
-                                guacdb.add_user_to_group(args.username, group)
-                                guacdb.debug_print(f"Added user '{args.username}' to group '{group}'")
+                                guacdb.add_user_to_group(args.name, group)
+                                guacdb.debug_print(f"Added user '{args.name}' to group '{group}'")
                             except Exception as e:
                                 print(f"[-] Failed to add to group '{group}': {e}")
                                 success = False
@@ -128,7 +128,7 @@ def main():
                         if not success:
                             raise RuntimeError("Failed to add to one or more groups")
 
-                    guacdb.debug_print(f"Successfully created user '{args.username}'")
+                    guacdb.debug_print(f"Successfully created user '{args.name}'")
                     if groups:
                         guacdb.debug_print(f"Group memberships: {', '.join(groups)}")
 
@@ -144,8 +144,8 @@ def main():
                 # NEW: User deletion command implementation
                 elif args.user_command == 'del':
                     try:
-                        guacdb.delete_existing_user(args.username)
-                        guacdb.debug_print(f"Successfully deleted user '{args.username}'")
+                        guacdb.delete_existing_user(args.name)
+                        guacdb.debug_print(f"Successfully deleted user '{args.name}'")
                     except ValueError as e:
                         print(f"Error: {e}")
                         sys.exit(1)
@@ -154,7 +154,7 @@ def main():
                         sys.exit(1)
 
                 elif args.user_command == 'exists':
-                    if guacdb.user_exists(args.username):
+                    if guacdb.user_exists(args.name):
                         sys.exit(0)
                     else:
                         sys.exit(1)

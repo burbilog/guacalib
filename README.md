@@ -45,7 +45,7 @@ database = guacamole_db
 ```bash
 # Basic user creation
 ./gcmanager.py user new \
-    --username john.doe \
+    --name john.doe \
     --password secretpass
 
 # Create with group memberships (comma-separated)
@@ -66,7 +66,7 @@ Shows all users and their group memberships:
 #### Delete a user
 Removes a user:
 ```bash
-./gcmanager.py user del --username john.doe
+./gcmanager.py user del --name john.doe
 ```
 
 ### Managing Groups
@@ -115,7 +115,7 @@ Check if a user, group or connection exists (returns 0 if exists, 1 if not):
 
 ```bash
 # Check user
-./gcmanager.py user exists --username john.doe
+./gcmanager.py user exists --name john.doe
 
 # Check group
 ./gcmanager.py group exists --name developers
