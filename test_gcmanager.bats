@@ -1,15 +1,19 @@
 #!/usr/bin/env bats
 
 setup() {
-    # Create temporary config file
-    export TEST_CONFIG=$(mktemp)
-    cat > "$TEST_CONFIG" <<EOF
-[mysql]
-host = localhost
-user = guacamole_user
-password = your_password
-database = guacamole_db
-EOF
+    # Check if TEST_CONFIG is set and points to a valid file
+    if [ -z "$TEST_CONFIG" ] || [ ! -f "$TEST_CONFIG" ]; then
+        echo "Error: TEST_CONFIG environment variable must be set to a valid config file"
+        echo "Example:"
+        echo "  export TEST_CONFIG=/path/to/test_config.ini"
+        exit 1
+    fi
+
+    # Verify the config file contains required sections
+    if ! grep -q '\[mysql\]' "$TEST_CONFIG"; then
+        echo "Error: Test config file must contain [mysql] section"
+        exit 1
+    fi
 
     # Create test groups, users and connections
     ./gcmanager.py --config "$TEST_CONFIG" group new --name testgroup1
@@ -28,9 +32,6 @@ teardown() {
     ./gcmanager.py --config "$TEST_CONFIG" user del --name testuser2 || true
     ./gcmanager.py --config "$TEST_CONFIG" group del --name testgroup1 || true
     ./gcmanager.py --config "$TEST_CONFIG" group del --name testgroup2 || true
-    
-    # Remove temporary config
-    rm -f "$TEST_CONFIG"
 }
 
 @test "Group creation and existence" {
