@@ -106,6 +106,43 @@ Shows all groups and their members:
 ./gcmanager.py vconn del --name dev-server
 ```
 
+### Dump all data
+
+Dumps all groups, users and connections in YAML format:
+```bash
+./gcmanager.py dump
+```
+
+Example output:
+```yaml
+groups:
+  group1:
+    users:
+      - user1
+    connections:
+      - conn1
+users:
+  user1:
+    groups:
+      - group1
+connections:
+  conn1:
+    hostname: 192.168.1.100
+    port: 5901
+    groups:
+      - group1
+```
+
+## Output Format
+
+All list commands (`user list`, `group list`, `vconn list`, `dump`) output data in proper, parseable YAML format. This makes it easy to process the output with tools like `yq` or integrate with other systems.
+
+Example:
+```bash
+# Parse with yq
+./gcmanager.py user list | yq '.users[].groups'
+```
+
 ## Configuration File Format
 
 The `db_config.ini` file should contain MySQL connection details:

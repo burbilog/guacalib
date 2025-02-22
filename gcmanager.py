@@ -36,6 +36,9 @@ def setup_group_subcommands(subparsers):
     del_group = group_subparsers.add_parser('del', help='Delete a group')
     del_group.add_argument('--name', required=True, help='Group name to delete')
 
+def setup_dump_subcommand(subparsers):
+    subparsers.add_parser('dump', help='Dump all groups, users and connections in YAML format')
+
 def setup_vconn_subcommands(subparsers):
     conn_parser = subparsers.add_parser('vconn', help='Manage VNC connections')
     conn_subparsers = conn_parser.add_subparsers(dest='vconn_command', help='Connection commands')
@@ -64,6 +67,7 @@ def main():
     setup_user_subcommands(subparsers)
     setup_group_subcommands(subparsers)
     setup_vconn_subcommands(subparsers)
+    setup_dump_subcommand(subparsers)  # Add dump command
 
     args = parser.parse_args()
 
@@ -167,6 +171,42 @@ def main():
                         
                     guacdb.delete_existing_group(args.name)
                     guacdb.debug_print(f"Successfully deleted group '{args.name}'")
+
+            elif args.command == 'dump':
+                # Get all data
+                groups_data = guacdb.list_groups_with_users_and_connections()
+                users_data = guacdb.list_users_with_groups()
+                connections_data = guacdb.list_connections_with_groups()
+        
+                # Print groups
+                print("groups:")
+                for group, data in groups_data.items():
+                    print(f"  {group}:")
+                    print("    users:")
+                    for user in data['users']:
+                        print(f"      - {user}")
+                    print("    connections:")
+                    for conn in data['connections']:
+                        print(f"      - {conn}")
+        
+                # Print users
+                print("users:")
+                for user, groups in users_data.items():
+                    print(f"  {user}:")
+                    print("    groups:")
+                    for group in groups:
+                        print(f"      - {group}")
+        
+                # Print connections
+                print("connections:")
+                for conn in connections_data:
+                    name, host, port, groups = conn
+                    print(f"  {name}:")
+                    print(f"    hostname: {host}")
+                    print(f"    port: {port}")
+                    print("    groups:")
+                    for group in (groups.split(',') if groups else []):
+                        print(f"      - {group}")
 
             elif args.command == 'vconn':
                 if args.vconn_command == 'list':
