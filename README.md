@@ -7,10 +7,13 @@ A command-line tool for managing Apache Guacamole users, groups, and VNC connect
 - Create and delete users
 - Create and delete groups
 - Manage user group memberships
-- Automatically create VNC connections for users
+- Create and manage VNC connections
 - List existing users and their group memberships
 - List existing groups and their members
-- List existing VNC connections
+- List existing VNC connections with their parameters
+- Dump all data (users, groups, connections) in YAML format
+- Comprehensive error handling and validation
+- Secure database operations with parameterized queries
 
 ## Installation
 
