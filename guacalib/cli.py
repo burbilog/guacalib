@@ -90,6 +90,21 @@ def main():
 
     args = parser.parse_args()
 
+    def check_config_permissions(config_path):
+        """Check config file has secure permissions"""
+        if not os.path.exists(config_path):
+            return  # Will be handled later by GuacamoleDB
+            
+        mode = os.stat(config_path).st_mode
+        if mode & 0o077:  # Check if group/others have any permissions
+            print(f"ERROR: Config file {config_path} has insecure permissions!")
+            print("Required permissions: -rw------- (600)")
+            print("Fix with: chmod 600", config_path)
+            sys.exit(2)
+
+    # Check permissions before doing anything
+    check_config_permissions(args.config)
+
     if not args.command:
         parser.print_help()
         sys.exit(1)

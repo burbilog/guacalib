@@ -203,7 +203,9 @@ All errors are reported with clear messages to help diagnose issues.
 ## Security Considerations
 
 - Database credentials are stored in a separate configuration file
-- Passwords are properly hashed before storage
+- Configuration file must have strict permissions (0600/-rw-------)
+  - Script will exit with error code 2 if permissions are too open
+- Passwords are properly hashed before storage  
 - The tool handles database connections securely
 - All SQL queries use parameterized statements to prevent SQL injection
 
