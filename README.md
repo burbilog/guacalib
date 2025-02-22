@@ -20,16 +20,16 @@ A command-line tool for managing Apache Guacamole users, groups, and VNC connect
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/burbilog/gcmanager.git
-cd gcmanager
+git clone https://github.com/burbilog/guacalib.git
+cd guacalib
 ```
 
-2. Install required dependencies:
+2. Install the library:
 ```bash
-pip install -r requirements.txt
+pip install .
 ```
 
-3. Create a database configuration file `db_config.ini`:
+3. Create a database configuration file in $HOME called  `.guacaman.ini` for guacaman command line utility:
 ```ini
 [mysql]
 host = localhost
@@ -38,19 +38,19 @@ password = your_password
 database = guacamole_db
 ```
 
-## Usage
+## Command line usage
 
 ### Managing Users
 
 #### Create a new user
 ```bash
 # Basic user creation
-./gcmanager.py user new \
+guacaman user new \
     --name john.doe \
     --password secretpass
 
 # Create with group memberships (comma-separated)
-./gcmanager.py user new \
+guacaman user new \
     --name john.doe \
     --password secretpass \
     --group developers,managers,qa  # Add to multiple groups
@@ -61,38 +61,38 @@ database = guacamole_db
 #### List all users
 Shows all users and their group memberships:
 ```bash
-./gcmanager.py user list
+guacaman user list
 ```
 
 #### Delete a user
 Removes a user:
 ```bash
-./gcmanager.py user del --name john.doe
+guacaman user del --name john.doe
 ```
 
 ### Managing Groups
 
 #### Create a new group
 ```bash
-./gcmanager.py group new --name developers
+guacaman group new --name developers
 ```
 
 #### List all groups
 Shows all groups and their members:
 ```bash
-./gcmanager.py group list
+guacaman group list
 ```
 
 #### Delete a group
 ```bash
-./gcmanager.py group del --name developers
+guacaman group del --name developers
 ```
 
 ### Managing VNC Connections
 
 #### Create a new VNC connection
 ```bash
-./gcmanager.py vconn new \
+guacaman vconn new \
     --name dev-server \
     --hostname 192.168.1.100 \
     --port 5901 \
@@ -102,19 +102,19 @@ Shows all groups and their members:
 
 #### List all VNC connections
 ```bash
-./gcmanager.py vconn list
+guacaman vconn list
 ```
 
 #### Delete a VNC connection
 ```bash
-./gcmanager.py vconn del --name dev-server
+guacaman vconn del --name dev-server
 ```
 
 ### Version Information
 
 Check the installed version:
 ```bash
-./gcmanager.py version
+guacaman version
 ```
 
 ### Check existence
@@ -123,13 +123,13 @@ Check if a user, group or connection exists (returns 0 if exists, 1 if not):
 
 ```bash
 # Check user
-./gcmanager.py user exists --name john.doe
+guacaman user exists --name john.doe
 
 # Check group
-./gcmanager.py group exists --name developers
+guacaman group exists --name developers
 
 # Check connection
-./gcmanager.py vconn exists --name dev-server
+guacaman vconn exists --name dev-server
 ```
 
 These commands are silent and only return an exit code, making them suitable for scripting.
@@ -138,7 +138,7 @@ These commands are silent and only return an exit code, making them suitable for
 
 Dumps all groups, users and connections in YAML format:
 ```bash
-./gcmanager.py dump
+guacaman dump
 ```
 
 Example output:
@@ -168,12 +168,12 @@ All list commands (`user list`, `group list`, `vconn list`, `dump`) output data 
 Example:
 ```bash
 # Parse with yq
-./gcmanager.py user list | yq '.users[].groups'
+guacaman user list | yq '.users[].groups'
 ```
 
 ## Configuration File Format
 
-The `db_config.ini` file should contain MySQL connection details:
+The $HOME/`.guacaman.ini` file should contain MySQL connection details:
 
 ```ini
 [mysql]
