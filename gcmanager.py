@@ -98,7 +98,7 @@ def main():
                         for group in groups:
                             try:
                                 guacdb.add_user_to_group(args.username, group)
-                                print(f"[+] Added user '{args.username}' to group '{group}'")
+                                guacdb.debug_print(f"Added user '{args.username}' to group '{group}'")
                             except Exception as e:
                                 print(f"[-] Failed to add to group '{group}': {e}")
                                 success = False
@@ -106,59 +106,59 @@ def main():
                         if not success:
                             raise RuntimeError("Failed to add to one or more groups")
 
-                    print(f"\n[+] Successfully created user '{args.username}'")
+                    guacdb.debug_print(f"Successfully created user '{args.username}'")
                     if groups:
-                        print(f"    Group memberships: {', '.join(groups)}")
+                        guacdb.debug_print(f"Group memberships: {', '.join(groups)}")
 
                 elif args.user_command == 'list':
                     users_and_groups = guacdb.list_users_with_groups()
                     if users_and_groups:
-                        print("\nExisting users:")
+                        guacdb.debug_print("Existing users:")
                         for user, groups in users_and_groups.items():
                             groups_str = ", ".join(groups) if groups else "no groups"
-                            print(f"- {user} ({groups_str})")
+                            guacdb.debug_print(f"- {user} ({groups_str})")
                     else:
-                        print("No users found")
+                        guacdb.debug_print("No users found")
 
                 # NEW: User deletion command implementation
                 elif args.user_command == 'del':
                     connection_name = f"vnc-{args.username}"
                     guacdb.delete_existing_connection(connection_name)
                     guacdb.delete_existing_user(args.username)
-                    print(f"Successfully deleted user '{args.username}' and associated connection")
+                    guacdb.debug_print(f"Successfully deleted user '{args.username}' and associated connection")
 
             elif args.command == 'group':
                 if args.group_command == 'new':
                     guacdb.delete_existing_group(args.name)
                     guacdb.create_group(args.name)
-                    print(f"Successfully created group '{args.name}'")
+                    guacdb.debug_print(f"Successfully created group '{args.name}'")
 
                 elif args.group_command == 'list':
                     groups_and_users = guacdb.list_groups_with_users()
                     if groups_and_users:
-                        print("\nExisting groups:")
+                        guacdb.debug_print("Existing groups:")
                         for group, users in groups_and_users.items():
                             users_str = ", ".join(users) if users else "no users"
-                            print(f"- {group} ({users_str})")
+                            guacdb.debug_print(f"- {group} ({users_str})")
                     else:
-                        print("No groups found")
+                        guacdb.debug_print("No groups found")
 
                 elif args.group_command == 'del':
                     guacdb.delete_existing_group(args.name)
-                    print(f"Successfully deleted group '{args.name}'")
+                    guacdb.debug_print(f"Successfully deleted group '{args.name}'")
 
             elif args.command == 'vconn':
                 if args.vconn_command == 'list':
                     connections = guacdb.list_connections()
                     if connections:
-                        print("\nExisting VNC connections:")
+                        guacdb.debug_print("Existing VNC connections:")
                         for conn in connections:
                             name, host, port, password = conn
-                            print(f"- {name}")
-                            print(f"  Host: {host}:{port}")
-                            print(f"  Password: {'*' * 8 if password else 'not set'}")
+                            guacdb.debug_print(f"- {name}")
+                            guacdb.debug_print(f"  Host: {host}:{port}")
+                            guacdb.debug_print(f"  Password: {'*' * 8 if password else 'not set'}")
                     else:
-                        print("No VNC connections found")
+                        guacdb.debug_print("No VNC connections found")
                         
                 elif args.vconn_command == 'new':
                     try:
@@ -186,7 +186,7 @@ def main():
                                         connection_id,
                                         group_path=None  # No path nesting
                                     )
-                                    print(f"[+] Granted access to group '{group}'")
+                                    guacdb.debug_print(f"Granted access to group '{group}'")
                                 except Exception as e:
                                     print(f"[-] Failed to grant access to group '{group}': {e}")
                                     success = False
@@ -194,7 +194,7 @@ def main():
                             if not success:
                                 raise RuntimeError("Failed to grant access to one or more groups")
                         
-                        print(f"Successfully created VNC connection '{args.name}'")
+                        guacdb.debug_print(f"Successfully created VNC connection '{args.name}'")
                         
                     except Exception as e:
                         print(f"Error creating connection: {e}")
