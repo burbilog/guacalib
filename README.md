@@ -43,6 +43,10 @@ user = guacamole_user
 password = your_password
 database = guacamole_db
 ```
+Ensure permissions are strict:
+```bash
+chmod 0600 $HOME/.guacaman.ini
+```
 
 ## Command line usage
 
