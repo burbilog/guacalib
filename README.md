@@ -109,6 +109,23 @@ Shows all groups and their members:
 ./gcmanager.py vconn del --name dev-server
 ```
 
+### Check existence
+
+Check if a user, group or connection exists (returns 0 if exists, 1 if not):
+
+```bash
+# Check user
+./gcmanager.py user exists --username john.doe
+
+# Check group
+./gcmanager.py group exists --name developers
+
+# Check connection
+./gcmanager.py vconn exists --name dev-server
+```
+
+These commands are silent and only return an exit code, making them suitable for scripting.
+
 ### Dump all data
 
 Dumps all groups, users and connections in YAML format:

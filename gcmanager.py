@@ -17,7 +17,11 @@ def setup_user_subcommands(subparsers):
     # User list command
     user_subparsers.add_parser('list', help='List all users')
 
-    # NEW: User delete command
+    # User exists command
+    exists_user = user_subparsers.add_parser('exists', help='Check if a user exists')
+    exists_user.add_argument('--username', required=True, help='Username to check')
+
+    # User delete command
     del_user = user_subparsers.add_parser('del', help='Delete a user')
     del_user.add_argument('--username', required=True, help='Username to delete')
 
@@ -31,6 +35,10 @@ def setup_group_subcommands(subparsers):
 
     # Group list command
     group_subparsers.add_parser('list', help='List all groups')
+
+    # Group exists command
+    exists_group = group_subparsers.add_parser('exists', help='Check if a group exists')
+    exists_group.add_argument('--name', required=True, help='Group name to check')
 
     # Group delete command
     del_group = group_subparsers.add_parser('del', help='Delete a group')
@@ -53,6 +61,10 @@ def setup_vconn_subcommands(subparsers):
 
     # Connection list command
     conn_subparsers.add_parser('list', help='List all VNC connections')
+
+    # Connection exists command
+    exists_conn = conn_subparsers.add_parser('exists', help='Check if a VNC connection exists')
+    exists_conn.add_argument('--name', required=True, help='Connection name to check')
 
     # Connection delete command
     del_conn = conn_subparsers.add_parser('del', help='Delete a VNC connection')
@@ -141,6 +153,12 @@ def main():
                         print(f"Error deleting user: {e}")
                         sys.exit(1)
 
+                elif args.user_command == 'exists':
+                    if guacdb.user_exists(args.username):
+                        sys.exit(0)
+                    else:
+                        sys.exit(1)
+
             elif args.command == 'group':
                 if args.group_command == 'new':
                     # Check if group exists first
@@ -171,6 +189,12 @@ def main():
                         
                     guacdb.delete_existing_group(args.name)
                     guacdb.debug_print(f"Successfully deleted group '{args.name}'")
+
+                elif args.group_command == 'exists':
+                    if guacdb.group_exists(args.name):
+                        sys.exit(0)
+                    else:
+                        sys.exit(1)
 
             elif args.command == 'dump':
                 # Get all data
@@ -264,6 +288,12 @@ def main():
                         guacdb.delete_existing_connection(args.name)
                     except Exception as e:
                         print(f"Error deleting connection: {e}")
+                        sys.exit(1)
+
+                elif args.vconn_command == 'exists':
+                    if guacdb.connection_exists(args.name):
+                        sys.exit(0)
+                    else:
                         sys.exit(1)
 
     except Exception as e:
