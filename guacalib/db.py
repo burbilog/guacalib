@@ -38,8 +38,29 @@ class GuacamoleDB:
     @staticmethod
     def read_config(config_file):
         config = configparser.ConfigParser()
+        if not os.path.exists(config_file):
+            print(f"Error: Config file not found: {config_file}")
+            print("Please create a config file at ~/.guacaman.ini with the following format:")
+            print("[mysql]")
+            print("host = your_mysql_host")
+            print("user = your_mysql_user")
+            print("password = your_mysql_password")
+            print("database = your_mysql_database")
+            sys.exit(1)
+            
         try:
             config.read(config_file)
+            if 'mysql' not in config:
+                print(f"Error: Missing [mysql] section in config file: {config_file}")
+                sys.exit(1)
+                
+            required_keys = ['host', 'user', 'password', 'database']
+            missing_keys = [key for key in required_keys if key not in config['mysql']]
+            if missing_keys:
+                print(f"Error: Missing required keys in [mysql] section: {', '.join(missing_keys)}")
+                print(f"Config file: {config_file}")
+                sys.exit(1)
+                
             return {
                 'host': config['mysql']['host'],
                 'user': config['mysql']['user'],
@@ -47,7 +68,7 @@ class GuacamoleDB:
                 'database': config['mysql']['database']
             }
         except Exception as e:
-            print(f"Error reading config file: {e}")
+            print(f"Error reading config file {config_file}: {str(e)}")
             sys.exit(1)
 
     def connect_db(self):
