@@ -9,7 +9,7 @@ description = "Guacamole management library and CLI"
 readme = "README.md"
 requires-python = ">=3.8"
 authors = [
-    {name="Your Name", email="your@email.com"}
+    {name="Roman V. Isaev", email="rm@isaeff.net"}
 ]
 license = {file = "LICENSE"}
 classifiers = [
