@@ -344,6 +344,10 @@ Current limitations and planned improvements:
 
 PRs implementing any of these features are welcome!
 
+## Version
+
+This is version 0.3
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
