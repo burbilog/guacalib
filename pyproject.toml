@@ -3,6 +3,10 @@ requires = ["setuptools>=42"]
 build-backend = "setuptools.build_meta"
 
 [project]
+dependencies = [
+    "mysql-connector-python>=8.0.0",
+    "configparser>=5.0.0"
+]
 name = "guacalib"
 version = "0.1"
 description = "Guacamole management library and CLI"
