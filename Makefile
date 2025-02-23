@@ -14,16 +14,21 @@ tests: FORCE
 
 .PHONY: push
 push:
-	@VERSION=$$(python3 -c "from guacalib.version import VERSION; print(VERSION)"); \
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "Error: Working directory not clean"; \
+		exit 1; \
+	fi; \
+	VERSION=$$(python3 -c "from guacalib.version import VERSION; print(VERSION)"); \
 	if git rev-parse "v$$VERSION" >/dev/null 2>&1; then \
 		echo "Error: Tag v$$VERSION already exists"; \
 		exit 1; \
 	fi; \
-	if [ -n "$$(git status --porcelain)" ]; then \
-		echo "Error: Working directory not clean"; \
-		exit 1; \
-	fi; \
+	echo "Updating version in README.md to $$VERSION..."; \
+	sed -i.bak -E 's/version [0-9]+\.[0-9]+(\.[0-9]+)?/version '"$$VERSION"'/g' README.md; \
+	rm README.md.bak; \
+	git add README.md; \
+	git commit -m "Update version to $$VERSION in README.md"; \
 	echo "Creating and pushing tag v$$VERSION..."; \
 	git tag -a "v$$VERSION" -m "Release v$$VERSION"; \
-	git push origin "v$$VERSION"; \
-	git push
+	git push origin main; \
+	git push origin "v$$VERSION"
