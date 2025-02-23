@@ -22,7 +22,14 @@ A command-line tool and Python library for managing Apache Guacamole users, grou
 
 Do all the above in Python
 
-## Installation
+## Installation from PyPI
+
+Just install it with pip:
+```bash
+pip install guacalib
+```
+
+## Installation from repository
 
 1. Clone the repository:
 ```bash
@@ -265,4 +272,4 @@ This software is distributed under the terms of the GNU General Public license, 
 
 ## Support
 
-For bugs, questions, and discussions please use the [GitHub Issues](https://github.com/burbilog/gcmanager/issues).
+For bugs, questions, and discussions please use the [GitHub Issues](https://github.com/burbilog/guacalib/issues).
