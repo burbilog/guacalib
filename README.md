@@ -55,6 +55,88 @@ Ensure permissions are strict:
 chmod 0600 $HOME/.guacaman.ini
 ```
 
+## Python Library Usage
+
+The `guacalib` library provides programmatic access to all Guacamole management features. Here are some examples:
+
+### Basic Setup
+```python
+from guacalib import GuacamoleDB
+
+# Initialize with config file
+guacdb = GuacamoleDB('~/.guacaman.ini')
+
+# Use context manager for automatic cleanup
+with GuacamoleDB('~/.guacaman.ini') as guacdb:
+    # Your code here
+```
+
+### Managing Users
+```python
+# Create user
+guacdb.create_user('john.doe', 'secretpass')
+
+# Add user to group
+guacdb.add_user_to_group('john.doe', 'developers')
+
+# Check if user exists
+if guacdb.user_exists('john.doe'):
+    print("User exists")
+
+# Delete user
+guacdb.delete_existing_user('john.doe')
+```
+
+### Managing Groups
+```python
+# Create group
+guacdb.create_group('developers')
+
+# Check if group exists
+if guacdb.group_exists('developers'):
+    print("Group exists")
+
+# Delete group
+guacdb.delete_existing_group('developers')
+```
+
+### Managing Connections
+```python
+# Create VNC connection
+conn_id = guacdb.create_vnc_connection(
+    'dev-server',
+    '192.168.1.100',
+    5901,
+    'vncpass'
+)
+
+# Grant connection to group
+guacdb.grant_connection_permission(
+    'developers',
+    'USER_GROUP',
+    conn_id
+)
+
+# Check if connection exists
+if guacdb.connection_exists('dev-server'):
+    print("Connection exists")
+
+# Delete connection
+guacdb.delete_existing_connection('dev-server')
+```
+
+### Listing Data
+```python
+# List users with their groups
+users = guacdb.list_users_with_groups()
+
+# List groups with their users and connections
+groups = guacdb.list_groups_with_users_and_connections()
+
+# List all VNC connections
+connections = guacdb.list_connections_with_groups()
+```
+
 ## Command line usage
 
 ### Managing Users
