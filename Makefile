@@ -2,6 +2,7 @@ all:
 	echo make tests or make build or make testpub
 
 build:
+	rm -rf build/ dist/ *.egg-info/
 	python -m build
 
 testpub: build

@@ -42,7 +42,9 @@ cd guacalib
 pip install .
 ```
 
-3. Create a database configuration file in $HOME called  `.guacaman.ini` for guacaman command line utility:
+## Setting up configuration file
+
+Create a database configuration file in $HOME called  `.guacaman.ini` for guacaman command line utility:
 ```ini
 [mysql]
 host = localhost
