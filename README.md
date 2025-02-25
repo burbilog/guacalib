@@ -213,6 +213,25 @@ guacaman conn new \
 guacaman conn list
 ```
 
+#### Modify a connection
+```bash
+# Change connection parameters
+guacaman conn modify --name dev-server \
+    --set hostname=192.168.1.200 \
+    --set port=5902 \
+    --set max_connections=5
+
+# Set parent connection group
+guacaman conn modify --name dev-server \
+    --set-parent-group "production/vnc_servers"
+
+# Remove parent group
+guacaman conn modify --name dev-server --set-parent-group ""
+
+# Invalid parameter handling example (will fail)
+guacaman conn modify --name dev-server --set invalid_param=value
+```
+
 #### Delete a connection
 ```bash
 guacaman conn del --name dev-server
