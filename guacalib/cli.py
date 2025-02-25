@@ -37,9 +37,9 @@ def setup_user_subcommands(subparsers):
     modify_user.add_argument('--name', help='Username to modify')
     modify_user.add_argument('--set', help='Parameter to set in format param=value')
 
-def setup_group_subcommands(subparsers):
-    group_parser = subparsers.add_parser('group', help='Manage Guacamole groups')
-    group_subparsers = group_parser.add_subparsers(dest='group_command', help='Group commands')
+def setup_usergroup_subcommands(subparsers):
+    group_parser = subparsers.add_parser('usergroup', help='Manage Guacamole user groups')
+    group_subparsers = group_parser.add_subparsers(dest='usergroup_command', help='User group commands')
 
     # Group new command
     new_group = group_subparsers.add_parser('new', help='Create a new group')
@@ -103,7 +103,7 @@ def main():
     subparsers = parser.add_subparsers(dest='command', help='Commands')
 
     setup_user_subcommands(subparsers)
-    setup_group_subcommands(subparsers)
+    setup_usergroup_subcommands(subparsers)
     setup_conn_subcommands(subparsers)
     setup_dump_subcommand(subparsers)
     setup_version_subcommand(subparsers)
@@ -146,8 +146,8 @@ def main():
             if args.command == 'user':
                 handle_user_command(args, guacdb)
 
-            elif args.command == 'group':
-                handle_group_command(args, guacdb)
+            elif args.command == 'usergroup':
+                handle_usergroup_command(args, guacdb)
 
             elif args.command == 'dump':
                 handle_dump_command(guacdb)

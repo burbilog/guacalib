@@ -15,8 +15,8 @@ setup() {
     fi
 
     # Create test groups, users and connections
-    guacaman --config "$TEST_CONFIG" group new --name testgroup1
-    guacaman --config "$TEST_CONFIG" group new --name testgroup2
+    guacaman --config "$TEST_CONFIG" usergroup new --name testgroup1
+    guacaman --config "$TEST_CONFIG" usergroup new --name testgroup2
     guacaman --config "$TEST_CONFIG" user new --name testuser1 --password testpass1 --group testgroup1,testgroup2
     guacaman --config "$TEST_CONFIG" user new --name testuser2 --password testpass2
     guacaman --config "$TEST_CONFIG" conn new --type vnc --name testconn1 --hostname 192.168.1.100 --port 5901 --vnc-password vncpass1 --group testgroup1
@@ -31,32 +31,32 @@ teardown() {
     guacaman --config "$TEST_CONFIG" conn del --name testconn2 || true
     guacaman --config "$TEST_CONFIG" user del --name testuser1 || true
     guacaman --config "$TEST_CONFIG" user del --name testuser2 || true
-    guacaman --config "$TEST_CONFIG" group del --name testgroup1 || true
-    guacaman --config "$TEST_CONFIG" group del --name testgroup2 || true
-    guacaman --config "$TEST_CONFIG" group del --name parentgroup1 || true
-    guacaman --config "$TEST_CONFIG" group del --name nested/parentgroup2 || true
+    guacaman --config "$TEST_CONFIG" usergroup del --name testgroup1 || true
+    guacaman --config "$TEST_CONFIG" usergroup del --name testgroup2 || true
+    guacaman --config "$TEST_CONFIG" usergroup del --name parentgroup1 || true
+    guacaman --config "$TEST_CONFIG" usergroup del --name nested/parentgroup2 || true
 }
 
-@test "Group creation and existence" {
-    run guacaman --config "$TEST_CONFIG" group exists --name testgroup1
+@test "User group creation and existence" {
+    run guacaman --config "$TEST_CONFIG" usergroup exists --name testgroup1
     [ "$status" -eq 0 ]
     
-    run guacaman --config "$TEST_CONFIG" group exists --name testgroup2
+    run guacaman --config "$TEST_CONFIG" usergroup exists --name testgroup2
     [ "$status" -eq 0 ]
 }
 
-@test "Group listing" {
-    run guacaman --config "$TEST_CONFIG" group list
+@test "User group listing" {
+    run guacaman --config "$TEST_CONFIG" usergroup list
     [ "$status" -eq 0 ]
     [[ "$output" == *"testgroup1"* ]]
     [[ "$output" == *"testgroup2"* ]]
 }
 
-@test "Group deletion" {
-    run guacaman --config "$TEST_CONFIG" group del --name testgroup1
+@test "User group deletion" {
+    run guacaman --config "$TEST_CONFIG" usergroup del --name testgroup1
     [ "$status" -eq 0 ]
     
-    run guacaman --config "$TEST_CONFIG" group exists --name testgroup1
+    run guacaman --config "$TEST_CONFIG" usergroup exists --name testgroup1
     [ "$status" -eq 1 ]
 }
 
@@ -111,14 +111,14 @@ teardown() {
     [ "$status" -eq 1 ]
 }
 
-@test "Create existing group should fail" {
-    run guacaman --config "$TEST_CONFIG" group new --name testgroup1
+@test "Create existing user group should fail" {
+    run guacaman --config "$TEST_CONFIG" usergroup new --name testgroup1
     [ "$status" -ne 0 ]
     [[ "$output" == *"already exists"* ]]
 }
 
-@test "Delete non-existent group should fail" {
-    run guacaman --config "$TEST_CONFIG" group del --name nonexistentgroup
+@test "Delete non-existent user group should fail" {
+    run guacaman --config "$TEST_CONFIG" usergroup del --name nonexistentgroup
     [ "$status" -ne 0 ]
     [[ "$output" == *"does not exist"* ]]
 }

@@ -1,8 +1,8 @@
 import sys
 
-def handle_group_command(args, guacdb):
-    """Handle all group subcommands"""
-    if args.group_command == 'new':
+def handle_usergroup_command(args, guacdb):
+    """Handle all usergroup subcommands"""
+    if args.usergroup_command == 'new':
         if guacdb.group_exists(args.name):
             print(f"Error: Group '{args.name}' already exists")
             sys.exit(1)
@@ -10,7 +10,7 @@ def handle_group_command(args, guacdb):
         guacdb.create_group(args.name)
         guacdb.debug_print(f"Successfully created group '{args.name}'")
 
-    elif args.group_command == 'list':
+    elif args.usergroup_command == 'list':
         groups_data = guacdb.list_groups_with_users_and_connections()
         print("groups:")
         for group, data in groups_data.items():
@@ -22,7 +22,7 @@ def handle_group_command(args, guacdb):
             for conn in data['connections']:
                 print(f"      - {conn}")
 
-    elif args.group_command == 'del':
+    elif args.usergroup_command == 'del':
         if not guacdb.group_exists(args.name):
             print(f"Error: Group '{args.name}' does not exist")
             sys.exit(1)
@@ -30,7 +30,7 @@ def handle_group_command(args, guacdb):
         guacdb.delete_existing_group(args.name)
         guacdb.debug_print(f"Successfully deleted group '{args.name}'")
 
-    elif args.group_command == 'exists':
+    elif args.usergroup_command == 'exists':
         if guacdb.group_exists(args.name):
             sys.exit(0)
         else:
