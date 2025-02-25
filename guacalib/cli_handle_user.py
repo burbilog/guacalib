@@ -24,8 +24,8 @@ def handle_user_new(args, guacdb):
     guacdb.create_user(args.name, args.password)
     groups = []
     
-    if args.group:
-        groups = [g.strip() for g in args.group.split(',')]
+    if args.usergroup:
+        groups = [g.strip() for g in args.usergroup.split(',')]
         success = True
         
         for group in groups:
