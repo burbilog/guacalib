@@ -7,7 +7,7 @@ def handle_usergroup_command(args, guacdb):
             print(f"Error: Group '{args.name}' already exists")
             sys.exit(1)
             
-        guacdb.create_group(args.name)
+        guacdb.create_usergroup(args.name)
         guacdb.debug_print(f"Successfully created group '{args.name}'")
 
     elif args.usergroup_command == 'list':

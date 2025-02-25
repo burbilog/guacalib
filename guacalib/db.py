@@ -632,7 +632,7 @@ class GuacamoleDB:
             print(f"Error creating user: {e}")
             raise
 
-    def create_group(self, group_name):
+    def create_usergroup(self, group_name):
         try:
             # Create entity
             self.cursor.execute("""
