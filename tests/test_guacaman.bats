@@ -143,6 +143,122 @@ teardown() {
     [[ "$output" == *"doesn't exist"* ]]
 }
 
+@test "Connection modify command shows parameters" {
+    run guacaman --config "$TEST_CONFIG" conn modify
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Modifiable connection parameters"* ]]
+    [[ "$output" == *"Parameters in guacamole_connection table"* ]]
+    [[ "$output" == *"Parameters in guacamole_connection_parameter table"* ]]
+    [[ "$output" == *"max_connections"* ]]
+    [[ "$output" == *"max_connections_per_user"* ]]
+    [[ "$output" == *"hostname"* ]]
+    [[ "$output" == *"port"* ]]
+    [[ "$output" == *"password"* ]]
+    [[ "$output" == *"read-only"* ]]
+}
+
+@test "Connection modify hostname parameter" {
+    # Modify the hostname
+    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set hostname=10.1.1.10
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully updated hostname"* ]]
+    
+    # Verify the change in the connection listing
+    run guacaman --config "$TEST_CONFIG" conn list
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"testconn2"* ]]
+    [[ "$output" == *"hostname: 10.1.1.10"* ]]
+}
+
+@test "Connection modify port parameter" {
+    # Modify the port
+    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set port=5910
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully updated port"* ]]
+    
+    # Verify the change in the connection listing
+    run guacaman --config "$TEST_CONFIG" conn list
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"testconn2"* ]]
+    [[ "$output" == *"port: 5910"* ]]
+}
+
+@test "Connection modify password parameter" {
+    # Modify the password
+    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set password=newvncpass
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully updated password"* ]]
+}
+
+@test "Connection modify read-only parameter" {
+    # Set read-only to true
+    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set read-only=true
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully updated read-only"* ]]
+    
+    # Set read-only to false
+    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set read-only=false
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully updated read-only"* ]]
+    
+    # Invalid value should fail
+    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set read-only=invalid
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"must be 'true' or 'false'"* ]]
+}
+
+@test "Connection modify max_connections parameter" {
+    # Modify max_connections
+    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set max_connections=5
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully updated max_connections"* ]]
+    
+    # Invalid value should fail
+    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set max_connections=invalid
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"must be an integer"* ]]
+}
+
+@test "Connection modify max_connections_per_user parameter" {
+    # Modify max_connections_per_user
+    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set max_connections_per_user=3
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully updated max_connections_per_user"* ]]
+    
+    # Invalid value should fail
+    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set max_connections_per_user=invalid
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"must be an integer"* ]]
+}
+
+@test "Connection modify multiple parameters at once" {
+    # Modify multiple parameters
+    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set hostname=192.168.2.100 --set port=5905 --set read-only=true
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully updated hostname"* ]]
+    [[ "$output" == *"Successfully updated port"* ]]
+    [[ "$output" == *"Successfully updated read-only"* ]]
+    
+    # Verify the changes in the connection listing
+    run guacaman --config "$TEST_CONFIG" conn list
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"testconn2"* ]]
+    [[ "$output" == *"hostname: 192.168.2.100"* ]]
+    [[ "$output" == *"port: 5905"* ]]
+}
+
+@test "Connection modify non-existent connection should fail" {
+    run guacaman --config "$TEST_CONFIG" conn modify --name nonexistentconn --set hostname=10.1.1.10
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"not found"* ]]
+}
+
+@test "Connection modify invalid parameter should fail" {
+    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set invalid_param=value
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"Invalid parameter"* ]]
+}
+
 @test "Dump command shows test data" {
     run guacaman --config "$TEST_CONFIG" dump
     [ "$status" -eq 0 ]
