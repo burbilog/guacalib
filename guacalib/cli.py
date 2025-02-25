@@ -8,6 +8,7 @@ from guacalib.cli_handle_usergroup import handle_usergroup_command
 from guacalib.cli_handle_dump import handle_dump_command
 from guacalib.cli_handle_user import handle_user_command
 from guacalib.cli_handle_conn import handle_conn_command
+from guacalib.cli_handle_conngroup import handle_conngroup_command
 
 def setup_user_subcommands(subparsers):
     user_parser = subparsers.add_parser('user', help='Manage Guacamole users')
@@ -62,6 +63,33 @@ def setup_usergroup_subcommands(subparsers):
     modify_group.add_argument('--adduser', help='Username to add to usergroup')
     modify_group.add_argument('--rmuser', help='Username to remove from usergroup')
 
+def setup_conngroup_subcommands(subparsers):
+    conngroup_parser = subparsers.add_parser('conngroup', help='Manage connection groups')
+    conngroup_subparsers = conngroup_parser.add_subparsers(dest='conngroup_command', help='Connection group commands')
+
+    # Conngroup new command
+    new_conngroup = conngroup_subparsers.add_parser('new', help='Create a new connection group')
+    new_conngroup.add_argument('--name', required=True, help='Connection group name')
+
+    # Conngroup list command
+    conngroup_subparsers.add_parser('list', help='List all connection groups')
+
+    # Conngroup exists command
+    exists_conngroup = conngroup_subparsers.add_parser('exists', help='Check if a connection group exists')
+    exists_conngroup.add_argument('--name', required=True, help='Connection group name to check')
+
+    # Conngroup delete command
+    del_conngroup = conngroup_subparsers.add_parser('del', help='Delete a connection group')
+    del_conngroup.add_argument('--name', required=True, help='Connection group name to delete')
+
+    # Conngroup modify command
+    modify_conngroup = conngroup_subparsers.add_parser('modify', help='Modify connection group')
+    modify_conngroup.add_argument('--name', required=True, help='Connection group name to modify')
+    modify_conngroup.add_argument('--addconn', help='Connection name to add to group')
+    modify_conngroup.add_argument('--rmconn', help='Connection name to remove from group')
+    modify_conngroup.add_argument('--set-parent-conngroup', 
+                               help='Set parent connection group name (use empty string to unset group)')
+
 def setup_dump_subcommand(subparsers):
     subparsers.add_parser('dump', help='Dump all groups, users and connections in YAML format')
 
@@ -113,6 +141,7 @@ def main():
     setup_conn_subcommands(subparsers)
     setup_dump_subcommand(subparsers)
     setup_version_subcommand(subparsers)
+    setup_conngroup_subcommands(subparsers)
 
     args = parser.parse_args()
 
@@ -163,6 +192,9 @@ def main():
                 
             elif args.command == 'conn':
                 handle_conn_command(args, guacdb)
+                
+            elif args.command == 'conngroup':
+                handle_conngroup_command(args, guacdb)
 
     except Exception as e:
         print(f"An error occurred: {e}")
