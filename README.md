@@ -190,6 +190,16 @@ guacaman usergroup list
 guacaman usergroup del --name developers
 ```
 
+#### Modify a user group
+Add or remove users from a group:
+```bash
+# Add user to group
+guacaman usergroup modify --name developers --adduser john.doe
+
+# Remove user from group
+guacaman usergroup modify --name developers --rmuser john.doe
+```
+
 ### Managing Connections
 
 #### Create a new connection

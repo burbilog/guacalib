@@ -56,6 +56,12 @@ def setup_usergroup_subcommands(subparsers):
     del_group = group_subparsers.add_parser('del', help='Delete a group')
     del_group.add_argument('--name', required=True, help='Group name to delete')
 
+    # Group modify command
+    modify_group = group_subparsers.add_parser('modify', help='Modify group membership')
+    modify_group.add_argument('--name', required=True, help='Group name to modify')
+    modify_group.add_argument('--adduser', help='Username to add to group')
+    modify_group.add_argument('--rmuser', help='Username to remove from group')
+
 def setup_dump_subcommand(subparsers):
     subparsers.add_parser('dump', help='Dump all groups, users and connections in YAML format')
 
