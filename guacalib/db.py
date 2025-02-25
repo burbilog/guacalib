@@ -250,6 +250,56 @@ class GuacamoleDB:
         }
     }
     
+    def get_connection_group_id_by_name(self, group_name):
+        """Get connection_group_id by name from guacamole_connection_group"""
+        try:
+            if not group_name:  # Handle empty group name as explicit NULL
+                return None
+                
+            self.cursor.execute("""
+                SELECT connection_group_id 
+                FROM guacamole_connection_group
+                WHERE connection_group_name = %s
+            """, (group_name,))
+            result = self.cursor.fetchone()
+            if not result:
+                raise ValueError(f"Connection group '{group_name}' not found")
+            return result[0]
+        except mysql.connector.Error as e:
+            print(f"Error getting connection group ID: {e}")
+            raise
+
+    def modify_connection_parent_group(self, connection_name, group_name):
+        """Set parent connection group for a connection"""
+        try:
+            group_id = self.get_connection_group_id_by_name(group_name) if group_name else None
+            
+            # Get connection ID
+            self.cursor.execute("""
+                SELECT connection_id FROM guacamole_connection 
+                WHERE connection_name = %s
+            """, (connection_name,))
+            result = self.cursor.fetchone()
+            if not result:
+                raise ValueError(f"Connection '{connection_name}' not found")
+            connection_id = result[0]
+            
+            # Update parent ID
+            self.cursor.execute("""
+                UPDATE guacamole_connection
+                SET parent_id = %s
+                WHERE connection_id = %s
+            """, (group_id, connection_id))
+            
+            if self.cursor.rowcount == 0:
+                raise ValueError(f"Failed to update parent group for connection '{connection_name}'")
+            
+            return True
+            
+        except mysql.connector.Error as e:
+            print(f"Error modifying connection parent group: {e}")
+            raise
+
     def modify_connection(self, connection_name, param_name, param_value):
         """Modify a connection parameter in either guacamole_connection or guacamole_connection_parameter table"""
         try:

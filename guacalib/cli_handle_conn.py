@@ -92,9 +92,12 @@ def handle_conn_exists(args, guacdb):
         
 def handle_conn_modify(args, guacdb):
     """Handle the connection modify command"""
-    if not args.name or not args.set:
+    if not args.name or (not args.set and args.set_parent_group is None):
         # Print help information about modifiable parameters
-        print("Usage: guacaman conn modify --name <connection_name> --set <param=value> [--set <param=value> ...]")
+        print("Usage: guacaman conn modify --name <connection_name> [--set <param=value> ...] [--set-parent-group GROUP]")
+        print("\nModification options:")
+        print("  --set: Modify connection parameters")
+        print("  --set-parent-group: Set parent connection group (use empty string to remove group)")
         print("\nModifiable connection parameters:")
         print("\nParameters in guacamole_connection table:")
         for param, info in sorted(guacdb.CONNECTION_PARAMETERS.items()):
@@ -109,6 +112,14 @@ def handle_conn_modify(args, guacdb):
         sys.exit(1)
     
     try:
+        # Handle parent group modification
+        if args.set_parent_group is not None:
+            try:
+                guacdb.modify_connection_parent_group(args.name, args.set_parent_group)
+                print(f"Successfully set parent group to '{args.set_parent_group}' for connection '{args.name}'")
+            except Exception as e:
+                print(f"Error setting parent group: {e}")
+                sys.exit(1)
         # Process each --set argument
         for param_value in args.set:
             if '=' not in param_value:
