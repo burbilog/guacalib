@@ -38,9 +38,20 @@ def handle_conngroup_command(args, guacdb):
         sys.exit(0)
 
     elif args.conngroup_command == 'del':
-        print(f"Deleting connection group: {args.name}")
-        # TODO: Implement connection group deletion
-        sys.exit(0)
+        try:
+            # Check if group exists
+            groups = guacdb.list_connection_groups()
+            if args.name not in groups:
+                print(f"Error: Connection group '{args.name}' does not exist")
+                sys.exit(1)
+                
+            # Delete the group
+            guacdb.delete_connection_group(args.name)
+            print(f"Successfully deleted connection group: {args.name}")
+            sys.exit(0)
+        except Exception as e:
+            print(f"Error deleting connection group: {e}")
+            sys.exit(1)
 
     elif args.conngroup_command == 'modify':
         print(f"Modifying connection group: {args.name}")

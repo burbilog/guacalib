@@ -541,6 +541,7 @@ class GuacamoleDB:
             raise
 
     def delete_existing_connection(self, connection_name):
+        """Delete a connection and all its associated data"""
         try:
             self.debug_print(f"Attempting to delete connection: {connection_name}")
             
@@ -587,6 +588,56 @@ class GuacamoleDB:
             self.debug_print("Committing transaction...")
             self.conn.commit()
             self.debug_print(f"Successfully deleted connection '{connection_name}'")
+
+    def delete_connection_group(self, group_name):
+        """Delete a connection group and update references to it"""
+        try:
+            self.debug_print(f"Attempting to delete connection group: {group_name}")
+            
+            # Get the group_id first
+            self.cursor.execute("""
+                SELECT connection_group_id 
+                FROM guacamole_connection_group
+                WHERE connection_group_name = %s
+            """, (group_name,))
+            result = self.cursor.fetchone()
+            if not result:
+                raise ValueError(f"Connection group '{group_name}' doesn't exist")
+            group_id = result[0]
+            self.debug_print(f"Found connection_group_id: {group_id}")
+
+            # Update any child groups to have NULL parent
+            self.debug_print("Updating child groups to have NULL parent...")
+            self.cursor.execute("""
+                UPDATE guacamole_connection_group
+                SET parent_id = NULL
+                WHERE parent_id = %s
+            """, (group_id,))
+
+            # Update any connections to have NULL parent
+            self.debug_print("Updating connections to have NULL parent...")
+            self.cursor.execute("""
+                UPDATE guacamole_connection
+                SET parent_id = NULL
+                WHERE parent_id = %s
+            """, (group_id,))
+
+            # Delete the group
+            self.debug_print("Deleting connection group...")
+            self.cursor.execute("""
+                DELETE FROM guacamole_connection_group
+                WHERE connection_group_id = %s
+            """, (group_id,))
+
+            # Commit the transaction
+            self.debug_print("Committing transaction...")
+            self.conn.commit()
+            self.debug_print(f"Successfully deleted connection group '{group_name}'")
+            return True
+
+        except mysql.connector.Error as e:
+            print(f"Error deleting connection group: {e}")
+            raise
 
         except mysql.connector.Error as e:
             print(f"Error deleting existing connection: {e}")
