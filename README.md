@@ -154,6 +154,7 @@ guacaman user new \
 guacaman user new \
     --name john.doe \
     --password secretpass \
+    --type vnc \
     --group developers,managers,qa  # Add to multiple groups
 
 # Note: Will fail if user already exists

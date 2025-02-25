@@ -162,6 +162,16 @@ def main():
                     guacdb.debug_print(f"Successfully created user '{args.name}'")
                     if groups:
                         guacdb.debug_print(f"Group memberships: {', '.join(groups)}")
+                        
+                    # Handle connection type
+                    if args.type == 'vnc':
+                        guacdb.debug_print(f"User '{args.name}' created with VNC connection type")
+                    elif args.type == 'rdp':
+                        # TODO: Implement RDP connection handling
+                        guacdb.debug_print(f"RDP connections not yet implemented")
+                    elif args.type == 'ssh':
+                        # TODO: Implement SSH connection handling
+                        guacdb.debug_print(f"SSH connections not yet implemented")
 
                 elif args.user_command == 'list':
                     users_and_groups = guacdb.list_users_with_groups()
