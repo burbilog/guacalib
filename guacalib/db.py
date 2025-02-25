@@ -945,6 +945,35 @@ class GuacamoleDB:
                     'connections': groups_connections.get(group, [])
                 }
             return result
+
+    def list_connection_groups(self):
+        """List all connection groups with their connections and parent groups"""
+        try:
+            self.cursor.execute("""
+                SELECT 
+                    cg.connection_group_name,
+                    cg.parent_id,
+                    p.connection_group_name as parent_name,
+                    GROUP_CONCAT(DISTINCT c.connection_name) as connections
+                FROM guacamole_connection_group cg
+                LEFT JOIN guacamole_connection_group p ON cg.parent_id = p.connection_group_id
+                LEFT JOIN guacamole_connection c ON cg.connection_group_id = c.parent_id
+                GROUP BY cg.connection_group_id
+                ORDER BY cg.connection_group_name
+            """)
+            
+            groups = {}
+            for row in self.cursor.fetchall():
+                group_name = row[0]
+                parent_id = row[1]
+                parent_name = row[2]
+                connections = row[3].split(',') if row[3] else []
+                
+                groups[group_name] = {
+                    'parent': parent_name if parent_name else 'ROOT',
+                    'connections': connections
+                }
+            return groups
         except mysql.connector.Error as e:
             print(f"Error listing groups: {e}")
             raise

@@ -8,8 +8,14 @@ def handle_conngroup_command(args, guacdb):
         sys.exit(0)
 
     elif args.conngroup_command == 'list':
-        print("Listing connection groups")
-        # TODO: Implement connection group listing
+        groups = guacdb.list_connection_groups()
+        print("conngroups:")
+        for group_name, data in groups.items():
+            print(f"  {group_name}:")
+            print(f"    parent: {data['parent']}")
+            print("    connections:")
+            for conn in data['connections']:
+                print(f"      - {conn}")
         sys.exit(0)
 
     elif args.conngroup_command == 'exists':
