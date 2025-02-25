@@ -690,6 +690,37 @@ class GuacamoleDB:
             print(f"Error adding user to group: {e}")
             raise
 
+    def remove_user_from_group(self, username, group_name):
+        try:
+            # Get the group ID
+            group_id = self.get_group_id(group_name)
+            
+            # Get the user's entity ID
+            self.cursor.execute("""
+                SELECT entity_id 
+                FROM guacamole_entity 
+                WHERE name = %s AND type = 'USER'
+            """, (username,))
+            user_entity_id = self.cursor.fetchone()[0]
+
+            # Remove user from group
+            self.cursor.execute("""
+                DELETE FROM guacamole_user_group_member
+                WHERE user_group_id = %s AND member_entity_id = %s
+            """, (group_id, user_entity_id))
+
+            # Revoke group permissions from user
+            self.cursor.execute("""
+                DELETE FROM guacamole_user_group_permission
+                WHERE entity_id = %s AND affected_user_group_id = %s
+            """, (user_entity_id, group_id))
+
+            self.debug_print(f"Successfully removed user '{username}' from group '{group_name}'")
+
+        except mysql.connector.Error as e:
+            print(f"Error removing user from group: {e}")
+            raise
+
     def get_connection_group_id(self, group_path):
         """Resolve nested connection group path to group_id"""
         try:
