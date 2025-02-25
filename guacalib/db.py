@@ -120,7 +120,7 @@ class GuacamoleDB:
             print(f"Error checking group existence: {e}")
             raise
 
-    def get_group_id(self, group_name):
+    def get_usergroup_id(self, group_name):
         try:
             self.cursor.execute("""
                 SELECT user_group_id 
@@ -655,7 +655,7 @@ class GuacamoleDB:
     def add_user_to_group(self, username, group_name):
         try:
             # Get the group ID
-            group_id = self.get_group_id(group_name)
+            group_id = self.get_usergroup_id(group_name)
             
             # Get the user's entity ID
             self.cursor.execute("""
@@ -693,7 +693,7 @@ class GuacamoleDB:
     def remove_user_from_group(self, username, group_name):
         try:
             # Get the group ID
-            group_id = self.get_group_id(group_name)
+            group_id = self.get_usergroup_id(group_name)
             
             # Get the user's entity ID
             self.cursor.execute("""
