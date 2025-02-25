@@ -172,22 +172,22 @@ Removes a user:
 guacaman user del --name john.doe
 ```
 
-### Managing Groups
+### Managing User Groups
 
-#### Create a new group
+#### Create a new user group
 ```bash
-guacaman group new --name developers
+guacaman usergroup new --name developers
 ```
 
-#### List all groups
+#### List all user groups
 Shows all groups and their members:
 ```bash
-guacaman group list
+guacaman usergroup list
 ```
 
-#### Delete a group
+#### Delete a user group
 ```bash
-guacaman group del --name developers
+guacaman usergroup del --name developers
 ```
 
 ### Managing Connections
@@ -252,8 +252,8 @@ Check if a user, group or connection exists (returns 0 if exists, 1 if not):
 # Check user
 guacaman user exists --name john.doe
 
-# Check group
-guacaman group exists --name developers
+# Check user group
+guacaman usergroup exists --name developers
 
 # Check connection
 guacaman conn exists --name dev-server
