@@ -133,10 +133,9 @@ def main():
         subparsers.choices['user'].print_help()
         sys.exit(1)
 
-    if args.command == 'group' and not args.group_command:
-        subparsers.choices['group'].print_help()
+    if args.command == 'usergroup' and not args.usergroup_command:
+        subparsers.choices['usergroup'].print_help()
         sys.exit(1)
-        
     if args.command == 'conn' and not args.conn_command:
         subparsers.choices['conn'].print_help()
         sys.exit(1)
