@@ -335,6 +335,13 @@ teardown() {
     [[ "$output" == *"does not exist"* ]]
 }
 
+@test "Remove user not in group should fail" {
+    # First ensure testuser2 is not in testgroup1
+    run guacaman --config "$TEST_CONFIG" usergroup modify --name testgroup1 --rmuser testuser2
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"is not in group"* ]]
+}
+
 @test "Connection modify remove parent group" {
     # First set a group
     guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set-parent-group parentgroup1

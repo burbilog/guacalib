@@ -705,6 +705,15 @@ class GuacamoleDB:
             """, (username,))
             user_entity_id = self.cursor.fetchone()[0]
 
+            # Check if user is actually in the group
+            self.cursor.execute("""
+                SELECT COUNT(*) 
+                FROM guacamole_user_group_member
+                WHERE user_group_id = %s AND member_entity_id = %s
+            """, (group_id, user_entity_id))
+            if self.cursor.fetchone()[0] == 0:
+                raise ValueError(f"User '{username}' is not in group '{group_name}'")
+
             # Remove user from group
             self.cursor.execute("""
                 DELETE FROM guacamole_user_group_member
