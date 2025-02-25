@@ -120,8 +120,8 @@ def handle_conn_modify(args, guacdb):
             except Exception as e:
                 print(f"Error setting parent group: {e}")
                 sys.exit(1)
-        # Process each --set argument
-        for param_value in args.set:
+        # Process each --set argument (if any)
+        for param_value in args.set or []:
             if '=' not in param_value:
                 print(f"Error: Invalid format for --set. Must be param=value, got: {param_value}")
                 sys.exit(1)
