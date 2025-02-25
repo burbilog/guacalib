@@ -1054,6 +1054,65 @@ class GuacamoleDB:
             print(f"Error creating connection group: {e}")
             raise
 
+    def modify_connection_group_parent(self, group_name, new_parent_name):
+        """Set parent connection group for a connection group with cycle detection"""
+        try:
+            # Get the group ID we're modifying
+            self.cursor.execute("""
+                SELECT connection_group_id 
+                FROM guacamole_connection_group
+                WHERE connection_group_name = %s
+            """, (group_name,))
+            result = self.cursor.fetchone()
+            if not result:
+                raise ValueError(f"Connection group '{group_name}' not found")
+            group_id = result[0]
+
+            # Handle NULL parent (empty string)
+            new_parent_id = None
+            if new_parent_name:
+                # Get new parent ID
+                self.cursor.execute("""
+                    SELECT connection_group_id 
+                    FROM guacamole_connection_group
+                    WHERE connection_group_name = %s
+                """, (new_parent_name,))
+                result = self.cursor.fetchone()
+                if not result:
+                    raise ValueError(f"Parent connection group '{new_parent_name}' not found")
+                new_parent_id = result[0]
+
+                # Check for cycles - make sure new parent isn't a descendant of this group
+                current_parent = new_parent_id
+                while current_parent is not None:
+                    if current_parent == group_id:
+                        raise ValueError(f"Setting parent would create a cycle in connection groups")
+                    
+                    # Get next parent
+                    self.cursor.execute("""
+                        SELECT parent_id 
+                        FROM guacamole_connection_group
+                        WHERE connection_group_id = %s
+                    """, (current_parent,))
+                    result = self.cursor.fetchone()
+                    current_parent = result[0] if result else None
+
+            # Update the parent
+            self.cursor.execute("""
+                UPDATE guacamole_connection_group
+                SET parent_id = %s
+                WHERE connection_group_id = %s
+            """, (new_parent_id, group_id))
+
+            if self.cursor.rowcount == 0:
+                raise ValueError(f"Failed to update parent group for '{group_name}'")
+
+            return True
+
+        except mysql.connector.Error as e:
+            print(f"Error modifying connection group parent: {e}")
+            raise
+
     def list_connection_groups(self):
         """List all connection groups with their connections and parent groups"""
         try:
