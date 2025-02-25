@@ -4,7 +4,7 @@ import argparse
 import os
 import sys
 from guacalib import GuacamoleDB
-from guacalib.cli_handle_group import handle_group_command
+from guacalib.cli_handle_usergroup import handle_usergroup_command
 from guacalib.cli_handle_dump import handle_dump_command
 from guacalib.cli_handle_user import handle_user_command
 from guacalib.cli_handle_conn import handle_conn_command
