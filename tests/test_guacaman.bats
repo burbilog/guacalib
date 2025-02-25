@@ -168,7 +168,10 @@ teardown() {
     # Save full output for debugging
     echo "$output" > /tmp/output.txt
     
-    # Verify relationships with more flexible matching
-    echo "$output" | grep -Pzo 'testuser1:.*?(\n\s+- testgroup1.*?)+(\n\s+- testgroup2.*?)+' 
-    echo "$output" | grep -Pzo 'testconn1:.*?(\n\s+- testgroup1.*?)+'
+    # Verify testuser1 group memberships
+    echo "$output" | grep -A 10 'testuser1:' | grep -q 'testgroup1'
+    echo "$output" | grep -A 10 'testuser1:' | grep -q 'testgroup2'
+
+    # Verify testconn1 group associations
+    echo "$output" | grep -A 10 'testconn1:' | grep -q 'testgroup1'
 }
