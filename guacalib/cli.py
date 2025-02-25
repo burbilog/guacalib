@@ -15,8 +15,8 @@ def setup_user_subcommands(subparsers):
     new_user.add_argument('--name', required=True, help='Username for Guacamole')
     new_user.add_argument('--password', required=True, help='Password for Guacamole user')
     new_user.add_argument('--group', help='Comma-separated list of groups to add user to')
-    new_user.add_argument('--type', choices=['vnc', 'rdp', 'ssh'], required=True, 
-                         help='Type of connection for this user (vnc, rdp, ssh)')
+    #new_user.add_argument('--type', choices=['vnc', 'rdp', 'ssh'], required=True, 
+    #                     help='Type of connection for this user (vnc, rdp, ssh)')
 
     # User list command
     user_subparsers.add_parser('list', help='List all users')
@@ -164,16 +164,6 @@ def main():
                     if groups:
                         guacdb.debug_print(f"Group memberships: {', '.join(groups)}")
                         
-                    # Handle connection type
-                    if args.type == 'vnc':
-                        guacdb.debug_print(f"User '{args.name}' created with VNC connection type")
-                    elif args.type == 'rdp':
-                        # TODO: Implement RDP connection handling
-                        guacdb.debug_print(f"RDP connections not yet implemented")
-                    elif args.type == 'ssh':
-                        # TODO: Implement SSH connection handling
-                        guacdb.debug_print(f"SSH connections not yet implemented")
-
                 elif args.user_command == 'list':
                     users_and_groups = guacdb.list_users_with_groups()
                     print("users:")
