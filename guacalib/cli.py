@@ -135,7 +135,7 @@ def main():
 
     try:
         with GuacamoleDB(args.config, debug=args.debug) as guacdb:
-            elif args.command == 'user':
+            if args.command == 'user':
                 handle_user_command(args, guacdb)
 
             elif args.command == 'group':
