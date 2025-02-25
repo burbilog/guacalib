@@ -13,7 +13,7 @@ def handle_conngroup_command(args, guacdb):
             guacdb.create_connection_group(args.name, args.parent)
             # Explicitly commit the transaction
             guacdb.conn.commit()
-            print(f"Successfully created connection group: {args.name}")
+            guacdb.debug_print(f"Successfully created connection group: {args.name}")
             sys.exit(0)
         except Exception as e:
             # Rollback on error
@@ -50,7 +50,7 @@ def handle_conngroup_command(args, guacdb):
                 
             # Delete the group
             guacdb.delete_connection_group(args.name)
-            print(f"Successfully deleted connection group: {args.name}")
+            guacdb.debug_print(f"Successfully deleted connection group: {args.name}")
             sys.exit(0)
         except Exception as e:
             print(f"Error deleting connection group: {e}")
