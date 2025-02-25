@@ -70,6 +70,7 @@ def setup_conngroup_subcommands(subparsers):
     # Conngroup new command
     new_conngroup = conngroup_subparsers.add_parser('new', help='Create a new connection group')
     new_conngroup.add_argument('--name', required=True, help='Connection group name')
+    new_conngroup.add_argument('--parent', help='Parent connection group name (optional)')
 
     # Conngroup list command
     conngroup_subparsers.add_parser('list', help='List all connection groups')

@@ -3,9 +3,13 @@ import sys
 def handle_conngroup_command(args, guacdb):
     """Handle all conngroup subcommands"""
     if args.conngroup_command == 'new':
-        print(f"Creating new connection group: {args.name}")
-        # TODO: Implement connection group creation
-        sys.exit(0)
+        try:
+            guacdb.create_connection_group(args.name, args.parent)
+            print(f"Successfully created connection group: {args.name}")
+            sys.exit(0)
+        except Exception as e:
+            print(f"Error creating connection group: {e}")
+            sys.exit(1)
 
     elif args.conngroup_command == 'list':
         groups = guacdb.list_connection_groups()

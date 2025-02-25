@@ -949,6 +949,35 @@ class GuacamoleDB:
             print(f"Error listing groups with users and connections: {e}")
             raise
 
+    def create_connection_group(self, group_name, parent_group_name=None):
+        """Create a new connection group"""
+        try:
+            parent_group_id = None
+            if parent_group_name:
+                # Get parent group ID if specified
+                self.cursor.execute("""
+                    SELECT connection_group_id 
+                    FROM guacamole_connection_group
+                    WHERE connection_group_name = %s
+                """, (parent_group_name,))
+                result = self.cursor.fetchone()
+                if not result:
+                    raise ValueError(f"Parent connection group '{parent_group_name}' not found")
+                parent_group_id = result[0]
+
+            # Create the new connection group
+            self.cursor.execute("""
+                INSERT INTO guacamole_connection_group 
+                (connection_group_name, parent_id)
+                VALUES (%s, %s)
+            """, (group_name, parent_group_id))
+
+            return True
+
+        except mysql.connector.Error as e:
+            print(f"Error creating connection group: {e}")
+            raise
+
     def list_connection_groups(self):
         """List all connection groups with their connections and parent groups"""
         try:
