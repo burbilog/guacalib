@@ -182,6 +182,12 @@ class GuacamoleDB:
             'description': 'Password for the connection (VNC password, etc.)',
             'default': 'NULL',
             'table': 'parameter'
+        },
+        'read-only': {
+            'type': 'boolean',
+            'description': 'Whether the connection is read-only (true/false)',
+            'default': 'false',
+            'table': 'parameter'
         }
     }
     
@@ -282,26 +288,62 @@ class GuacamoleDB:
                 self.cursor.execute(query, (param_value, connection_id))
                 
             elif param_table == 'parameter':
-                # Check if parameter already exists
-                self.cursor.execute("""
-                    SELECT parameter_value FROM guacamole_connection_parameter
-                    WHERE connection_id = %s AND parameter_name = %s
-                """, (connection_id, param_name))
-                
-                if self.cursor.fetchone():
-                    # Update existing parameter
-                    self.cursor.execute("""
-                        UPDATE guacamole_connection_parameter
-                        SET parameter_value = %s
-                        WHERE connection_id = %s AND parameter_name = %s
-                    """, (param_value, connection_id, param_name))
+                # Special handling for read-only parameter
+                if param_name == 'read-only':
+                    # Validate boolean value
+                    if param_value.lower() not in ('true', 'false'):
+                        raise ValueError("Parameter read-only must be 'true' or 'false'")
+                    
+                    # For read-only, we either add with 'true' or remove the parameter
+                    if param_value.lower() == 'true':
+                        # Check if parameter already exists
+                        self.cursor.execute("""
+                            SELECT parameter_value FROM guacamole_connection_parameter
+                            WHERE connection_id = %s AND parameter_name = %s
+                        """, (connection_id, param_name))
+                        
+                        if self.cursor.fetchone():
+                            # Update existing parameter
+                            self.cursor.execute("""
+                                UPDATE guacamole_connection_parameter
+                                SET parameter_value = 'true'
+                                WHERE connection_id = %s AND parameter_name = %s
+                            """, (connection_id, param_name))
+                        else:
+                            # Insert new parameter
+                            self.cursor.execute("""
+                                INSERT INTO guacamole_connection_parameter
+                                (connection_id, parameter_name, parameter_value)
+                                VALUES (%s, %s, 'true')
+                            """, (connection_id, param_name))
+                    else:  # param_value.lower() == 'false'
+                        # Remove the parameter if it exists
+                        self.cursor.execute("""
+                            DELETE FROM guacamole_connection_parameter
+                            WHERE connection_id = %s AND parameter_name = %s
+                        """, (connection_id, param_name))
                 else:
-                    # Insert new parameter
+                    # Regular parameter handling
+                    # Check if parameter already exists
                     self.cursor.execute("""
-                        INSERT INTO guacamole_connection_parameter
-                        (connection_id, parameter_name, parameter_value)
-                        VALUES (%s, %s, %s)
-                    """, (connection_id, param_name, param_value))
+                        SELECT parameter_value FROM guacamole_connection_parameter
+                        WHERE connection_id = %s AND parameter_name = %s
+                    """, (connection_id, param_name))
+                    
+                    if self.cursor.fetchone():
+                        # Update existing parameter
+                        self.cursor.execute("""
+                            UPDATE guacamole_connection_parameter
+                            SET parameter_value = %s
+                            WHERE connection_id = %s AND parameter_name = %s
+                        """, (param_value, connection_id, param_name))
+                    else:
+                        # Insert new parameter
+                        self.cursor.execute("""
+                            INSERT INTO guacamole_connection_parameter
+                            (connection_id, parameter_name, parameter_value)
+                            VALUES (%s, %s, %s)
+                        """, (connection_id, param_name, param_value))
             
             if self.cursor.rowcount == 0:
                 raise ValueError(f"Failed to update connection parameter: {param_name}")
