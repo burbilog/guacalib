@@ -194,6 +194,9 @@ def main():
                 handle_conn_command(args, guacdb)
                 
             elif args.command == 'conngroup':
+                if not args.conngroup_command:
+                    subparsers.choices['conngroup'].print_help()
+                    sys.exit(1)
                 handle_conngroup_command(args, guacdb)
 
     except Exception as e:
