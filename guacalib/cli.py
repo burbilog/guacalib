@@ -38,29 +38,29 @@ def setup_user_subcommands(subparsers):
     modify_user.add_argument('--set', help='Parameter to set in format param=value')
 
 def setup_usergroup_subcommands(subparsers):
-    group_parser = subparsers.add_parser('usergroup', help='Manage Guacamole user groups')
-    group_subparsers = group_parser.add_subparsers(dest='usergroup_command', help='User group commands')
+    group_parser = subparsers.add_parser('usergroup', help='Manage Guacamole usergroups')
+    usergroup_subparsers = group_parser.add_subparsers(dest='usergroup_command', help='Usergroup commands')
 
     # Group new command
-    new_group = group_subparsers.add_parser('new', help='Create a new group')
-    new_group.add_argument('--name', required=True, help='Group name')
+    new_group = usergroup_subparsers.add_parser('new', help='Create a new usergroup')
+    new_group.add_argument('--name', required=True, help='Usergroup name')
 
     # Group list command
-    group_subparsers.add_parser('list', help='List all groups')
+    usergroup_subparsers.add_parser('list', help='List all usergroups')
 
     # Group exists command
-    exists_group = group_subparsers.add_parser('exists', help='Check if a group exists')
-    exists_group.add_argument('--name', required=True, help='Group name to check')
+    exists_group = usergroup_subparsers.add_parser('exists', help='Check if a usergroup exists')
+    exists_group.add_argument('--name', required=True, help='Usergroup name to check')
 
     # Group delete command
-    del_group = group_subparsers.add_parser('del', help='Delete a group')
-    del_group.add_argument('--name', required=True, help='Group name to delete')
+    del_group = usergroup_subparsers.add_parser('del', help='Delete a usergroup')
+    del_group.add_argument('--name', required=True, help='Usergroup name to delete')
 
     # Group modify command
-    modify_group = group_subparsers.add_parser('modify', help='Modify group membership')
-    modify_group.add_argument('--name', required=True, help='Group name to modify')
-    modify_group.add_argument('--adduser', help='Username to add to group')
-    modify_group.add_argument('--rmuser', help='Username to remove from group')
+    modify_group = usergroup_subparsers.add_parser('modify', help='Modify usergroup membership')
+    modify_group.add_argument('--name', required=True, help='Usergroup name to modify')
+    modify_group.add_argument('--adduser', help='Username to add to usergroup')
+    modify_group.add_argument('--rmuser', help='Username to remove from usergroup')
 
 def setup_dump_subcommand(subparsers):
     subparsers.add_parser('dump', help='Dump all groups, users and connections in YAML format')

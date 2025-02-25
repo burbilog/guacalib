@@ -45,12 +45,12 @@ def handle_usergroup_command(args, guacdb):
             if not guacdb.user_exists(args.adduser):
                 print(f"Error: User '{args.adduser}' does not exist")
                 sys.exit(1)
-            guacdb.add_user_to_group(args.adduser, args.name)
-            guacdb.debug_print(f"Successfully added user '{args.adduser}' to group '{args.name}'")
+            guacdb.add_user_to_usergroup(args.adduser, args.name)
+            guacdb.debug_print(f"Successfully added user '{args.adduser}' to user group '{args.name}'")
 
         if args.rmuser:
             if not guacdb.user_exists(args.rmuser):
                 print(f"Error: User '{args.rmuser}' does not exist")
                 sys.exit(1)
-            guacdb.remove_user_from_group(args.rmuser, args.name)
-            guacdb.debug_print(f"Successfully removed user '{args.rmuser}' from group '{args.name}'")
+            guacdb.remove_user_from_usergroup(args.rmuser, args.name)
+            guacdb.debug_print(f"Successfully removed user '{args.rmuser}' from user group '{args.name}'")

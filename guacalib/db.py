@@ -105,7 +105,7 @@ class GuacamoleDB:
             """)
             return [row[0] for row in self.cursor.fetchall()]
         except mysql.connector.Error as e:
-            print(f"Error listing groups: {e}")
+            print(f"Error listing usergroups: {e}")
             raise
 
     def usergroup_exists(self, group_name):
@@ -117,7 +117,7 @@ class GuacamoleDB:
             """, (group_name,))
             return self.cursor.fetchone()[0] > 0
         except mysql.connector.Error as e:
-            print(f"Error checking group existence: {e}")
+            print(f"Error checking usergroup existence: {e}")
             raise
 
     def get_usergroup_id(self, group_name):
@@ -132,9 +132,9 @@ class GuacamoleDB:
             if result:
                 return result[0]
             else:
-                raise Exception(f"Group '{group_name}' not found")
+                raise Exception(f"Usergroup '{group_name}' not found")
         except mysql.connector.Error as e:
-            print(f"Error getting group ID: {e}")
+            print(f"Error getting usergroup ID: {e}")
             raise
 
     def user_exists(self, username):
@@ -499,7 +499,7 @@ class GuacamoleDB:
 
     def delete_existing_usergroup(self, group_name):
         try:
-            self.debug_print(f"Deleting user group: {group_name}")
+            self.debug_print(f"Deleting usergroup: {group_name}")
             # Delete group memberships
             self.cursor.execute("""
                 DELETE FROM guacamole_user_group_member 
@@ -537,7 +537,7 @@ class GuacamoleDB:
             """, (group_name,))
 
         except mysql.connector.Error as e:
-            print(f"Error deleting existing user group: {e}")
+            print(f"Error deleting existing usergroup: {e}")
             raise
 
     def delete_existing_connection(self, connection_name):
@@ -649,10 +649,10 @@ class GuacamoleDB:
             """, (group_name,))
 
         except mysql.connector.Error as e:
-            print(f"Error creating group: {e}")
+            print(f"Error creating usergroup: {e}")
             raise
 
-    def add_user_to_group(self, username, group_name):
+    def add_user_to_usergroup(self, username, group_name):
         try:
             # Get the group ID
             group_id = self.get_usergroup_id(group_name)
@@ -687,10 +687,10 @@ class GuacamoleDB:
             """, (user_entity_id, group_id, user_entity_id, group_id))
 
         except mysql.connector.Error as e:
-            print(f"Error adding user to group: {e}")
+            print(f"Error adding user to usergroup: {e}")
             raise
 
-    def remove_user_from_group(self, username, group_name):
+    def remove_user_from_usergroup(self, username, group_name):
         try:
             # Get the group ID
             group_id = self.get_usergroup_id(group_name)
@@ -715,7 +715,7 @@ class GuacamoleDB:
                 WHERE entity_id = %s AND affected_user_group_id = %s
             """, (user_entity_id, group_id))
 
-            self.debug_print(f"Successfully removed user '{username}' from group '{group_name}'")
+            self.debug_print(f"Successfully removed user '{username}' from usergroup '{group_name}'")
 
         except mysql.connector.Error as e:
             print(f"Error removing user from group: {e}")
