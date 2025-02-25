@@ -588,6 +588,10 @@ class GuacamoleDB:
             self.debug_print("Committing transaction...")
             self.conn.commit()
             self.debug_print(f"Successfully deleted connection '{connection_name}'")
+            
+        except mysql.connector.Error as e:
+            print(f"Error deleting existing connection: {e}")
+            raise
 
     def delete_connection_group(self, group_name):
         """Delete a connection group and update references to it"""
