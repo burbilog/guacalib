@@ -11,9 +11,13 @@ def handle_conngroup_command(args, guacdb):
                 sys.exit(1)
                 
             guacdb.create_connection_group(args.name, args.parent)
+            # Explicitly commit the transaction
+            guacdb.conn.commit()
             print(f"Successfully created connection group: {args.name}")
             sys.exit(0)
         except Exception as e:
+            # Rollback on error
+            guacdb.conn.rollback()
             print(f"Error creating connection group: {e}")
             sys.exit(1)
 

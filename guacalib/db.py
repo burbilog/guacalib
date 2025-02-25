@@ -972,6 +972,15 @@ class GuacamoleDB:
                 VALUES (%s, %s)
             """, (group_name, parent_group_id))
 
+            # Verify the group was created
+            self.cursor.execute("""
+                SELECT connection_group_id 
+                FROM guacamole_connection_group
+                WHERE connection_group_name = %s
+            """, (group_name,))
+            if not self.cursor.fetchone():
+                raise ValueError("Failed to create connection group - no ID returned")
+
             return True
 
         except mysql.connector.Error as e:
