@@ -274,15 +274,23 @@ class GuacamoleDB:
         try:
             group_id = self.get_connection_group_id_by_name(group_name) if group_name else None
             
-            # Get connection ID
+            # Get connection ID and current parent
             self.cursor.execute("""
-                SELECT connection_id FROM guacamole_connection 
+                SELECT connection_id, parent_id 
+                FROM guacamole_connection 
                 WHERE connection_name = %s
             """, (connection_name,))
             result = self.cursor.fetchone()
             if not result:
                 raise ValueError(f"Connection '{connection_name}' not found")
-            connection_id = result[0]
+            connection_id, current_parent_id = result
+            
+            # Check if we're trying to set to same group
+            if group_id == current_parent_id:
+                if group_id is None:
+                    raise ValueError(f"Connection '{connection_name}' already has no parent group")
+                else:
+                    raise ValueError(f"Connection '{connection_name}' is already in group '{group_name}'")
             
             # Update parent ID
             self.cursor.execute("""
