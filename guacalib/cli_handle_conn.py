@@ -116,7 +116,7 @@ def handle_conn_modify(args, guacdb):
         if args.parent is not None:
             try:
                 guacdb.modify_connection_parent_group(args.name, args.parent)
-                print(f"Successfully set parent group to '{args.parent}' for connection '{args.name}'")
+                guacdb.debug_print(f"Successfully set parent group to '{args.parent}' for connection '{args.name}'")
             except Exception as e:
                 print(f"Error setting parent group: {e}")
                 sys.exit(1)
@@ -131,7 +131,7 @@ def handle_conn_modify(args, guacdb):
             
             try:
                 guacdb.modify_connection(args.name, param, value)
-                print(f"Successfully updated {param} for connection '{args.name}'")
+                guacdb.debug_print(f"Successfully updated {param} for connection '{args.name}'")
             except ValueError as e:
                 print(f"Error: {str(e)}")
                 sys.exit(1)
