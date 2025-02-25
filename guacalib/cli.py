@@ -86,10 +86,8 @@ def setup_conngroup_subcommands(subparsers):
     # Conngroup modify command
     modify_conngroup = conngroup_subparsers.add_parser('modify', help='Modify connection group')
     modify_conngroup.add_argument('--name', required=True, help='Connection group name to modify')
-    modify_conngroup.add_argument('--addconn', help='Connection name to add to group')
-    modify_conngroup.add_argument('--rmconn', help='Connection name to remove from group')
-    modify_conngroup.add_argument('--set-parent-conngroup', 
-                               help='Set parent connection group name (use empty string to unset group)')
+    modify_conngroup.add_argument('--parent', 
+                               help='Set parent connection group name (use empty string to unset parent group)')
 
 def setup_dump_subcommand(subparsers):
     subparsers.add_parser('dump', help='Dump all groups, users and connections in YAML format')
