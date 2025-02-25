@@ -461,6 +461,95 @@ teardown() {
     [[ "$output" == *"does not exist"* ]]
 }
 
+@test "Connection group modify parent" {
+    parent_name="parent_$(date +%s)"
+    child_name="child_$(date +%s)"
+    
+    # Create groups
+    guacaman --config "$TEST_CONFIG" conngroup new --name "$parent_name"
+    guacaman --config "$TEST_CONFIG" conngroup new --name "$child_name"
+    
+    # Set parent
+    run guacaman --debug --config "$TEST_CONFIG" conngroup modify --name "$child_name" --parent "$parent_name"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully set parent group for '$child_name' to '$parent_name'"* ]]
+    
+    # Verify relationship
+    run guacaman --config "$TEST_CONFIG" conngroup list
+    [[ "$output" == *"$child_name:"* ]]
+    [[ "$output" == *"parent: $parent_name"* ]]
+    
+    # Clean up
+    guacaman --config "$TEST_CONFIG" conngroup del --name "$child_name"
+    guacaman --config "$TEST_CONFIG" conngroup del --name "$parent_name"
+}
+
+@test "Connection group modify remove parent" {
+    parent_name="parent_$(date +%s)"
+    child_name="child_$(date +%s)"
+    
+    # Create groups with parent
+    guacaman --config "$TEST_CONFIG" conngroup new --name "$parent_name"
+    guacaman --config "$TEST_CONFIG" conngroup new --name "$child_name" --parent "$parent_name"
+    
+    # Remove parent
+    run guacaman --debug --config "$TEST_CONFIG" conngroup modify --name "$child_name" --parent ""
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully set parent group for '$child_name' to ''"* ]]
+    
+    # Verify no parent
+    run guacaman --config "$TEST_CONFIG" conngroup list
+    [[ "$output" == *"$child_name:"* ]]
+    [[ "$output" == *"parent: ROOT"* ]]
+    
+    # Clean up
+    guacaman --config "$TEST_CONFIG" conngroup del --name "$child_name"
+    guacaman --config "$TEST_CONFIG" conngroup del --name "$parent_name"
+}
+
+@test "Connection group modify detect cycles" {
+    group1="group1_$(date +%s)"
+    group2="group2_$(date +%s)"
+    group3="group3_$(date +%s)"
+    
+    # Create groups
+    guacaman --config "$TEST_CONFIG" conngroup new --name "$group1"
+    guacaman --config "$TEST_CONFIG" conngroup new --name "$group2"
+    guacaman --config "$TEST_CONFIG" conngroup new --name "$group3"
+    
+    # Set up hierarchy: group1 -> group2 -> group3
+    guacaman --config "$TEST_CONFIG" conngroup modify --name "$group2" --parent "$group1"
+    guacaman --config "$TEST_CONFIG" conngroup modify --name "$group3" --parent "$group2"
+    
+    # Try to create cycle: group1 -> group3 (would make group1 -> group3 -> group2 -> group1)
+    run guacaman --debug --config "$TEST_CONFIG" conngroup modify --name "$group1" --parent "$group3"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"would create a cycle"* ]]
+    
+    # Clean up
+    guacaman --config "$TEST_CONFIG" conngroup del --name "$group3"
+    guacaman --config "$TEST_CONFIG" conngroup del --name "$group2"
+    guacaman --config "$TEST_CONFIG" conngroup del --name "$group1"
+}
+
+@test "Connection group modify non-existent group should fail" {
+    run guacaman --debug --config "$TEST_CONFIG" conngroup modify --name "nonexistent_$(date +%s)" --parent "somegroup"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"not found"* ]]
+}
+
+@test "Connection group modify non-existent parent should fail" {
+    group_name="testgroup_$(date +%s)"
+    guacaman --config "$TEST_CONFIG" conngroup new --name "$group_name"
+    
+    run guacaman --debug --config "$TEST_CONFIG" conngroup modify --name "$group_name" --parent "nonexistentparent"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"not found"* ]]
+    
+    # Clean up
+    guacaman --config "$TEST_CONFIG" conngroup del --name "$group_name"
+}
+
 @test "Dump command shows test data" {
     run guacaman --config "$TEST_CONFIG" dump
     [ "$status" -eq 0 ]
