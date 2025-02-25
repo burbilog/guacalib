@@ -945,6 +945,9 @@ class GuacamoleDB:
                     'connections': groups_connections.get(group, [])
                 }
             return result
+        except mysql.connector.Error as e:
+            print(f"Error listing groups with users and connections: {e}")
+            raise
 
     def list_connection_groups(self):
         """List all connection groups with their connections and parent groups"""
