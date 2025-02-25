@@ -288,12 +288,10 @@ teardown() {
 
 @test "Add user to group" {
     run guacaman --debug --config "$TEST_CONFIG" usergroup modify --name testgroup1 --adduser testuser2
-    echo "$output" > /tmp/adduser.txt
     [ "$status" -eq 0 ]
     [[ "$output" == *"Successfully added user 'testuser2' to group 'testgroup1'"* ]]
     
     run guacaman --debug --config "$TEST_CONFIG" usergroup list
-    echo "$output" >> /tmp/adduser.txt
     [[ "$output" == *"testgroup1:"* ]]
     [[ "$output" == *"users:"* ]]
     [[ "$output" == *"- testuser2"* ]]
