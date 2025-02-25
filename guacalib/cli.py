@@ -7,6 +7,7 @@ from guacalib import GuacamoleDB
 from guacalib.cli_handle_group import handle_group_command
 from guacalib.cli_handle_dump import handle_dump_command
 from guacalib.cli_handle_user import handle_user_command
+from guacalib.cli_handle_conn import handle_conn_command
 
 def setup_user_subcommands(subparsers):
     user_parser = subparsers.add_parser('user', help='Manage Guacamole users')
@@ -149,85 +150,7 @@ def main():
                 print(f"guacaman version {VERSION}")
                 
             elif args.command == 'conn':
-                if args.conn_command == 'list':
-                    connections = guacdb.list_connections_with_groups()
-                    print("connections:")
-                    for conn in connections:
-                        name, host, port, groups = conn
-                        print(f"  {name}:")
-                        print(f"    hostname: {host}")
-                        print(f"    port: {port}")
-                        print("    groups:")
-                        for group in (groups.split(',') if groups else []):
-                            print(f"      - {group}")
-                        
-                elif args.conn_command == 'new':
-                    try:
-                        connection_id = None
-                        
-                        # Handle different connection types
-                        if args.type == 'vnc':
-                            if not args.vnc_password:
-                                print("Error: --vnc-password is required for VNC connections")
-                                sys.exit(1)
-                                
-                            # Create new VNC connection
-                            connection_id = guacdb.create_vnc_connection(
-                                args.name,
-                                args.hostname,
-                                args.port,
-                                args.vnc_password
-                            )
-                            guacdb.debug_print(f"Successfully created VNC connection '{args.name}'")
-                            
-                        elif args.type == 'rdp':
-                            # TODO: Implement RDP connection creation
-                            print("RDP connections not yet implemented")
-                            sys.exit(1)
-                            
-                        elif args.type == 'ssh':
-                            # TODO: Implement SSH connection creation
-                            print("SSH connections not yet implemented")
-                            sys.exit(1)
-                        
-                        # Grant to groups if specified and connection was created
-                        if connection_id and args.group:
-                            groups = [g.strip() for g in args.group.split(',')]
-                            success = True
-                            
-                            for group in groups:
-                                try:
-                                    guacdb.grant_connection_permission(
-                                        group,  # Direct group name
-                                        'USER_GROUP', 
-                                        connection_id,
-                                        group_path=None  # No path nesting
-                                    )
-                                    guacdb.debug_print(f"Granted access to group '{group}'")
-                                except Exception as e:
-                                    print(f"[-] Failed to grant access to group '{group}': {e}")
-                                    success = False
-                            
-                            if not success:
-                                raise RuntimeError("Failed to grant access to one or more groups")
-                        
-                    except Exception as e:
-                        print(f"Error creating connection: {e}")
-                        sys.exit(1)
-
-                elif args.conn_command == 'del':
-                    try:
-                        # Try exact match first
-                        guacdb.delete_existing_connection(args.name)
-                    except Exception as e:
-                        print(f"Error deleting connection: {e}")
-                        sys.exit(1)
-
-                elif args.conn_command == 'exists':
-                    if guacdb.connection_exists(args.name):
-                        sys.exit(0)
-                    else:
-                        sys.exit(1)
+                handle_conn_command(args, guacdb)
 
     except Exception as e:
         print(f"An error occurred: {e}")
