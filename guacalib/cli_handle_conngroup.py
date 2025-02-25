@@ -4,6 +4,12 @@ def handle_conngroup_command(args, guacdb):
     """Handle all conngroup subcommands"""
     if args.conngroup_command == 'new':
         try:
+            # Check if group already exists
+            groups = guacdb.list_connection_groups()
+            if args.name in groups:
+                print(f"Error: Connection group '{args.name}' already exists")
+                sys.exit(1)
+                
             guacdb.create_connection_group(args.name, args.parent)
             print(f"Successfully created connection group: {args.name}")
             sys.exit(0)
