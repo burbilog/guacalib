@@ -95,7 +95,7 @@ class GuacamoleDB:
             print(f"Error listing users: {e}")
             raise
 
-    def list_groups(self):
+    def list_usergroups(self):
         try:
             self.cursor.execute("""
                 SELECT name 
@@ -108,7 +108,7 @@ class GuacamoleDB:
             print(f"Error listing groups: {e}")
             raise
 
-    def group_exists(self, group_name):
+    def usergroup_exists(self, group_name):
         """Check if a group with the given name exists"""
         try:
             self.cursor.execute("""
@@ -497,9 +497,9 @@ class GuacamoleDB:
             print(f"Error deleting existing user: {e}")
             raise
 
-    def delete_existing_group(self, group_name):
+    def delete_existing_usergroup(self, group_name):
         try:
-            self.debug_print(f"Deleting group: {group_name}")
+            self.debug_print(f"Deleting user group: {group_name}")
             # Delete group memberships
             self.cursor.execute("""
                 DELETE FROM guacamole_user_group_member 
@@ -537,7 +537,7 @@ class GuacamoleDB:
             """, (group_name,))
 
         except mysql.connector.Error as e:
-            print(f"Error deleting existing group: {e}")
+            print(f"Error deleting existing user group: {e}")
             raise
 
     def delete_existing_connection(self, connection_name):

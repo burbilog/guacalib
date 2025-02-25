@@ -94,11 +94,11 @@ guacdb.delete_existing_user('john.doe')
 # Create user group
 guacdb.create_usergroup('developers')
 
-# Check if group exists
-if guacdb.group_exists('developers'):
-    print("Group exists")
+# Check if user group exists
+if guacdb.usergroup_exists('developers'):
+    print("User group exists")
 
-# Delete group
+# Delete user group
 guacdb.delete_existing_group('developers')
 ```
 

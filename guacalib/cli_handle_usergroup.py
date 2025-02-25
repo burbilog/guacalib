@@ -3,7 +3,7 @@ import sys
 def handle_usergroup_command(args, guacdb):
     """Handle all usergroup subcommands"""
     if args.usergroup_command == 'new':
-        if guacdb.group_exists(args.name):
+        if guacdb.usergroup_exists(args.name):
             print(f"Error: Group '{args.name}' already exists")
             sys.exit(1)
             
@@ -23,21 +23,21 @@ def handle_usergroup_command(args, guacdb):
                 print(f"      - {conn}")
 
     elif args.usergroup_command == 'del':
-        if not guacdb.group_exists(args.name):
+        if not guacdb.usergroup_exists(args.name):
             print(f"Error: Group '{args.name}' does not exist")
             sys.exit(1)
             
-        guacdb.delete_existing_group(args.name)
-        guacdb.debug_print(f"Successfully deleted group '{args.name}'")
+        guacdb.delete_existing_usergroup(args.name)
+        guacdb.debug_print(f"Successfully deleted user group '{args.name}'")
 
     elif args.usergroup_command == 'exists':
-        if guacdb.group_exists(args.name):
+        if guacdb.usergroup_exists(args.name):
             sys.exit(0)
         else:
             sys.exit(1)
 
     elif args.usergroup_command == 'modify':
-        if not guacdb.group_exists(args.name):
+        if not guacdb.usergroup_exists(args.name):
             print(f"Error: Group '{args.name}' does not exist")
             sys.exit(1)
 
