@@ -286,10 +286,10 @@ teardown() {
     [[ "$output" == *"- nested/parentgroup2"* ]]
 }
 
-@test "Add user to user group" {
+@test "Add user to usergroup" {
     run guacaman --debug --config "$TEST_CONFIG" usergroup modify --name testgroup1 --adduser testuser2
     [ "$status" -eq 0 ]
-    [[ "$output" == *"Successfully added user 'testuser2' to group 'testgroup1'"* ]]
+    [[ "$output" == *"Successfully added user 'testuser2' to usergroup 'testgroup1'"* ]]
     
     run guacaman --debug --config "$TEST_CONFIG" usergroup list
     [[ "$output" == *"testgroup1:"* ]]
@@ -297,14 +297,14 @@ teardown() {
     [[ "$output" == *"- testuser2"* ]]
 }
 
-@test "Remove user from user group" {
+@test "Remove user from usergroup" {
     # First add the user
     run guacaman --debug --config "$TEST_CONFIG" usergroup modify --name testgroup1 --adduser testuser2
     
     # Then remove them
     run guacaman --debug --config "$TEST_CONFIG" usergroup modify --name testgroup1 --rmuser testuser2
     [ "$status" -eq 0 ]
-    [[ "$output" == *"Successfully removed user 'testuser2' from group 'testgroup1'"* ]]
+    [[ "$output" == *"Successfully removed user 'testuser2' from usergroup 'testgroup1'"* ]]
     
     run guacaman --config "$TEST_CONFIG" usergroup list
     [[ "$output" == *"testgroup1:"* ]]

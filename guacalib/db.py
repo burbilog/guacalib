@@ -686,6 +686,8 @@ class GuacamoleDB:
                 )
             """, (user_entity_id, group_id, user_entity_id, group_id))
 
+            self.debug_print(f"Successfully added user '{username}' to usergroup '{group_name}'")
+
         except mysql.connector.Error as e:
             print(f"Error adding user to usergroup: {e}")
             raise

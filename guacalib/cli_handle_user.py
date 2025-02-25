@@ -30,8 +30,8 @@ def handle_user_new(args, guacdb):
         
         for group in groups:
             try:
-                guacdb.add_user_to_group(args.name, group)
-                guacdb.debug_print(f"Added user '{args.name}' to group '{group}'")
+                guacdb.add_user_to_usergroup(args.name, group)
+                guacdb.debug_print(f"Added user '{args.name}' to usergroup '{group}'")
             except Exception as e:
                 print(f"[-] Failed to add to group '{group}': {e}")
                 success = False
