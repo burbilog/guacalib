@@ -287,11 +287,13 @@ teardown() {
 }
 
 @test "Add user to group" {
-    run guacaman --config "$TEST_CONFIG" usergroup modify --name testgroup1 --adduser testuser2
+    run guacaman --debug --config "$TEST_CONFIG" usergroup modify --name testgroup1 --adduser testuser2
+    echo "$output" > /tmp/adduser.txt
     [ "$status" -eq 0 ]
     [[ "$output" == *"Successfully added user 'testuser2' to group 'testgroup1'"* ]]
     
-    run guacaman --config "$TEST_CONFIG" usergroup list
+    run guacaman --debug --config "$TEST_CONFIG" usergroup list
+    echo "$output" >> /tmp/adduser.txt
     [[ "$output" == *"testgroup1:"* ]]
     [[ "$output" == *"users:"* ]]
     [[ "$output" == *"- testuser2"* ]]
@@ -299,10 +301,10 @@ teardown() {
 
 @test "Remove user from group" {
     # First add the user
-    guacaman --config "$TEST_CONFIG" usergroup modify --name testgroup1 --adduser testuser2
+    run guacaman --debug --config "$TEST_CONFIG" usergroup modify --name testgroup1 --adduser testuser2
     
     # Then remove them
-    run guacaman --config "$TEST_CONFIG" usergroup modify --name testgroup1 --rmuser testuser2
+    run guacaman --debug --config "$TEST_CONFIG" usergroup modify --name testgroup1 --rmuser testuser2
     [ "$status" -eq 0 ]
     [[ "$output" == *"Successfully removed user 'testuser2' from group 'testgroup1'"* ]]
     
