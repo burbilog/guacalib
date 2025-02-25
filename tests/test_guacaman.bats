@@ -355,6 +355,112 @@ teardown() {
     [[ "$output" != *"parentgroup1"* ]]
 }
 
+@test "Connection group creation with debug" {
+    group_name="testgroup_$(date +%s)"
+    
+    # Test successful creation
+    run guacaman --debug --config "$TEST_CONFIG" conngroup new --name "$group_name"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully created connection group: $group_name"* ]]
+    
+    # Verify it exists
+    run guacaman --debug --config "$TEST_CONFIG" conngroup exists --name "$group_name"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Connection group '$group_name' exists"* ]]
+    
+    # Clean up
+    guacaman --config "$TEST_CONFIG" conngroup del --name "$group_name"
+}
+
+@test "Connection group creation with parent group" {
+    parent_name="parentgroup_$(date +%s)"
+    child_name="childgroup_$(date +%s)"
+    
+    # Create parent
+    guacaman --config "$TEST_CONFIG" conngroup new --name "$parent_name"
+    
+    # Create child with parent
+    run guacaman --debug --config "$TEST_CONFIG" conngroup new --name "$child_name" --parent "$parent_name"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully created connection group: $child_name"* ]]
+    
+    # Verify parent-child relationship
+    run guacaman --config "$TEST_CONFIG" conngroup list
+    [[ "$output" == *"$child_name:"* ]]
+    [[ "$output" == *"parent: $parent_name"* ]]
+    
+    # Clean up
+    guacaman --config "$TEST_CONFIG" conngroup del --name "$child_name"
+    guacaman --config "$TEST_CONFIG" conngroup del --name "$parent_name"
+}
+
+@test "Connection group listing" {
+    group_name="listgroup_$(date +%s)"
+    guacaman --config "$TEST_CONFIG" conngroup new --name "$group_name"
+    
+    run guacaman --debug --config "$TEST_CONFIG" conngroup list
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"$group_name:"* ]]
+    [[ "$output" == *"parent: ROOT"* ]]
+    
+    # Clean up
+    guacaman --config "$TEST_CONFIG" conngroup del --name "$group_name"
+}
+
+@test "Connection group existence check" {
+    group_name="existgroup_$(date +%s)"
+    guacaman --config "$TEST_CONFIG" conngroup new --name "$group_name"
+    
+    # Positive check
+    run guacaman --debug --config "$TEST_CONFIG" conngroup exists --name "$group_name"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Connection group '$group_name' exists"* ]]
+    
+    # Negative check
+    run guacaman --debug --config "$TEST_CONFIG" conngroup exists --name "nonexistentgroup_$(date +%s)"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Connection group 'nonexistentgroup_"*" does not exist"* ]]
+    
+    # Clean up
+    guacaman --config "$TEST_CONFIG" conngroup del --name "$group_name"
+}
+
+@test "Connection group deletion" {
+    group_name="delgroup_$(date +%s)"
+    guacaman --config "$TEST_CONFIG" conngroup new --name "$group_name"
+    
+    # Verify it exists first
+    run guacaman --debug --config "$TEST_CONFIG" conngroup exists --name "$group_name"
+    [ "$status" -eq 0 ]
+    
+    # Delete it
+    run guacaman --debug --config "$TEST_CONFIG" conngroup del --name "$group_name"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully deleted connection group: $group_name"* ]]
+    
+    # Verify it's gone
+    run guacaman --debug --config "$TEST_CONFIG" conngroup exists --name "$group_name"
+    [ "$status" -eq 1 ]
+}
+
+@test "Create existing connection group should fail" {
+    group_name="existinggroup_$(date +%s)"
+    guacaman --config "$TEST_CONFIG" conngroup new --name "$group_name"
+    
+    run guacaman --debug --config "$TEST_CONFIG" conngroup new --name "$group_name"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"already exists"* ]]
+    
+    # Clean up
+    guacaman --config "$TEST_CONFIG" conngroup del --name "$group_name"
+}
+
+@test "Delete non-existent connection group should fail" {
+    run guacaman --debug --config "$TEST_CONFIG" conngroup del --name "nonexistentgroup_$(date +%s)"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"does not exist"* ]]
+}
+
 @test "Dump command shows test data" {
     run guacaman --config "$TEST_CONFIG" dump
     [ "$status" -eq 0 ]
