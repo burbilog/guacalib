@@ -25,6 +25,11 @@ def setup_user_subcommands(subparsers):
     # User delete command
     del_user = user_subparsers.add_parser('del', help='Delete a user')
     del_user.add_argument('--name', required=True, help='Username to delete')
+    
+    # User modify command
+    modify_user = user_subparsers.add_parser('modify', help='Modify user parameters')
+    modify_user.add_argument('--name', required=True, help='Username to modify')
+    modify_user.add_argument('--set', required=True, help='Parameter to set in format param=value')
 
 def setup_group_subcommands(subparsers):
     group_parser = subparsers.add_parser('group', help='Manage Guacamole groups')
@@ -179,6 +184,33 @@ def main():
                     if guacdb.user_exists(args.name):
                         sys.exit(0)
                     else:
+                        sys.exit(1)
+                        
+                elif args.user_command == 'modify':
+                    try:
+                        # Parse the parameter and value
+                        if '=' not in args.set:
+                            print("Error: --set must be in format 'parameter=value'")
+                            sys.exit(1)
+                            
+                        param_name, param_value = args.set.split('=', 1)
+                        param_name = param_name.strip()
+                        param_value = param_value.strip()
+                        
+                        # Check if user exists
+                        if not guacdb.user_exists(args.name):
+                            print(f"Error: User '{args.name}' does not exist")
+                            sys.exit(1)
+                        
+                        # Modify the user parameter
+                        guacdb.modify_user(args.name, param_name, param_value)
+                        guacdb.debug_print(f"Successfully modified user '{args.name}': {param_name}={param_value}")
+                        
+                    except ValueError as e:
+                        print(f"Error: {e}")
+                        sys.exit(1)
+                    except Exception as e:
+                        print(f"Error modifying user: {e}")
                         sys.exit(1)
 
             elif args.command == 'group':

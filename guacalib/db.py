@@ -148,6 +148,61 @@ class GuacamoleDB:
         except mysql.connector.Error as e:
             print(f"Error checking user existence: {e}")
             raise
+            
+    def modify_user(self, username, param_name, param_value):
+        """Modify a user parameter in the guacamole_user table"""
+        try:
+            # Validate parameter name
+            allowed_params = {
+                'disabled': 'tinyint',
+                'expired': 'tinyint',
+                'access_window_start': 'time',
+                'access_window_end': 'time',
+                'valid_from': 'date',
+                'valid_until': 'date',
+                'timezone': 'string',
+                'full_name': 'string',
+                'email_address': 'string',
+                'organization': 'string',
+                'organizational_role': 'string'
+            }
+            
+            if param_name not in allowed_params:
+                raise ValueError(f"Invalid parameter: {param_name}. Allowed parameters: {', '.join(allowed_params.keys())}")
+            
+            # Validate parameter value based on type
+            param_type = allowed_params[param_name]
+            if param_type == 'tinyint':
+                if param_value not in ('0', '1'):
+                    raise ValueError(f"Parameter {param_name} must be 0 or 1")
+                param_value = int(param_value)
+            
+            # Get user entity_id
+            self.cursor.execute("""
+                SELECT entity_id FROM guacamole_entity 
+                WHERE name = %s AND type = 'USER'
+            """, (username,))
+            result = self.cursor.fetchone()
+            if not result:
+                raise ValueError(f"User '{username}' not found")
+            entity_id = result[0]
+            
+            # Update the parameter
+            query = f"""
+                UPDATE guacamole_user 
+                SET {param_name} = %s
+                WHERE entity_id = %s
+            """
+            self.cursor.execute(query, (param_value, entity_id))
+            
+            if self.cursor.rowcount == 0:
+                raise ValueError(f"Failed to update user parameter: {param_name}")
+                
+            return True
+            
+        except mysql.connector.Error as e:
+            print(f"Error modifying user parameter: {e}")
+            raise
 
     def delete_existing_user(self, username):
         try:
