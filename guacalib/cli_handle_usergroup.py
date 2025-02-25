@@ -52,6 +52,5 @@ def handle_usergroup_command(args, guacdb):
             if not guacdb.user_exists(args.rmuser):
                 print(f"Error: User '{args.rmuser}' does not exist")
                 sys.exit(1)
-            # TODO: Need to implement remove_user_from_group in GuacamoleDB class
-            print("Error: Removing users from groups is not yet implemented")
-            sys.exit(1)
+            guacdb.remove_user_from_group(args.rmuser, args.name)
+            guacdb.debug_print(f"Successfully removed user '{args.rmuser}' from group '{args.name}'")
