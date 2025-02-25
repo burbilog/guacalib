@@ -10,7 +10,7 @@ A command-line tool and Python library for managing Apache Guacamole users, grou
 - Create and delete users
 - Create and delete groups
 - Manage user group memberships
-- Create and manage VNC connections
+- Create and manage connections (VNC, with RDP and SSH planned)
 - List existing users and their group memberships
 - List existing groups and their members
 - List existing VNC connections with their parameters
@@ -189,26 +189,32 @@ guacaman group list
 guacaman group del --name developers
 ```
 
-### Managing VNC Connections
+### Managing Connections
 
-#### Create a new VNC connection
+#### Create a new connection
 ```bash
-guacaman vconn new \
+# Create a VNC connection
+guacaman conn new \
+    --type vnc \
     --name dev-server \
     --hostname 192.168.1.100 \
     --port 5901 \
     --vnc-password vncpass \
     --group developers,qa  # Comma-separated list of groups
+
+# RDP and SSH connections (coming soon)
+# guacaman conn new --type rdp ...
+# guacaman conn new --type ssh ...
 ```
 
-#### List all VNC connections
+#### List all connections
 ```bash
-guacaman vconn list
+guacaman conn list
 ```
 
-#### Delete a VNC connection
+#### Delete a connection
 ```bash
-guacaman vconn del --name dev-server
+guacaman conn del --name dev-server
 ```
 
 ### Version Information
@@ -230,7 +236,7 @@ guacaman user exists --name john.doe
 guacaman group exists --name developers
 
 # Check connection
-guacaman vconn exists --name dev-server
+guacaman conn exists --name dev-server
 ```
 
 These commands are silent and only return an exit code, making them suitable for scripting.
@@ -314,16 +320,16 @@ All errors are reported with clear messages to help diagnose issues.
 Current limitations and planned improvements:
 
 - [x] Separate connection management from user creation ✓
-  - Implemented in `vconn` command:
+  - Implemented in `conn` command:
     ```bash
-    # Create connection
-    guacaman vconn new --name dev-server --hostname 192.168.1.100 --port 5901 --vnc-password somepass
+    # Create VNC connection
+    guacaman conn new --type vnc --name dev-server --hostname 192.168.1.100 --port 5901 --vnc-password somepass
     
     # List connections
-    guacaman vconn list
+    guacaman conn list
     
     # Delete connection
-    guacaman vconn del --name dev-server
+    guacaman conn del --name dev-server
     ```
 
 - [ ] Support for other connection types

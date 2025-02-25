@@ -14,6 +14,8 @@ def setup_user_subcommands(subparsers):
     new_user.add_argument('--name', required=True, help='Username for Guacamole')
     new_user.add_argument('--password', required=True, help='Password for Guacamole user')
     new_user.add_argument('--group', help='Comma-separated list of groups to add user to')
+    new_user.add_argument('--type', choices=['vnc', 'rdp', 'ssh'], required=True, 
+                         help='Type of connection for this user (vnc, rdp, ssh)')
 
     # User list command
     user_subparsers.add_parser('list', help='List all users')
@@ -56,27 +58,29 @@ def setup_dump_subcommand(subparsers):
 def setup_version_subcommand(subparsers):
     subparsers.add_parser('version', help='Show version information')
 
-def setup_vconn_subcommands(subparsers):
-    conn_parser = subparsers.add_parser('vconn', help='Manage VNC connections')
-    conn_subparsers = conn_parser.add_subparsers(dest='vconn_command', help='Connection commands')
+def setup_conn_subcommands(subparsers):
+    conn_parser = subparsers.add_parser('conn', help='Manage connections')
+    conn_subparsers = conn_parser.add_subparsers(dest='conn_command', help='Connection commands')
 
     # Connection new command
-    new_conn = conn_subparsers.add_parser('new', help='Create a new VNC connection')
+    new_conn = conn_subparsers.add_parser('new', help='Create a new connection')
     new_conn.add_argument('--name', required=True, help='Connection name')
-    new_conn.add_argument('--hostname', required=True, help='VNC server hostname/IP')
-    new_conn.add_argument('--port', required=True, help='VNC server port')
-    new_conn.add_argument('--vnc-password', required=True, help='VNC server password')
+    new_conn.add_argument('--type', choices=['vnc', 'rdp', 'ssh'], required=True, 
+                         help='Type of connection (vnc, rdp, ssh)')
+    new_conn.add_argument('--hostname', required=True, help='Server hostname/IP')
+    new_conn.add_argument('--port', required=True, help='Server port')
+    new_conn.add_argument('--vnc-password', help='VNC server password (required for VNC)')
     new_conn.add_argument('--group', help='Comma-separated list of groups to grant access to')
 
     # Connection list command
-    conn_subparsers.add_parser('list', help='List all VNC connections')
+    conn_subparsers.add_parser('list', help='List all connections')
 
     # Connection exists command
-    exists_conn = conn_subparsers.add_parser('exists', help='Check if a VNC connection exists')
+    exists_conn = conn_subparsers.add_parser('exists', help='Check if a connection exists')
     exists_conn.add_argument('--name', required=True, help='Connection name to check')
 
     # Connection delete command
-    del_conn = conn_subparsers.add_parser('del', help='Delete a VNC connection')
+    del_conn = conn_subparsers.add_parser('del', help='Delete a connection')
     del_conn.add_argument('--name', required=True, help='Connection name to delete')
 
 def main():
@@ -89,7 +93,7 @@ def main():
 
     setup_user_subcommands(subparsers)
     setup_group_subcommands(subparsers)
-    setup_vconn_subcommands(subparsers)
+    setup_conn_subcommands(subparsers)
     setup_dump_subcommand(subparsers)
     setup_version_subcommand(subparsers)
 
@@ -122,8 +126,8 @@ def main():
         subparsers.choices['group'].print_help()
         sys.exit(1)
         
-    if args.command == 'vconn' and not args.vconn_command:
-        subparsers.choices['vconn'].print_help()
+    if args.command == 'conn' and not args.conn_command:
+        subparsers.choices['conn'].print_help()
         sys.exit(1)
 
     try:
@@ -311,8 +315,8 @@ def main():
                 from guacalib import VERSION
                 print(f"guacaman version {VERSION}")
                 
-            elif args.command == 'vconn':
-                if args.vconn_command == 'list':
+            elif args.command == 'conn':
+                if args.conn_command == 'list':
                     connections = guacdb.list_connections_with_groups()
                     print("connections:")
                     for conn in connections:
@@ -324,18 +328,37 @@ def main():
                         for group in (groups.split(',') if groups else []):
                             print(f"      - {group}")
                         
-                elif args.vconn_command == 'new':
+                elif args.conn_command == 'new':
                     try:
-                        # Create new connection
-                        connection_id = guacdb.create_vnc_connection(
-                            args.name,
-                            args.hostname,
-                            args.port,
-                            args.vnc_password
-                        )
+                        connection_id = None
                         
-                        # Grant to groups if specified
-                        if args.group:
+                        # Handle different connection types
+                        if args.type == 'vnc':
+                            if not args.vnc_password:
+                                print("Error: --vnc-password is required for VNC connections")
+                                sys.exit(1)
+                                
+                            # Create new VNC connection
+                            connection_id = guacdb.create_vnc_connection(
+                                args.name,
+                                args.hostname,
+                                args.port,
+                                args.vnc_password
+                            )
+                            guacdb.debug_print(f"Successfully created VNC connection '{args.name}'")
+                            
+                        elif args.type == 'rdp':
+                            # TODO: Implement RDP connection creation
+                            print("RDP connections not yet implemented")
+                            sys.exit(1)
+                            
+                        elif args.type == 'ssh':
+                            # TODO: Implement SSH connection creation
+                            print("SSH connections not yet implemented")
+                            sys.exit(1)
+                        
+                        # Grant to groups if specified and connection was created
+                        if connection_id and args.group:
                             groups = [g.strip() for g in args.group.split(',')]
                             success = True
                             
@@ -355,13 +378,11 @@ def main():
                             if not success:
                                 raise RuntimeError("Failed to grant access to one or more groups")
                         
-                        guacdb.debug_print(f"Successfully created VNC connection '{args.name}'")
-                        
                     except Exception as e:
                         print(f"Error creating connection: {e}")
                         sys.exit(1)
 
-                elif args.vconn_command == 'del':
+                elif args.conn_command == 'del':
                     try:
                         # Try exact match first
                         guacdb.delete_existing_connection(args.name)
@@ -369,7 +390,7 @@ def main():
                         print(f"Error deleting connection: {e}")
                         sys.exit(1)
 
-                elif args.vconn_command == 'exists':
+                elif args.conn_command == 'exists':
                     if guacdb.connection_exists(args.name):
                         sys.exit(0)
                     else:
