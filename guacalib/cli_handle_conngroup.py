@@ -33,9 +33,12 @@ def handle_conngroup_command(args, guacdb):
         sys.exit(0)
 
     elif args.conngroup_command == 'exists':
-        print(f"Checking if connection group exists: {args.name}")
-        # TODO: Implement connection group existence check
-        sys.exit(0)
+        if guacdb.connection_group_exists(args.name):
+            print(f"Connection group '{args.name}' exists")
+            sys.exit(0)
+        else:
+            print(f"Connection group '{args.name}' does not exist")
+            sys.exit(1)
 
     elif args.conngroup_command == 'del':
         try:
