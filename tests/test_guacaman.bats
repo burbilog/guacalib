@@ -163,12 +163,12 @@ teardown() {
 
 @test "Connection modify hostname parameter" {
     # Modify the hostname
-    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set hostname=10.1.1.10
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --set hostname=10.1.1.10
     [ "$status" -eq 0 ]
     [[ "$output" == *"Successfully updated hostname"* ]]
     
     # Verify the change in the connection listing
-    run guacaman --config "$TEST_CONFIG" conn list
+    run guacaman --debug --config "$TEST_CONFIG" conn list
     [ "$status" -eq 0 ]
     [[ "$output" == *"testconn2"* ]]
     [[ "$output" == *"hostname: 10.1.1.10"* ]]
@@ -176,12 +176,12 @@ teardown() {
 
 @test "Connection modify port parameter" {
     # Modify the port
-    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set port=5910
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --set port=5910
     [ "$status" -eq 0 ]
     [[ "$output" == *"Successfully updated port"* ]]
     
     # Verify the change in the connection listing
-    run guacaman --config "$TEST_CONFIG" conn list
+    run guacaman --debug --config "$TEST_CONFIG" conn list
     [ "$status" -eq 0 ]
     [[ "$output" == *"testconn2"* ]]
     [[ "$output" == *"port: 5910"* ]]
@@ -189,62 +189,62 @@ teardown() {
 
 @test "Connection modify password parameter" {
     # Modify the password
-    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set password=newvncpass
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --set password=newvncpass
     [ "$status" -eq 0 ]
     [[ "$output" == *"Successfully updated password"* ]]
 }
 
 @test "Connection modify read-only parameter" {
     # Set read-only to true
-    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set read-only=true
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --set read-only=true
     [ "$status" -eq 0 ]
     [[ "$output" == *"Successfully updated read-only"* ]]
     
     # Set read-only to false
-    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set read-only=false
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --set read-only=false
     [ "$status" -eq 0 ]
     [[ "$output" == *"Successfully updated read-only"* ]]
     
     # Invalid value should fail
-    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set read-only=invalid
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --set read-only=invalid
     [ "$status" -ne 0 ]
     [[ "$output" == *"must be 'true' or 'false'"* ]]
 }
 
 @test "Connection modify max_connections parameter" {
     # Modify max_connections
-    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set max_connections=5
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --set max_connections=5
     [ "$status" -eq 0 ]
     [[ "$output" == *"Successfully updated max_connections"* ]]
     
     # Invalid value should fail
-    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set max_connections=invalid
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --set max_connections=invalid
     [ "$status" -ne 0 ]
     [[ "$output" == *"must be an integer"* ]]
 }
 
 @test "Connection modify max_connections_per_user parameter" {
     # Modify max_connections_per_user
-    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set max_connections_per_user=3
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --set max_connections_per_user=3
     [ "$status" -eq 0 ]
     [[ "$output" == *"Successfully updated max_connections_per_user"* ]]
     
     # Invalid value should fail
-    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set max_connections_per_user=invalid
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --set max_connections_per_user=invalid
     [ "$status" -ne 0 ]
     [[ "$output" == *"must be an integer"* ]]
 }
 
 @test "Connection modify multiple parameters at once" {
     # Modify multiple parameters
-    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set hostname=192.168.2.100 --set port=5905 --set read-only=true
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --set hostname=192.168.2.100 --set port=5905 --set read-only=true
     [ "$status" -eq 0 ]
     [[ "$output" == *"Successfully updated hostname"* ]]
     [[ "$output" == *"Successfully updated port"* ]]
     [[ "$output" == *"Successfully updated read-only"* ]]
     
     # Verify the changes in the connection listing
-    run guacaman --config "$TEST_CONFIG" conn list
+    run guacaman --debug --config "$TEST_CONFIG" conn list
     [ "$status" -eq 0 ]
     [[ "$output" == *"testconn2"* ]]
     [[ "$output" == *"hostname: 192.168.2.100"* ]]
@@ -265,23 +265,23 @@ teardown() {
 
 @test "Connection modify set parent group" {
     # Set parent group
-    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set-parent-group parentgroup1
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --parent parentgroup1
     [ "$status" -eq 0 ]
     [[ "$output" == *"Successfully set parent group to 'parentgroup1'"* ]]
     
     # Verify in connection list
-    run guacaman --config "$TEST_CONFIG" conn list
+    run guacaman --debug --config "$TEST_CONFIG" conn list
     [[ "$output" == *"testconn2"* ]]
     [[ "$output" == *"groups:"* ]]
     [[ "$output" == *"- parentgroup1"* ]]
 }
 
 @test "Connection modify set nested parent group" {
-    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set-parent-group nested/parentgroup2
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --parent nested/parentgroup2
     [ "$status" -eq 0 ]
     [[ "$output" == *"Successfully set parent group to 'nested/parentgroup2'"* ]]
     
-    run guacaman --config "$TEST_CONFIG" conn list
+    run guacaman --debug --config "$TEST_CONFIG" conn list
     [[ "$output" == *"testconn2"* ]]
     [[ "$output" == *"- nested/parentgroup2"* ]]
 }
@@ -344,9 +344,9 @@ teardown() {
 
 @test "Connection modify remove parent group" {
     # First set a group
-    guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set-parent-group parentgroup1
+    guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --parent parentgroup1
     # Then remove it
-    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set-parent-group ""
+    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --parent ""
     [ "$status" -eq 0 ]
     [[ "$output" == *"Successfully set parent group to ''"* ]]
     
