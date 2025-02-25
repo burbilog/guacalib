@@ -58,13 +58,8 @@ def handle_conngroup_command(args, guacdb):
 
     elif args.conngroup_command == 'modify':
         guacdb.debug_print(f"Modifying connection group: {args.name}")
-        if args.addconn:
-            guacdb.debug_print(f"Adding connection: {args.addconn}")
-            # TODO: Implement connection addition
-        if args.rmconn:
-            guacdb.debug_print(f"Removing connection: {args.rmconn}")
-            # TODO: Implement connection removal
-        if args.set_parent_conngroup:
-            guacdb.debug_print(f"Setting parent connection group: {args.set_parent_conngroup}")
+        if args.parent:
+            guacdb.debug_print(f"Setting parent connection group: {args.parent}")
+            print(f"TODO: --parent not implemented: {args.parent}")
             # TODO: Implement parent connection group setting
         sys.exit(0)
