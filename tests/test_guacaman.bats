@@ -264,26 +264,39 @@ teardown() {
 }
 
 @test "Connection modify set parent group" {
+    # Create connection group
+    guacaman --config "$TEST_CONFIG" conngroup new --name testconngroup1
+    
     # Set parent group
-    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --parent parentgroup1
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --parent testconngroup1
     [ "$status" -eq 0 ]
-    [[ "$output" == *"Successfully set parent group to 'parentgroup1'"* ]]
+    [[ "$output" == *"Successfully set parent group to 'testconngroup1'"* ]]
     
     # Verify in connection list
     run guacaman --debug --config "$TEST_CONFIG" conn list
     [[ "$output" == *"testconn2"* ]]
-    [[ "$output" == *"groups:"* ]]
-    [[ "$output" == *"- parentgroup1"* ]]
+    [[ "$output" == *"parent: testconngroup1"* ]]
+    
+    # Clean up
+    guacaman --config "$TEST_CONFIG" conngroup del --name testconngroup1
 }
 
 @test "Connection modify set nested parent group" {
-    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --parent nested/parentgroup2
+    # Create nested connection groups
+    guacaman --config "$TEST_CONFIG" conngroup new --name testconngroup1
+    guacaman --config "$TEST_CONFIG" conngroup new --name testconngroup2 --parent testconngroup1
+    
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --parent testconngroup1/testconngroup2
     [ "$status" -eq 0 ]
-    [[ "$output" == *"Successfully set parent group to 'nested/parentgroup2'"* ]]
+    [[ "$output" == *"Successfully set parent group to 'testconngroup1/testconngroup2'"* ]]
     
     run guacaman --debug --config "$TEST_CONFIG" conn list
     [[ "$output" == *"testconn2"* ]]
-    [[ "$output" == *"- nested/parentgroup2"* ]]
+    [[ "$output" == *"parent: testconngroup1/testconngroup2"* ]]
+    
+    # Clean up
+    guacaman --config "$TEST_CONFIG" conngroup del --name testconngroup2
+    guacaman --config "$TEST_CONFIG" conngroup del --name testconngroup1
 }
 
 @test "Add user to usergroup" {
