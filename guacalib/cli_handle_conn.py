@@ -53,8 +53,8 @@ def handle_conn_new(args, guacdb):
             print("SSH connections not yet implemented")
             sys.exit(1)
         
-        if connection_id and args.group:
-            groups = [g.strip() for g in args.group.split(',')]
+        if connection_id and args.usergroup:
+            groups = [g.strip() for g in args.usergroup.split(',')]
             success = True
             
             for group in groups:
