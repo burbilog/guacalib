@@ -165,7 +165,10 @@ teardown() {
     [[ "$output" == *"hostname: 192.168.1.100"* ]]
     [[ "$output" == *"hostname: 192.168.1.101"* ]]
     
-    # Verify relationships without depending on exact whitespace
-    echo "$output" | grep -qE 'testuser1:.*- testgroup1.*- testgroup2'
-    echo "$output" | grep -qE 'testconn1:.*- testgroup1'
+    # Save full output for debugging
+    echo "$output" > /tmp/output.txt
+    
+    # Verify relationships with more flexible matching
+    echo "$output" | grep -Pzo 'testuser1:.*?(\n\s+- testgroup1.*?)+(\n\s+- testgroup2.*?)+' 
+    echo "$output" | grep -Pzo 'testconn1:.*?(\n\s+- testgroup1.*?)+'
 }
