@@ -142,3 +142,30 @@ teardown() {
     [ "$status" -ne 0 ]
     [[ "$output" == *"doesn't exist"* ]]
 }
+
+@test "Dump command shows test data" {
+    run guacaman --config "$TEST_CONFIG" dump
+    [ "$status" -eq 0 ]
+    
+    # Check groups section
+    [[ "$output" == *"groups:"* ]]
+    [[ "$output" == *"testgroup1:"* ]]
+    [[ "$output" == *"testgroup2:"* ]]
+    
+    # Check users section
+    [[ "$output" == *"users:"* ]]
+    [[ "$output" == *"testuser1:"* ]]
+    [[ "$output" == *"testuser2:"* ]]
+    [[ "$output" == *"groups:"* ]]  # users should have groups section
+    
+    # Check connections section
+    [[ "$output" == *"vnc-connections:"* ]]
+    [[ "$output" == *"testconn1:"* ]]
+    [[ "$output" == *"testconn2:"* ]]
+    [[ "$output" == *"hostname: 192.168.1.100"* ]]
+    [[ "$output" == *"hostname: 192.168.1.101"* ]]
+    
+    # Verify relationships without depending on exact whitespace
+    echo "$output" | grep -qE 'testuser1:.*- testgroup1.*- testgroup2'
+    echo "$output" | grep -qE 'testconn1:.*- testgroup1'
+}
