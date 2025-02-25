@@ -286,6 +286,55 @@ teardown() {
     [[ "$output" == *"- nested/parentgroup2"* ]]
 }
 
+@test "Add user to group" {
+    run guacaman --config "$TEST_CONFIG" usergroup modify --name testgroup1 --adduser testuser2
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully added user 'testuser2' to group 'testgroup1'"* ]]
+    
+    run guacaman --config "$TEST_CONFIG" usergroup list
+    [[ "$output" == *"testgroup1:"* ]]
+    [[ "$output" == *"users:"* ]]
+    [[ "$output" == *"- testuser2"* ]]
+}
+
+@test "Remove user from group" {
+    # First add the user
+    guacaman --config "$TEST_CONFIG" usergroup modify --name testgroup1 --adduser testuser2
+    
+    # Then remove them
+    run guacaman --config "$TEST_CONFIG" usergroup modify --name testgroup1 --rmuser testuser2
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully removed user 'testuser2' from group 'testgroup1'"* ]]
+    
+    run guacaman --config "$TEST_CONFIG" usergroup list
+    [[ "$output" == *"testgroup1:"* ]]
+    [[ "$output" != *"- testuser2"* ]]
+}
+
+@test "Add user to non-existent group should fail" {
+    run guacaman --config "$TEST_CONFIG" usergroup modify --name nonexistentgroup --adduser testuser1
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"does not exist"* ]]
+}
+
+@test "Remove user from non-existent group should fail" {
+    run guacaman --config "$TEST_CONFIG" usergroup modify --name nonexistentgroup --rmuser testuser1
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"does not exist"* ]]
+}
+
+@test "Add non-existent user to group should fail" {
+    run guacaman --config "$TEST_CONFIG" usergroup modify --name testgroup1 --adduser nonexistentuser
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"does not exist"* ]]
+}
+
+@test "Remove non-existent user from group should fail" {
+    run guacaman --config "$TEST_CONFIG" usergroup modify --name testgroup1 --rmuser nonexistentuser
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"does not exist"* ]]
+}
+
 @test "Connection modify remove parent group" {
     # First set a group
     guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set-parent-group parentgroup1
