@@ -86,6 +86,11 @@ def setup_conn_subcommands(subparsers):
     # Connection delete command
     del_conn = conn_subparsers.add_parser('del', help='Delete a connection')
     del_conn.add_argument('--name', required=True, help='Connection name to delete')
+    
+    # Connection modify command
+    modify_conn = conn_subparsers.add_parser('modify', help='Modify connection parameters')
+    modify_conn.add_argument('--name', help='Connection name to modify')
+    modify_conn.add_argument('--set', action='append', help='Parameter to set in format param=value (can be used multiple times)')
 
 def main():
     parser = argparse.ArgumentParser(description='Manage Guacamole users, groups, and connections')

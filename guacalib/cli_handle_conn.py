@@ -6,6 +6,7 @@ def handle_conn_command(args, guacdb):
         'list': handle_conn_list,
         'del': handle_conn_delete,
         'exists': handle_conn_exists,
+        'modify': handle_conn_modify,
     }
     
     handler = command_handlers.get(args.conn_command)
@@ -87,4 +88,43 @@ def handle_conn_exists(args, guacdb):
     if guacdb.connection_exists(args.name):
         sys.exit(0)
     else:
+        sys.exit(1)
+        
+def handle_conn_modify(args, guacdb):
+    """Handle the connection modify command"""
+    if not args.name or not args.set:
+        # Print help information about modifiable parameters
+        print("Usage: guacaman conn modify --name <connection_name> --set <param=value> [--set <param=value> ...]")
+        print("\nModifiable connection parameters:")
+        print("\nParameters in guacamole_connection table:")
+        for param, info in sorted(guacdb.CONNECTION_PARAMETERS.items()):
+            if info['table'] == 'connection':
+                print(f"  {param}: {info['description']} (type: {info['type']}, default: {info['default']})")
+        
+        print("\nParameters in guacamole_connection_parameter table:")
+        for param, info in sorted(guacdb.CONNECTION_PARAMETERS.items()):
+            if info['table'] == 'parameter':
+                print(f"  {param}: {info['description']} (type: {info['type']}, default: {info['default']})")
+        
+        sys.exit(1)
+    
+    try:
+        # Process each --set argument
+        for param_value in args.set:
+            if '=' not in param_value:
+                print(f"Error: Invalid format for --set. Must be param=value, got: {param_value}")
+                sys.exit(1)
+                
+            param, value = param_value.split('=', 1)
+            guacdb.debug_print(f"Modifying connection '{args.name}': setting {param}={value}")
+            
+            try:
+                guacdb.modify_connection(args.name, param, value)
+                print(f"Successfully updated {param} for connection '{args.name}'")
+            except ValueError as e:
+                print(f"Error: {str(e)}")
+                sys.exit(1)
+                
+    except Exception as e:
+        print(f"Error modifying connection: {e}")
         sys.exit(1)

@@ -149,6 +149,42 @@ class GuacamoleDB:
             print(f"Error checking user existence: {e}")
             raise
             
+    # Define allowed connection parameters as a class attribute
+    CONNECTION_PARAMETERS = {
+        # Parameters in guacamole_connection table
+        'max_connections': {
+            'type': 'int',
+            'description': 'Maximum number of connections allowed to this connection',
+            'default': 'NULL',
+            'table': 'connection'
+        },
+        'max_connections_per_user': {
+            'type': 'int',
+            'description': 'Maximum number of connections allowed per user',
+            'default': 'NULL',
+            'table': 'connection'
+        },
+        # Parameters in guacamole_connection_parameter table
+        'hostname': {
+            'type': 'string',
+            'description': 'Hostname or IP address of the remote server',
+            'default': 'NULL',
+            'table': 'parameter'
+        },
+        'port': {
+            'type': 'string',
+            'description': 'Port of the remote server',
+            'default': 'NULL',
+            'table': 'parameter'
+        },
+        'password': {
+            'type': 'string',
+            'description': 'Password for the connection (VNC password, etc.)',
+            'default': 'NULL',
+            'table': 'parameter'
+        }
+    }
+    
     # Define allowed user parameters as a class attribute
     USER_PARAMETERS = {
         'disabled': {
@@ -208,6 +244,74 @@ class GuacamoleDB:
         }
     }
     
+    def modify_connection(self, connection_name, param_name, param_value):
+        """Modify a connection parameter in either guacamole_connection or guacamole_connection_parameter table"""
+        try:
+            # Validate parameter name
+            if param_name not in self.CONNECTION_PARAMETERS:
+                raise ValueError(f"Invalid parameter: {param_name}. Run 'guacaman conn modify' without arguments to see allowed parameters.")
+            
+            # Get connection_id
+            self.cursor.execute("""
+                SELECT connection_id FROM guacamole_connection 
+                WHERE connection_name = %s
+            """, (connection_name,))
+            result = self.cursor.fetchone()
+            if not result:
+                raise ValueError(f"Connection '{connection_name}' not found")
+            connection_id = result[0]
+            
+            param_info = self.CONNECTION_PARAMETERS[param_name]
+            param_table = param_info['table']
+            
+            # Update the parameter based on which table it belongs to
+            if param_table == 'connection':
+                # Validate parameter value based on type
+                if param_info['type'] == 'int':
+                    try:
+                        param_value = int(param_value)
+                    except ValueError:
+                        raise ValueError(f"Parameter {param_name} must be an integer")
+                
+                # Update in guacamole_connection table
+                query = f"""
+                    UPDATE guacamole_connection 
+                    SET {param_name} = %s
+                    WHERE connection_id = %s
+                """
+                self.cursor.execute(query, (param_value, connection_id))
+                
+            elif param_table == 'parameter':
+                # Check if parameter already exists
+                self.cursor.execute("""
+                    SELECT parameter_value FROM guacamole_connection_parameter
+                    WHERE connection_id = %s AND parameter_name = %s
+                """, (connection_id, param_name))
+                
+                if self.cursor.fetchone():
+                    # Update existing parameter
+                    self.cursor.execute("""
+                        UPDATE guacamole_connection_parameter
+                        SET parameter_value = %s
+                        WHERE connection_id = %s AND parameter_name = %s
+                    """, (param_value, connection_id, param_name))
+                else:
+                    # Insert new parameter
+                    self.cursor.execute("""
+                        INSERT INTO guacamole_connection_parameter
+                        (connection_id, parameter_name, parameter_value)
+                        VALUES (%s, %s, %s)
+                    """, (connection_id, param_name, param_value))
+            
+            if self.cursor.rowcount == 0:
+                raise ValueError(f"Failed to update connection parameter: {param_name}")
+                
+            return True
+            
+        except mysql.connector.Error as e:
+            print(f"Error modifying connection parameter: {e}")
+            raise
+
     def modify_user(self, username, param_name, param_value):
         """Modify a user parameter in the guacamole_user table"""
         try:
