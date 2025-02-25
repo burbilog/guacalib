@@ -4,6 +4,7 @@ import argparse
 import os
 import sys
 from guacalib import GuacamoleDB
+from guacalib.cli_handle_group import handle_group_command
 
 def setup_user_subcommands(subparsers):
     user_parser = subparsers.add_parser('user', help='Manage Guacamole users')
@@ -249,41 +250,7 @@ def main():
                         sys.exit(1)
 
             elif args.command == 'group':
-                if args.group_command == 'new':
-                    # Check if group exists first
-                    if guacdb.group_exists(args.name):
-                        print(f"Error: Group '{args.name}' already exists")
-                        sys.exit(1)
-                        
-                    guacdb.create_group(args.name)
-                    guacdb.debug_print(f"Successfully created group '{args.name}'")
-
-                elif args.group_command == 'list':
-                    groups_data = guacdb.list_groups_with_users_and_connections()
-                    print("groups:")
-                    for group, data in groups_data.items():
-                        print(f"  {group}:")
-                        print("    users:")
-                        for user in data['users']:
-                            print(f"      - {user}")
-                        print("    connections:")
-                        for conn in data['connections']:
-                            print(f"      - {conn}")
-
-                elif args.group_command == 'del':
-                    # Check if group exists first
-                    if not guacdb.group_exists(args.name):
-                        print(f"Error: Group '{args.name}' does not exist")
-                        sys.exit(1)
-                        
-                    guacdb.delete_existing_group(args.name)
-                    guacdb.debug_print(f"Successfully deleted group '{args.name}'")
-
-                elif args.group_command == 'exists':
-                    if guacdb.group_exists(args.name):
-                        sys.exit(0)
-                    else:
-                        sys.exit(1)
+                handle_group_command(args, guacdb)
 
             elif args.command == 'dump':
                 # Get all data
