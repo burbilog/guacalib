@@ -28,8 +28,8 @@ def setup_user_subcommands(subparsers):
     
     # User modify command
     modify_user = user_subparsers.add_parser('modify', help='Modify user parameters')
-    modify_user.add_argument('--name', required=True, help='Username to modify')
-    modify_user.add_argument('--set', required=True, help='Parameter to set in format param=value')
+    modify_user.add_argument('--name', help='Username to modify')
+    modify_user.add_argument('--set', help='Parameter to set in format param=value')
 
 def setup_group_subcommands(subparsers):
     group_parser = subparsers.add_parser('group', help='Manage Guacamole groups')
@@ -187,6 +187,27 @@ def main():
                         sys.exit(1)
                         
                 elif args.user_command == 'modify':
+                    # If no arguments provided, show the list of allowed parameters
+                    if not args.name or not args.set:
+                        print("Usage: guacaman user modify --name USERNAME --set PARAMETER=VALUE")
+                        print("\nAllowed parameters:")
+                        print("-------------------")
+                        max_param_len = max(len(param) for param in guacdb.USER_PARAMETERS.keys())
+                        max_type_len = max(len(info['type']) for info in guacdb.USER_PARAMETERS.values())
+                        
+                        # Print header
+                        print(f"{'PARAMETER':<{max_param_len+2}} {'TYPE':<{max_type_len+2}} {'DEFAULT':<10} DESCRIPTION")
+                        print(f"{'-'*(max_param_len+2)} {'-'*(max_type_len+2)} {'-'*10} {'-'*40}")
+                        
+                        # Print each parameter
+                        for param, info in sorted(guacdb.USER_PARAMETERS.items()):
+                            print(f"{param:<{max_param_len+2}} {info['type']:<{max_type_len+2}} {info['default']:<10} {info['description']}")
+                        
+                        print("\nExample usage:")
+                        print("  guacaman user modify --name john.doe --set disabled=1")
+                        print("  guacaman user modify --name john.doe --set \"organization=Example Corp\"")
+                        sys.exit(0)
+                    
                     try:
                         # Parse the parameter and value
                         if '=' not in args.set:
