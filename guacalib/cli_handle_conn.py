@@ -36,16 +36,12 @@ def handle_conn_new(args, guacdb):
     try:
         connection_id = None
         
-        if not args.vnc_password:
-            print("Error: --vnc-password is required for new connections")
-            sys.exit(1)
-            
         connection_id = guacdb.create_connection(
             args.type,
             args.name,
             args.hostname,
             args.port,
-            args.vnc_password
+            args.password
         )
         guacdb.debug_print(f"Successfully created connection '{args.name}'")
             

@@ -19,8 +19,8 @@ setup() {
     guacaman --config "$TEST_CONFIG" usergroup new --name testgroup2
     guacaman --config "$TEST_CONFIG" user new --name testuser1 --password testpass1 --usergroup testgroup1,testgroup2
     guacaman --config "$TEST_CONFIG" user new --name testuser2 --password testpass2
-    guacaman --config "$TEST_CONFIG" conn new --type vnc --name testconn1 --hostname 192.168.1.100 --port 5901 --vnc-password vncpass1 --usergroup testgroup1
-    guacaman --config "$TEST_CONFIG" conn new --type vnc --name testconn2 --hostname 192.168.1.101 --port 5902 --vnc-password vncpass2
+    guacaman --config "$TEST_CONFIG" conn new --type vnc --name testconn1 --hostname 192.168.1.100 --port 5901 --password vncpass1 --usergroup testgroup1
+    guacaman --config "$TEST_CONFIG" conn new --type vnc --name testconn2 --hostname 192.168.1.101 --port 5902 --password vncpass2
     guacaman --config "$TEST_CONFIG" usergroup new --name parentgroup1
     guacaman --config "$TEST_CONFIG" usergroup new --name nested/parentgroup2
     guacaman --config "$TEST_CONFIG" conngroup new --name testconngroup1
@@ -140,7 +140,7 @@ teardown() {
 }
 
 @test "Create existing connection should fail" {
-    run guacaman --config "$TEST_CONFIG" conn new --type vnc --name testconn1 --hostname 192.168.1.100 --port 5901 --vnc-password vncpass1
+    run guacaman --config "$TEST_CONFIG" conn new --type vnc --name testconn1 --hostname 192.168.1.100 --port 5901 --password vncpass1
     [ "$status" -ne 0 ]
     [[ "$output" == *"already exists"* ]]
 }
@@ -576,7 +576,7 @@ teardown() {
     [[ "$output" == *"groups:"* ]]  # users should have groups section
     
     # Check connections section
-    [[ "$output" == *"vnc-connections:"* ]]
+    [[ "$output" == *"connections:"* ]]
     [[ "$output" == *"testconn1:"* ]]
     [[ "$output" == *"testconn2:"* ]]
     [[ "$output" == *"hostname: 192.168.1.100"* ]]

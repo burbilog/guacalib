@@ -106,7 +106,7 @@ def setup_conn_subcommands(subparsers):
                          help='Type of connection (vnc, rdp, ssh)')
     new_conn.add_argument('--hostname', required=True, help='Server hostname/IP')
     new_conn.add_argument('--port', required=True, help='Server port')
-    new_conn.add_argument('--vnc-password', help='VNC server password (required for VNC)')
+    new_conn.add_argument('--password', help='Connection password')
     new_conn.add_argument('--usergroup', help='Comma-separated list of user groups to grant access to')
 
     # Connection list command
