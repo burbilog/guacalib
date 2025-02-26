@@ -249,6 +249,45 @@ guacaman conn modify --name dev-server --set invalid_param=value
 guacaman conn del --name dev-server
 ```
 
+### Managing Connection Groups
+
+Connection groups allow you to organize connections into hierarchical groups. Here's how to manage them:
+
+#### Create a new connection group
+```bash
+# Create a top-level group
+guacaman conngroup new --name production
+
+# Create a nested group under production
+guacaman conngroup new --name production/vnc_servers --parent production
+```
+
+#### List all connection groups
+Shows all groups and their hierarchy:
+```bash
+guacaman conngroup list
+```
+
+#### Delete a connection group
+```bash
+guacaman conngroup del --name production/vnc_servers
+```
+
+#### Modify a connection group
+Change parent group or hierarchy:
+```bash
+# Move group to new parent
+guacaman conngroup modify --name production/vnc_servers --parent "infrastructure"
+
+# Remove parent (make top-level)
+guacaman conngroup modify --name production/vnc_servers --parent ""
+```
+
+#### Check if a connection group exists
+```bash
+guacaman conngroup exists --name production/vnc_servers
+```
+
 ### Version Information
 
 Check the installed version:
