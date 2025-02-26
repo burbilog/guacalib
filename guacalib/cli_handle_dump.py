@@ -22,12 +22,11 @@ def handle_dump_command(guacdb):
             print(f"      - {group}")
     
     # Print user groups
-    print("\nusergroups:")
     handle_usergroup_command(args, guacdb)
     
     # Print connections
     connections_data = guacdb.list_connections_with_groups_and_parents()
-    print("\nvnc-connections:")
+    print("vnc-connections:")
     for conn in connections_data:
         name, host, port, groups, parent = conn
         print(f"  {name}:")
@@ -39,5 +38,4 @@ def handle_dump_command(guacdb):
         print(f"    parent: {parent if parent else 'ROOT'}")
     
     # Print connection groups
-    print("\nconnection groups:")
     handle_conngroup_command(args, guacdb)

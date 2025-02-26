@@ -279,6 +279,20 @@ teardown() {
     [[ "$output" == *"parent: testconngroup1"* ]]
 }
 
+@test "Connection modify remove parent group" {
+    # First set a group
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --parent testconngroup2
+    [ "$status" -eq 0 ]
+    # Then remove it
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --parent ""
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully set parent group to ''"* ]]
+    
+    run guacaman --debug --config "$TEST_CONFIG" conn list
+    [[ "$output" == *"testconn2"* ]]
+    [[ "$output" != *"testconngroup2"* ]]
+}
+
 @test "Connection modify set nested parent group" {
     
     run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --parent testconngroup2
@@ -348,18 +362,6 @@ teardown() {
     [[ "$output" == *"is not in group"* ]]
 }
 
-@test "Connection modify remove parent group" {
-    # First set a group
-    guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --parent testconngroup2
-    # Then remove it
-    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --parent ""
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"Successfully set parent group to ''"* ]]
-    
-    run guacaman --config "$TEST_CONFIG" conn list
-    [[ "$output" == *"testconn2"* ]]
-    [[ "$output" != *"testconngroup2"* ]]
-}
 
 @test "Connection group creation with debug" {
     group_name="testgroup_$(date +%s)"
@@ -512,6 +514,8 @@ teardown() {
     guacaman --config "$TEST_CONFIG" conngroup del --name "$child_name"
     guacaman --config "$TEST_CONFIG" conngroup del --name "$parent_name"
 }
+
+
 
 @test "Connection group modify detect cycles" {
     group1="group1_$(date +%s)"
