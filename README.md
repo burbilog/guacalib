@@ -382,7 +382,7 @@ PRs implementing any of these features are welcome!
 
 ## Version
 
-This is version 0.7
+This is version 0.8
 
 ## Contributing
 
@@ -392,7 +392,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 Copyright Roman V. Isaev <rm@isaeff.net> 2024
 
-This software is distributed under the terms of the GNU General Public license, version 0.7.
+This software is distributed under the terms of the GNU General Public license, version 0.8.
 
 ## Support
 
