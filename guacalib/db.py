@@ -164,6 +164,36 @@ class GuacamoleDB:
             'default': 'NULL',
             'table': 'connection'
         },
+        'proxy_hostname': {
+            'type': 'int',
+            'description': 'The hostname or IP address of the Guacamole proxy\n'
+                   '    daemon (guacd) which should be used for this connection.',
+            'default': 'NULL',
+            'table': 'connection'
+        },
+        'proxy_port': {
+            'type': 'int',
+            'description': 'The TCP port number of the Guacamole proxy daemon\n'
+                   '    (guacd) which should be used for this connection. ',
+            'default': 'NULL',
+            'table': 'connection'
+        },
+        'connection_weight': {
+            'type': 'int',
+            'description': 'The weight for a connection, used for applying weighted load\n'
+                   '    balancing algorithms when connections are part of a BALANCING group.',
+            'default': 'NULL',
+            'table': 'connection'
+        },
+        'failover_only': {
+            'type': 'int',
+            'description': 'Whether this connection should be used for failover situations only,\n'
+                   '    also known as a “hot spare”. If this column is set to TRUE or 1, this connection\n'
+                   '    will be used only when another connection within the same BALANCING connection\n'
+                   '    group has failed due to an error within the remote desktop.',
+            'default': 'NULL',
+            'table': 'connection'
+        },
         # Parameters in guacamole_connection_parameter table
         'hostname': {
             'type': 'string',
@@ -186,6 +216,15 @@ class GuacamoleDB:
         'read-only': {
             'type': 'boolean',
             'description': 'Whether the connection is read-only (true/false)',
+            'default': 'false',
+            'table': 'parameter'
+        },
+        'color-depth': {
+            'type': 'boolean',
+            'description': 'The color depth to request, in bits-per-pixel. This parameter\n'
+                    '    is optional. If specified, this must be either 8, 16, 24, or 32. Regardless\n'
+                    '    of what value is chosen here, if a particular update uses less than 256\n'
+                    '    colors, Guacamole will always send that update as a 256-color PNG.',
             'default': 'false',
             'table': 'parameter'
         }
