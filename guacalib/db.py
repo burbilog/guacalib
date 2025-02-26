@@ -420,13 +420,18 @@ class GuacamoleDB:
                             WHERE connection_id = %s AND parameter_name = %s
                         """, (connection_id, param_name))
                 else:
+                    # Special handling for color-depth
+                    if param_name == 'color-depth':
+                        if param_value not in ('8', '16', '24', '32'):
+                            raise ValueError("color-depth must be one of: 8, 16, 24, 32")
+                
                     # Regular parameter handling
                     # Check if parameter already exists
                     self.cursor.execute("""
                         SELECT parameter_value FROM guacamole_connection_parameter
                         WHERE connection_id = %s AND parameter_name = %s
                     """, (connection_id, param_name))
-                    
+                
                     if self.cursor.fetchone():
                         # Update existing parameter
                         self.cursor.execute("""
