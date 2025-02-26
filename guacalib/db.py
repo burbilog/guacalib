@@ -956,11 +956,12 @@ class GuacamoleDB:
         return users_groups
 
     def list_connections_with_groups_and_parents(self):
-        """List all VNC connections with their groups and parent group"""
+        """List all connections with their groups and parent group"""
         try:
             self.cursor.execute("""
                 SELECT 
                     c.connection_name,
+                    c.protocol,
                     MAX(CASE WHEN p1.parameter_name = 'hostname' THEN p1.parameter_value END) AS hostname,
                     MAX(CASE WHEN p2.parameter_name = 'port' THEN p2.parameter_value END) AS port,
                     GROUP_CONCAT(DISTINCT e.name) AS groups,
@@ -976,7 +977,6 @@ class GuacamoleDB:
                     ON cp.entity_id = e.entity_id AND e.type = 'USER_GROUP'
                 LEFT JOIN guacamole_connection_group cg
                     ON c.parent_id = cg.connection_group_id
-                WHERE c.protocol = 'vnc'
                 GROUP BY c.connection_id
                 ORDER BY c.connection_name
             """)

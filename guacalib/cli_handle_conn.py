@@ -21,8 +21,9 @@ def handle_conn_list(args, guacdb):
     connections = guacdb.list_connections_with_groups_and_parents()
     print("connections:")
     for conn in connections:
-        name, host, port, groups, parent = conn
+        name, protocol, host, port, groups, parent = conn
         print(f"  {name}:")
+        print(f"    type: {protocol}")
         print(f"    hostname: {host}")
         print(f"    port: {port}")
         if parent:
