@@ -1,11 +1,14 @@
 all:
-	echo make tests or make build or make testpub
+	echo make tests or make build or make push or make testpub or make pub
 
-build:
+build: FORCE
 	rm -rf build/ dist/ *.egg-info/
 	python -m build
 
 testpub: build
+	python3 -m twine upload --repository testpypi dist/*
+
+pub: build
 	python3 -m twine upload --repository testpypi dist/*
 
 FORCE:
