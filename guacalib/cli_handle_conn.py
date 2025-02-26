@@ -36,27 +36,19 @@ def handle_conn_new(args, guacdb):
     try:
         connection_id = None
         
-        if args.type == 'vnc':
-            if not args.vnc_password:
-                print("Error: --vnc-password is required for VNC connections")
-                sys.exit(1)
-                
-            connection_id = guacdb.create_vnc_connection(
-                args.name,
-                args.hostname,
-                args.port,
-                args.vnc_password
-            )
-            guacdb.debug_print(f"Successfully created VNC connection '{args.name}'")
-            
-        elif args.type == 'rdp':
-            print("RDP connections not yet implemented")
+        if not args.vnc_password:
+            print("Error: --vnc-password is required for new connections")
             sys.exit(1)
             
-        elif args.type == 'ssh':
-            print("SSH connections not yet implemented")
-            sys.exit(1)
-        
+        connection_id = guacdb.create_connection(
+            args.type,
+            args.name,
+            args.hostname,
+            args.port,
+            args.vnc_password
+        )
+        guacdb.debug_print(f"Successfully created connection '{args.name}'")
+            
         if connection_id and args.usergroup:
             groups = [g.strip() for g in args.usergroup.split(',')]
             success = True

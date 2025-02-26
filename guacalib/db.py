@@ -861,7 +861,7 @@ class GuacamoleDB:
             print(f"Error checking connection group existence: {e}")
             raise
 
-    def create_vnc_connection(self, connection_name, hostname, port, vnc_password, parent_group_id=None):
+    def create_connection(self, connection_type, connection_name, hostname, port, vnc_password, parent_group_id=None):
         if not all([connection_name, hostname, port]):
             raise ValueError("Missing required connection parameters")
             
@@ -873,8 +873,8 @@ class GuacamoleDB:
             self.cursor.execute("""
                 INSERT INTO guacamole_connection 
                 (connection_name, protocol, parent_id)
-                VALUES (%s, 'vnc', %s)
-            """, (connection_name, parent_group_id))
+                VALUES (%s, %s, %s)
+            """, (connection_name, connection_type, parent_group_id))
 
             # Get connection_id
             self.cursor.execute("""

@@ -26,7 +26,6 @@ def handle_dump_command(guacdb):
     
     # Print connections using conn list handler
     from guacalib.cli_handle_conn import handle_conn_list
-    print("connections:")
     handle_conn_list(args, guacdb)
     
     # Print connection groups
