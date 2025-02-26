@@ -17,13 +17,16 @@ def handle_conn_command(args, guacdb):
         sys.exit(1)
 
 def handle_conn_list(args, guacdb):
-    connections = guacdb.list_connections_with_groups()
+    # Get connections with both groups and parent group info
+    connections = guacdb.list_connections_with_groups_and_parents()
     print("connections:")
     for conn in connections:
-        name, host, port, groups = conn
+        name, host, port, groups, parent = conn
         print(f"  {name}:")
         print(f"    hostname: {host}")
         print(f"    port: {port}")
+        if parent:
+            print(f"    parent: {parent}")
         print("    groups:")
         for group in (groups.split(',') if groups else []):
             print(f"      - {group}")
