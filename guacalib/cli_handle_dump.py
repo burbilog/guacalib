@@ -24,18 +24,10 @@ def handle_dump_command(guacdb):
     # Print user groups
     handle_usergroup_command(args, guacdb)
     
-    # Print connections
-    connections_data = guacdb.list_connections_with_groups_and_parents()
-    print("vnc-connections:")
-    for conn in connections_data:
-        name, host, port, groups, parent = conn
-        print(f"  {name}:")
-        print(f"    hostname: {host}")
-        print(f"    port: {port}")
-        print("    groups:")
-        for group in (groups.split(',') if groups else []):
-            print(f"      - {group}")
-        print(f"    parent: {parent if parent else 'ROOT'}")
+    # Print connections using conn list handler
+    from guacalib.cli_handle_conn import handle_conn_list
+    print("connections:")
+    handle_conn_list(args, guacdb)
     
     # Print connection groups
     handle_conngroup_command(args, guacdb)
