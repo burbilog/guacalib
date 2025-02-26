@@ -266,8 +266,7 @@ guacaman conn modify --name dev-server \
     --set max_connections=5
 
 # Set parent connection group
-guacaman conn modify --name dev-server \
-    --parent "production/vnc_servers"
+guacaman conn modify --name dev-server --parent "vnc_servers"
 
 # Remove parent connection group
 guacaman conn modify --name dev-server --parent ""
@@ -433,6 +432,8 @@ Current limitations and planned improvements:
     # Delete connection
     guacaman conn del --name dev-server
     ```
+
+- [ ] GuacamoleDB initialization without configuration file, via variables
 
 - [ ] Support for other connection types
   - RDP (Remote Desktop Protocol)
