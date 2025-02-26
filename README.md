@@ -129,6 +129,35 @@ if guacdb.connection_exists('dev-server'):
 guacdb.delete_existing_connection('dev-server')
 ```
 
+### Managing Connection Groups
+
+Connection groups allow organizing connections into hierarchical groups. Here are the key methods:
+
+```python
+# Create a top-level connection group
+guacdb.create_connection_group('production')
+
+# Create a nested connection group
+guacdb.create_connection_group('production/vnc_servers', parent_group_name='production')
+
+# List all connection groups with their hierarchy
+groups = guacdb.list_connection_groups()
+for group_name, data in groups.items():
+    print(f"{group_name}:")
+    print(f"  Parent: {data['parent']}")
+    print(f"  Connections: {data['connections']}")
+
+# Check if a connection group exists
+if guacdb.connection_group_exists('production'):
+    print("Group exists")
+
+# Modify a connection group's parent
+guacdb.modify_connection_group_parent('production/vnc_servers', 'infrastructure')
+
+# Delete a connection group
+guacdb.delete_connection_group('production/vnc_servers')
+```
+
 ### Listing Data
 ```python
 # List users with their groups
