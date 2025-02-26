@@ -12,14 +12,9 @@ def handle_dump_command(guacdb):
     
     args = Args()
     
-    # Print users
-    users_data = guacdb.list_users_with_groups()
-    print("users:")
-    for user, groups in users_data.items():
-        print(f"  {user}:")
-        print("    groups:")
-        for group in groups:
-            print(f"      - {group}")
+    # Print users using existing list handler
+    from guacalib.cli_handle_user import handle_user_list
+    handle_user_list(args, guacdb)
     
     # Print user groups
     handle_usergroup_command(args, guacdb)
