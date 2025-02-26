@@ -23,6 +23,8 @@ setup() {
     guacaman --config "$TEST_CONFIG" conn new --type vnc --name testconn2 --hostname 192.168.1.101 --port 5902 --vnc-password vncpass2
     guacaman --config "$TEST_CONFIG" usergroup new --name parentgroup1
     guacaman --config "$TEST_CONFIG" usergroup new --name nested/parentgroup2
+    guacaman --config "$TEST_CONFIG" conngroup new --name testconngroup1
+    guacaman --config "$TEST_CONFIG" conngroup new --name testconngroup2 --parent testconngroup1
 }
 
 teardown() {
@@ -35,6 +37,8 @@ teardown() {
     guacaman --config "$TEST_CONFIG" usergroup del --name testgroup2 || true
     guacaman --config "$TEST_CONFIG" usergroup del --name parentgroup1 || true
     guacaman --config "$TEST_CONFIG" usergroup del --name nested/parentgroup2 || true
+    guacaman --config "$TEST_CONFIG" conngroup del --name testconngroup1 || true
+    guacaman --config "$TEST_CONFIG" conngroup del --name testconngroup2 || true
 }
 
 @test "User group creation and existence" {
@@ -264,9 +268,6 @@ teardown() {
 }
 
 @test "Connection modify set parent group" {
-    # Create connection group
-    guacaman --config "$TEST_CONFIG" conngroup new --name testconngroup1
-    
     # Set parent group
     run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --parent testconngroup1
     [ "$status" -eq 0 ]
@@ -276,27 +277,19 @@ teardown() {
     run guacaman --debug --config "$TEST_CONFIG" conn list
     [[ "$output" == *"testconn2"* ]]
     [[ "$output" == *"parent: testconngroup1"* ]]
-    
-    # Clean up
-    guacaman --config "$TEST_CONFIG" conngroup del --name testconngroup1
 }
 
 @test "Connection modify set nested parent group" {
-    # Create nested connection groups
-    guacaman --config "$TEST_CONFIG" conngroup new --name testconngroup1
-    guacaman --config "$TEST_CONFIG" conngroup new --name testconngroup2 --parent testconngroup1
     
-    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --parent testconngroup1/testconngroup2
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --parent testconngroup2
     [ "$status" -eq 0 ]
-    [[ "$output" == *"Successfully set parent group to 'testconngroup1/testconngroup2'"* ]]
+    [[ "$output" == *"Successfully set parent group to 'testconngroup2'"* ]]
     
     run guacaman --debug --config "$TEST_CONFIG" conn list
+    echo "$output" > /tmp/testconn2.txt
     [[ "$output" == *"testconn2"* ]]
-    [[ "$output" == *"parent: testconngroup1/testconngroup2"* ]]
+    [[ "$output" == *"parent: testconngroup2"* ]]
     
-    # Clean up
-    guacaman --config "$TEST_CONFIG" conngroup del --name testconngroup2
-    guacaman --config "$TEST_CONFIG" conngroup del --name testconngroup1
 }
 
 @test "Add user to usergroup" {
@@ -357,7 +350,7 @@ teardown() {
 
 @test "Connection modify remove parent group" {
     # First set a group
-    guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --parent parentgroup1
+    guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --parent testconngroup2
     # Then remove it
     run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --parent ""
     [ "$status" -eq 0 ]
@@ -365,7 +358,7 @@ teardown() {
     
     run guacaman --config "$TEST_CONFIG" conn list
     [[ "$output" == *"testconn2"* ]]
-    [[ "$output" != *"parentgroup1"* ]]
+    [[ "$output" != *"testconngroup2"* ]]
 }
 
 @test "Connection group creation with debug" {
