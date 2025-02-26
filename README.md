@@ -138,7 +138,7 @@ Connection groups allow organizing connections into hierarchical groups. Here ar
 guacdb.create_connection_group('production')
 
 # Create a nested connection group
-guacdb.create_connection_group('production/vnc_servers', parent_group_name='production')
+guacdb.create_connection_group('vnc_servers', parent_group_name='production')
 
 # List all connection groups with their hierarchy
 groups = guacdb.list_connection_groups()
@@ -152,10 +152,13 @@ if guacdb.connection_group_exists('production'):
     print("Group exists")
 
 # Modify a connection group's parent
-guacdb.modify_connection_group_parent('production/vnc_servers', 'infrastructure')
+guacdb.modify_connection_group_parent('vnc_servers', 'infrastructure')
+
+# Remove a connection group's parent
+guacdb.modify_connection_group_parent('vnc_servers', '')
 
 # Delete a connection group
-guacdb.delete_connection_group('production/vnc_servers')
+guacdb.delete_connection_group('vnc_servers')
 ```
 
 ### Listing Data
@@ -288,7 +291,7 @@ Connection groups allow you to organize connections into hierarchical groups. He
 guacaman conngroup new --name production
 
 # Create a nested group under production
-guacaman conngroup new --name production/vnc_servers --parent production
+guacaman conngroup new --name vnc_servers --parent production
 ```
 
 #### List all connection groups
@@ -299,22 +302,22 @@ guacaman conngroup list
 
 #### Delete a connection group
 ```bash
-guacaman conngroup del --name production/vnc_servers
+guacaman conngroup del --name vnc_servers
 ```
 
 #### Modify a connection group
 Change parent group or hierarchy:
 ```bash
 # Move group to new parent
-guacaman conngroup modify --name production/vnc_servers --parent "infrastructure"
+guacaman conngroup modify --name vnc_servers --parent "infrastructure"
 
 # Remove parent (make top-level)
-guacaman conngroup modify --name production/vnc_servers --parent ""
+guacaman conngroup modify --name vnc_servers --parent ""
 ```
 
 #### Check if a connection group exists
 ```bash
-guacaman conngroup exists --name production/vnc_servers
+guacaman conngroup exists --name vnc_servers
 ```
 
 ### Version Information
