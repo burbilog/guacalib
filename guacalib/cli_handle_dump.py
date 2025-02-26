@@ -12,8 +12,32 @@ def handle_dump_command(guacdb):
     
     args = Args()
     
-    print("usergroups:")
+    # Print users
+    users_data = guacdb.list_users_with_groups()
+    print("users:")
+    for user, groups in users_data.items():
+        print(f"  {user}:")
+        print("    groups:")
+        for group in groups:
+            print(f"      - {group}")
+    
+    # Print user groups
+    print("\nusergroups:")
     handle_usergroup_command(args, guacdb)
     
+    # Print connections
+    connections_data = guacdb.list_connections_with_groups_and_parents()
+    print("\nvnc-connections:")
+    for conn in connections_data:
+        name, host, port, groups, parent = conn
+        print(f"  {name}:")
+        print(f"    hostname: {host}")
+        print(f"    port: {port}")
+        print("    groups:")
+        for group in (groups.split(',') if groups else []):
+            print(f"      - {group}")
+        print(f"    parent: {parent if parent else 'ROOT'}")
+    
+    # Print connection groups
     print("\nconnection groups:")
     handle_conngroup_command(args, guacdb)
