@@ -44,11 +44,11 @@ def handle_user_new(args, guacdb):
         guacdb.debug_print(f"Group memberships: {', '.join(groups)}")
 
 def handle_user_list(args, guacdb):
-    users_and_groups = guacdb.list_users_with_groups()
+    users_and_groups = guacdb.list_users_with_usergroups()
     print("users:")
     for user, groups in users_and_groups.items():
         print(f"  {user}:")
-        print("    groups:")
+        print("    usergroups:")
         for group in groups:
             print(f"      - {group}")
 

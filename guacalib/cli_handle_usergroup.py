@@ -11,7 +11,7 @@ def handle_usergroup_command(args, guacdb):
         guacdb.debug_print(f"Successfully created group '{args.name}'")
 
     elif args.usergroup_command == 'list':
-        groups_data = guacdb.list_groups_with_users_and_connections()
+        groups_data = guacdb.list_usergroups_with_users_and_connections()
         print("usergroups:")
         for group, data in groups_data.items():
             print(f"  {group}:")

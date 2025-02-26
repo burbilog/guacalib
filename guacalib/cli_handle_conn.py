@@ -18,7 +18,7 @@ def handle_conn_command(args, guacdb):
 
 def handle_conn_list(args, guacdb):
     # Get connections with both groups and parent group info
-    connections = guacdb.list_connections_with_groups_and_parents()
+    connections = guacdb.list_connections_with_conngroups_and_parents()
     print("connections:")
     for conn in connections:
         name, protocol, host, port, groups, parent = conn

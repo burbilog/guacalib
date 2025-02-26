@@ -928,7 +928,7 @@ class GuacamoleDB:
             print(f"Error granting connection permission: {e}")
             raise
 
-    def list_users_with_groups(self):
+    def list_users_with_usergroups(self):
         query = """
             SELECT DISTINCT 
                 e1.name as username,
@@ -955,7 +955,7 @@ class GuacamoleDB:
         
         return users_groups
 
-    def list_connections_with_groups_and_parents(self):
+    def list_connections_with_conngroups_and_parents(self):
         """List all connections with their groups and parent group"""
         try:
             self.cursor.execute("""
@@ -985,7 +985,7 @@ class GuacamoleDB:
             print(f"Error listing connections: {e}")
             raise
 
-    def list_groups_with_users_and_connections(self):
+    def list_usergroups_with_users_and_connections(self):
         """List all groups with their users and connections"""
         try:
             # Get users per group

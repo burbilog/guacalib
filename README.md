@@ -79,9 +79,6 @@ with GuacamoleDB('~/.guacaman.ini') as guacdb:
 # Create user
 guacdb.create_user('john.doe', 'secretpass')
 
-# Add user to group
-guacdb.add_user_to_group('john.doe', 'developers')
-
 # Check if user exists
 if guacdb.user_exists('john.doe'):
     print("User exists")
@@ -99,6 +96,9 @@ guacdb.create_usergroup('developers')
 if guacdb.usergroup_exists('developers'):
     print("User group exists")
 
+# Add user to a user group
+guacdb.add_user_to_usergroup('john.doe', 'developers')
+
 # Delete user group
 guacdb.delete_existing_group('developers')
 ```
@@ -106,7 +106,8 @@ guacdb.delete_existing_group('developers')
 ### Managing Connections
 ```python
 # Create VNC connection
-conn_id = guacdb.create_vnc_connection(
+conn_id = guacdb.create_connection(
+    'vnc',
     'dev-server',
     '192.168.1.100',
     5901,
@@ -131,13 +132,13 @@ guacdb.delete_existing_connection('dev-server')
 ### Listing Data
 ```python
 # List users with their groups
-users = guacdb.list_users_with_groups()
+users = guacdb.list_users_with_usergroups()
 
 # List groups with their users and connections
-groups = guacdb.list_groups_with_users_and_connections()
+groups = guacdb.list_usergroups_with_users_and_connections()
 
-# List all VNC connections
-connections = guacdb.list_connections_with_groups()
+# List all connections
+connections = guacdb.list_connections_with_conngroups_and_parents()
 ```
 
 ## Command line usage
@@ -211,7 +212,7 @@ guacaman conn new \
     --name dev-server \
     --hostname 192.168.1.100 \
     --port 5901 \
-    --vnc-password vncpass \
+    --password vncpass \
     --group developers,qa  # Comma-separated list of groups
 
 # RDP and SSH connections (coming soon)
@@ -234,10 +235,10 @@ guacaman conn modify --name dev-server \
 
 # Set parent connection group
 guacaman conn modify --name dev-server \
-    --set-parent-group "production/vnc_servers"
+    --parent "production/vnc_servers"
 
-# Remove parent group
-guacaman conn modify --name dev-server --set-parent-group ""
+# Remove parent connection group
+guacaman conn modify --name dev-server --parent ""
 
 # Invalid parameter handling example (will fail)
 guacaman conn modify --name dev-server --set invalid_param=value
@@ -301,7 +302,7 @@ vnc-connections:
 
 ## Output Format
 
-All list commands (`user list`, `group list`, `vconn list`, `dump`) output data in proper, parseable YAML format. This makes it easy to process the output with tools like `yq` or integrate with other systems.
+All list commands (`user list`, `usergroup list`, `conn list`, `conngroup list`, `dump`) output data in proper, parseable YAML format. This makes it easy to process the output with tools like `yq` or integrate with other systems.
 
 Example:
 ```bash
@@ -343,7 +344,6 @@ All errors are reported with clear messages to help diagnose issues.
 
 ## Limitations
 
-- Currently supports only VNC connections
 - Must be run on a machine with MySQL client access to the Guacamole database
 
 ## TODO
@@ -354,7 +354,7 @@ Current limitations and planned improvements:
   - Implemented in `conn` command:
     ```bash
     # Create VNC connection
-    guacaman conn new --type vnc --name dev-server --hostname 192.168.1.100 --port 5901 --vnc-password somepass
+    guacaman conn new --type vnc --name dev-server --hostname 192.168.1.100 --port 5901 --password somepass
     
     # List connections
     guacaman conn list
@@ -391,7 +391,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-Copyright Roman V. Isaev <rm@isaeff.net> 2024
+Copyright Roman V. Isaev <rm@isaeff.net> 2024, though 95% of the code is written with Aider/DeepSeek-V3/Sonnet-3.5/etc
 
 This software is distributed under the terms of the GNU General Public license, version 0.8.
 
