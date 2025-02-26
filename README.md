@@ -87,7 +87,7 @@ if guacdb.user_exists('john.doe'):
 guacdb.delete_existing_user('john.doe')
 ```
 
-### Managing Groups
+### Managing User Groups
 ```python
 # Create user group
 guacdb.create_usergroup('developers')
@@ -100,7 +100,7 @@ if guacdb.usergroup_exists('developers'):
 guacdb.add_user_to_usergroup('john.doe', 'developers')
 
 # Delete user group
-guacdb.delete_existing_group('developers')
+guacdb.delete_existing_usergroup('developers')
 ```
 
 ### Managing Connections
@@ -292,7 +292,7 @@ users:
   user1:
     groups:
       - group1
-vnc-connections:
+connections:
   conn1:
     hostname: 192.168.1.100
     port: 5901

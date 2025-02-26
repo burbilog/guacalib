@@ -9,7 +9,7 @@ testpub: build
 	python3 -m twine upload --repository testpypi dist/*
 
 pub: build
-	python3 -m twine upload --repository testpypi dist/*
+	python3 -m twine upload dist/*
 
 FORCE:
 tests: FORCE
