@@ -6,7 +6,7 @@ def handle_dump_command(guacdb):
     connections_data = guacdb.list_connections_with_groups()
 
     # Print groups
-    print("groups:")
+    print("usergroups:")
     for group, data in groups_data.items():
         print(f"  {group}:")
         print("    users:")

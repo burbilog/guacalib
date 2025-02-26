@@ -12,7 +12,7 @@ def handle_usergroup_command(args, guacdb):
 
     elif args.usergroup_command == 'list':
         groups_data = guacdb.list_groups_with_users_and_connections()
-        print("groups:")
+        print("usergroups:")
         for group, data in groups_data.items():
             print(f"  {group}:")
             print("    users:")
