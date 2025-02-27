@@ -456,6 +456,48 @@ class GuacamoleDB:
             print(f"Error modifying connection parameter: {e}")
             raise
 
+    def change_user_password(self, username, new_password):
+        """Change a user's password"""
+        try:
+            # Generate random 32-byte salt
+            salt = os.urandom(32)
+            
+            # Convert salt to uppercase hex string as Guacamole expects
+            salt_hex = binascii.hexlify(salt).upper()
+            
+            # Create password hash using Guacamole's method: SHA256(password + hex(salt))
+            digest = hashlib.sha256(
+                new_password.encode('utf-8') + salt_hex
+            ).digest()
+
+            # Get user entity_id
+            self.cursor.execute("""
+                SELECT entity_id FROM guacamole_entity 
+                WHERE name = %s AND type = 'USER'
+            """, (username,))
+            result = self.cursor.fetchone()
+            if not result:
+                raise ValueError(f"User '{username}' not found")
+            entity_id = result[0]
+            
+            # Update the password
+            self.cursor.execute("""
+                UPDATE guacamole_user 
+                SET password_hash = %s,
+                    password_salt = %s,
+                    password_date = NOW()
+                WHERE entity_id = %s
+            """, (digest, salt, entity_id))
+            
+            if self.cursor.rowcount == 0:
+                raise ValueError(f"Failed to update password for user '{username}'")
+                
+            return True
+            
+        except mysql.connector.Error as e:
+            print(f"Error changing password: {e}")
+            raise
+
     def modify_user(self, username, param_name, param_value):
         """Modify a user parameter in the guacamole_user table"""
         try:

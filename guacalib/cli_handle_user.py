@@ -70,8 +70,8 @@ def handle_user_exists(args, guacdb):
         sys.exit(1)
 
 def handle_user_modify(args, guacdb):
-    if not args.name or not args.set:
-        print("Usage: guacaman user modify --name USERNAME --set PARAMETER=VALUE")
+    if not args.name or (not args.set and not args.password):
+        print("Usage: guacaman user modify --name USERNAME [--set PARAMETER=VALUE] [--password NEW_PASSWORD]")
         print("\nAllowed parameters:")
         print("-------------------")
         max_param_len = max(len(param) for param in guacdb.USER_PARAMETERS.keys())
@@ -89,20 +89,25 @@ def handle_user_modify(args, guacdb):
         sys.exit(0)
     
     try:
-        if '=' not in args.set:
-            print("Error: --set must be in format 'parameter=value'")
-            sys.exit(1)
-            
-        param_name, param_value = args.set.split('=', 1)
-        param_name = param_name.strip()
-        param_value = param_value.strip()
-        
         if not guacdb.user_exists(args.name):
             print(f"Error: User '{args.name}' does not exist")
             sys.exit(1)
-        
-        guacdb.modify_user(args.name, param_name, param_value)
-        guacdb.debug_print(f"Successfully modified user '{args.name}': {param_name}={param_value}")
+            
+        if args.password:
+            guacdb.change_user_password(args.name, args.password)
+            guacdb.debug_print(f"Successfully changed password for user '{args.name}'")
+            
+        if args.set:
+            if '=' not in args.set:
+                print("Error: --set must be in format 'parameter=value'")
+                sys.exit(1)
+                
+            param_name, param_value = args.set.split('=', 1)
+            param_name = param_name.strip()
+            param_value = param_value.strip()
+            
+            guacdb.modify_user(args.name, param_name, param_value)
+            guacdb.debug_print(f"Successfully modified user '{args.name}': {param_name}={param_value}")
         
     except ValueError as e:
         print(f"Error: {e}")

@@ -37,6 +37,7 @@ def setup_user_subcommands(subparsers):
     modify_user = user_subparsers.add_parser('modify', help='Modify user parameters')
     modify_user.add_argument('--name', help='Username to modify')
     modify_user.add_argument('--set', help='Parameter to set in format param=value')
+    modify_user.add_argument('--password', help='New password for the user')
 
 def setup_usergroup_subcommands(subparsers):
     group_parser = subparsers.add_parser('usergroup', help='Manage Guacamole usergroups')

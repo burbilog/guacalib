@@ -196,7 +196,7 @@ guacaman user new \
 
 #### Modify a user
 
-Modifies user's settings. Allowed parameters are:
+Modifies user's settings or changes password. Allowed parameters are:
 
 | Parameter            | Type     | Default | Description                                      |
 |----------------------|----------|---------|--------------------------------------------------|
@@ -214,6 +214,7 @@ Modifies user's settings. Allowed parameters are:
 
 ```bash
 guacaman user modify --name john.doe --set disabled=1
+guacaman user modify --name john.doe --password newsecret
 ```
 
 #### List all users
