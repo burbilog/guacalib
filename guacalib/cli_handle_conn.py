@@ -4,6 +4,18 @@ def is_terminal():
     """Check if stdout is a terminal (not piped)"""
     return sys.stdout.isatty()
 
+# Initialize colors based on terminal
+if is_terminal():
+    VAR_COLOR = '\033[1;36m'  # Bright cyan
+    RESET = '\033[0m'         # Reset color
+else:
+    VAR_COLOR = ''
+    RESET = ''
+
+def is_terminal():
+    """Check if stdout is a terminal (not piped)"""
+    return sys.stdout.isatty()
+
 def handle_conn_command(args, guacdb):
     command_handlers = {
         'new': handle_conn_new,
@@ -89,14 +101,6 @@ def handle_conn_exists(args, guacdb):
 def handle_conn_modify(args, guacdb):
     """Handle the connection modify command"""
     if not args.name or (not args.set and args.parent is None and not args.permit and not args.deny):
-        # Set up colors if output is to a terminal
-        if is_terminal():
-            VAR_COLOR = '\033[1;36m'  # Bright cyan
-            RESET = '\033[0m'         # Reset color
-        else:
-            VAR_COLOR = ''
-            RESET = ''
-            
         # Print help information about modifiable parameters
         print("Usage: guacaman conn modify --name <connection_name> [--set <param=value> ...] [--parent CONNGROUP] [--permit USERNAME] [--deny USERNAME]")
         print("\nModification options:")
@@ -106,36 +110,23 @@ def handle_conn_modify(args, guacdb):
         print("\nParameters in guacamole_connection table:")
         for param, info in sorted(guacdb.CONNECTION_PARAMETERS.items()):
             if info['table'] == 'connection':
-                # Build the description line with type/default first
                 desc = f"  {VAR_COLOR}{param}{RESET}: {info['description']} (type: {info['type']}, default: {info['default']})"
-                
-                # Add reference if it exists
                 if 'ref' in info:
                     if is_terminal():
-                        # Underline the URL if output is to terminal
                         desc += f"\n    Reference: \033[4m{info['ref']}\033[0m"
                     else:
-                        # Plain text if piped
                         desc += f"\n    Reference: {info['ref']}"
                 print(desc)
         
         print("\nParameters in guacamole_connection_parameter table:")
         for param, info in sorted(guacdb.CONNECTION_PARAMETERS.items()):
             if info['table'] == 'parameter':
-                # Build the description line
-                desc = f"  {VAR_COLOR}{param}{RESET}: {info['description']}"
-                
-                # Add reference if it exists
+                desc = f"  {VAR_COLOR}{param}{RESET}: {info['description']} (type: {info['type']}, default: {info['default']})"
                 if 'ref' in info:
                     if is_terminal():
-                        # Underline the URL if output is to terminal
                         desc += f"\n    Reference: \033[4m{info['ref']}\033[0m"
                     else:
-                        # Plain text if piped
                         desc += f"\n    Reference: {info['ref']}"
-                
-                # Add type and default info
-                desc += f" (type: {info['type']}, default: {info['default']})"
                 print(desc)
         
         sys.exit(1)
