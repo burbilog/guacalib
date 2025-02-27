@@ -194,6 +194,26 @@ guacaman user new \
 # Note: Will fail if user already exists
 ```
 
+#### Modify a user
+
+Modifies user's settings. Allowed parameters are:
+
+- access_window_end     time      NULL       End of allowed access time window (HH:MM:SS)
+- access_window_start   time      NULL       Start of allowed access time window (HH:MM:SS)
+- disabled              tinyint   0          Whether the user is disabled (0=enabled, 1=disabled)
+- email_address         string    NULL       User's email address
+- expired               tinyint   0          Whether the user account is expired (0=active, 1=expired)
+- full_name             string    NULL       User's full name
+- organization          string    NULL       User's organization
+- organizational_role   string    NULL       User's role within the organization
+- timezone              string    NULL       User's timezone (e.g., "America/New_York")
+- valid_from            date      NULL       Date when account becomes valid (YYYY-MM-DD)
+- valid_until           date      NULL       Date when account expires (YYYY-MM-DD)
+
+```bash
+guacaman user modify --name john.doe --set disabled=1
+```
+
 #### List all users
 Shows all users and their group memberships:
 ```bash
@@ -247,9 +267,9 @@ guacaman conn new \
     --password vncpass \
     --group developers,qa  # Comma-separated list of groups
 
-# RDP and SSH connections (coming soon)
-# guacaman conn new --type rdp ...
-# guacaman conn new --type ssh ...
+# Create other types of connections
+guacaman conn new --type rdp ...
+guacaman conn new --type ssh ...
 ```
 
 #### List all connections
@@ -348,26 +368,6 @@ These commands are silent and only return an exit code, making them suitable for
 Dumps all groups, users and connections in YAML format:
 ```bash
 guacaman dump
-```
-
-Example output:
-```yaml
-groups:
-  group1:
-    users:
-      - user1
-    connections:
-      - conn1
-users:
-  user1:
-    groups:
-      - group1
-connections:
-  conn1:
-    hostname: 192.168.1.100
-    port: 5901
-    groups:
-      - group1
 ```
 
 ## Output Format
