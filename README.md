@@ -188,8 +188,7 @@ guacaman user new \
 guacaman user new \
     --name john.doe \
     --password secretpass \
-    --type vnc \
-    --group developers,managers,qa  # Add to multiple groups
+    --usergroup developers,managers,qa  # Add to multiple groups
 
 # Note: Will fail if user already exists
 ```
@@ -444,7 +443,7 @@ Current limitations and planned improvements:
 
 - [ ] GuacamoleDB initialization without configuration file, via variables
 
-- [ ] Support for other connection types
+- [X] Support for other connection types
   - RDP (Remote Desktop Protocol)
   - SSH
 

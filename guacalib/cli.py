@@ -19,8 +19,6 @@ def setup_user_subcommands(subparsers):
     new_user.add_argument('--name', required=True, help='Username for Guacamole')
     new_user.add_argument('--password', required=True, help='Password for Guacamole user')
     new_user.add_argument('--usergroup', help='Comma-separated list of user groups to add user to')
-    #new_user.add_argument('--type', choices=['vnc', 'rdp', 'ssh'], required=True, 
-    #                     help='Type of connection for this user (vnc, rdp, ssh)')
 
     # User list command
     user_subparsers.add_parser('list', help='List all users')

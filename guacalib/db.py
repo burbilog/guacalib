@@ -226,7 +226,7 @@ class GuacamoleDB:
             'table': 'parameter'
         },
         'color-depth': {
-            'type': 'boolean',
+            'type': 'int',
             'description': 'The color depth to request, in bits-per-pixel. This parameter\n'
                     '    is optional. If specified, this must be either 8, 16, 24, or 32. Regardless\n'
                     '    of what value is chosen here, if a particular update uses less than 256\n'
