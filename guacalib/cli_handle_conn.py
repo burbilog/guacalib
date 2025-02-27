@@ -113,10 +113,10 @@ def handle_conn_modify(args, guacdb):
                 if 'ref' in info:
                     if is_terminal():
                         # Underline the URL if output is to terminal
-                        desc += f" Reference: \033[4m{info['ref']}\033[0m"
+                        desc += f"\n    Reference: \033[4m{info['ref']}\033[0m"
                     else:
                         # Plain text if piped
-                        desc += f" Reference: {info['ref']}"
+                        desc += f"\n    Reference: {info['ref']}"
                 print(desc)
         
         print("\nParameters in guacamole_connection_parameter table:")
