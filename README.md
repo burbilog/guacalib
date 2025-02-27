@@ -1,6 +1,6 @@
 # Guacamole Management Library and CLI Utility
 
-A comprehensive Python library and command-line tool for managing Apache Guacamole users, groups, connections, and connection groups. Provides direct MySQL database management with secure operations and YAML output.
+A comprehensive Python library and command-line tool for managing Apache Guacamole users, groups, connections, and connection groups. Provides direct MySQL database access with secure operations and YAML output.
 
 ## Features
 
@@ -198,17 +198,19 @@ guacaman user new \
 
 Modifies user's settings. Allowed parameters are:
 
-- access_window_end     time      NULL       End of allowed access time window (HH:MM:SS)
-- access_window_start   time      NULL       Start of allowed access time window (HH:MM:SS)
-- disabled              tinyint   0          Whether the user is disabled (0=enabled, 1=disabled)
-- email_address         string    NULL       User's email address
-- expired               tinyint   0          Whether the user account is expired (0=active, 1=expired)
-- full_name             string    NULL       User's full name
-- organization          string    NULL       User's organization
-- organizational_role   string    NULL       User's role within the organization
-- timezone              string    NULL       User's timezone (e.g., "America/New_York")
-- valid_from            date      NULL       Date when account becomes valid (YYYY-MM-DD)
-- valid_until           date      NULL       Date when account expires (YYYY-MM-DD)
+| Parameter            | Type     | Default | Description                                      |
+|----------------------|----------|---------|--------------------------------------------------|
+| access_window_end    | time     | NULL    | End of allowed access time window (HH:MM:SS)     |
+| access_window_start  | time     | NULL    | Start of allowed access time window (HH:MM:SS)   |
+| disabled             | tinyint  | 0       | Whether the user is disabled (0=enabled, 1=disabled) |
+| email_address        | string   | NULL    | User's email address                             |
+| expired              | tinyint  | 0       | Whether the user account is expired (0=active, 1=expired) |
+| full_name            | string   | NULL    | User's full name                                 |
+| organization         | string   | NULL    | User's organization                              |
+| organizational_role  | string   | NULL    | User's role within the organization              |
+| timezone             | string   | NULL    | User's timezone (e.g., "America/New_York")       |
+| valid_from           | date     | NULL    | Date when account becomes valid (YYYY-MM-DD)     |
+| valid_until          | date     | NULL    | Date when account expires (YYYY-MM-DD)           |
 
 ```bash
 guacaman user modify --name john.doe --set disabled=1
@@ -394,7 +396,7 @@ database = guacamole_db
 
 ## Error Handling
 
-The tool includes comprehensive error handling for:
+The tool provides comprehensive error handling for:
 - Database connection issues
 - Missing users or groups
 - Duplicate entries
@@ -414,7 +416,7 @@ All errors are reported with clear messages to help diagnose issues.
 
 ## Limitations
 
-- Must be run on a machine with MySQL client access to the Guacamole database
+- Requires MySQL client access to the Guacamole database
 
 ## TODO
 
