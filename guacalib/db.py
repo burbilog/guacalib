@@ -1157,6 +1157,93 @@ class GuacamoleDB:
             print(f"Error creating connection group: {e}")
             raise
 
+    def grant_connection_permission_to_user(self, username, connection_name):
+        """Grant connection permission to a specific user"""
+        try:
+            # Get connection ID
+            self.cursor.execute("""
+                SELECT connection_id FROM guacamole_connection
+                WHERE connection_name = %s
+            """, (connection_name,))
+            result = self.cursor.fetchone()
+            if not result:
+                raise ValueError(f"Connection '{connection_name}' not found")
+            connection_id = result[0]
+
+            # Get user entity ID
+            self.cursor.execute("""
+                SELECT entity_id FROM guacamole_entity
+                WHERE name = %s AND type = 'USER'
+            """, (username,))
+            result = self.cursor.fetchone()
+            if not result:
+                raise ValueError(f"User '{username}' not found")
+            entity_id = result[0]
+
+            # Check if permission already exists
+            self.cursor.execute("""
+                SELECT 1 FROM guacamole_connection_permission
+                WHERE entity_id = %s AND connection_id = %s
+            """, (entity_id, connection_id))
+            if self.cursor.fetchone():
+                raise ValueError(f"User '{username}' already has permission for connection '{connection_name}'")
+
+            # Grant permission
+            self.cursor.execute("""
+                INSERT INTO guacamole_connection_permission
+                (entity_id, connection_id, permission)
+                VALUES (%s, %s, 'READ')
+            """, (entity_id, connection_id))
+
+            return True
+
+        except mysql.connector.Error as e:
+            print(f"Error granting connection permission: {e}")
+            raise
+
+    def revoke_connection_permission_from_user(self, username, connection_name):
+        """Revoke connection permission from a specific user"""
+        try:
+            # Get connection ID
+            self.cursor.execute("""
+                SELECT connection_id FROM guacamole_connection
+                WHERE connection_name = %s
+            """, (connection_name,))
+            result = self.cursor.fetchone()
+            if not result:
+                raise ValueError(f"Connection '{connection_name}' not found")
+            connection_id = result[0]
+
+            # Get user entity ID
+            self.cursor.execute("""
+                SELECT entity_id FROM guacamole_entity
+                WHERE name = %s AND type = 'USER'
+            """, (username,))
+            result = self.cursor.fetchone()
+            if not result:
+                raise ValueError(f"User '{username}' not found")
+            entity_id = result[0]
+
+            # Check if permission exists
+            self.cursor.execute("""
+                SELECT 1 FROM guacamole_connection_permission
+                WHERE entity_id = %s AND connection_id = %s
+            """, (entity_id, connection_id))
+            if not self.cursor.fetchone():
+                raise ValueError(f"User '{username}' has no permission for connection '{connection_name}'")
+
+            # Revoke permission
+            self.cursor.execute("""
+                DELETE FROM guacamole_connection_permission
+                WHERE entity_id = %s AND connection_id = %s
+            """, (entity_id, connection_id))
+
+            return True
+
+        except mysql.connector.Error as e:
+            print(f"Error revoking connection permission: {e}")
+            raise
+
     def modify_connection_group_parent(self, group_name, new_parent_name):
         """Set parent connection group for a connection group with cycle detection"""
         try:

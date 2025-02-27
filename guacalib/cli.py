@@ -127,6 +127,10 @@ def setup_conn_subcommands(subparsers):
     modify_conn.add_argument('--set', action='append', help='Parameter to set in format param=value (can be used multiple times)')
     modify_conn.add_argument('--parent', 
                            help='Set parent connection group name (use empty string to unset group)')
+    modify_conn.add_argument('--permit',
+                           help='Grant permission to use connection to specified user')
+    modify_conn.add_argument('--deny',
+                           help='Revoke permission to use connection from specified user')
 
 def main():
     parser = argparse.ArgumentParser(description='Manage Guacamole users, groups, and connections')

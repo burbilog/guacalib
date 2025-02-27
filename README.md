@@ -288,6 +288,12 @@ guacaman conn modify --name dev-server \
     --set port=5902 \
     --set max_connections=5
 
+# Grant permission to user
+guacaman conn modify --name dev-server --permit john.doe
+
+# Revoke permission from user
+guacaman conn modify --name dev-server --deny john.doe
+
 # Set parent connection group
 guacaman conn modify --name dev-server --parent "vnc_servers"
 

@@ -84,9 +84,9 @@ def handle_conn_exists(args, guacdb):
         
 def handle_conn_modify(args, guacdb):
     """Handle the connection modify command"""
-    if not args.name or (not args.set and args.parent is None):
+    if not args.name or (not args.set and args.parent is None and not args.permit and not args.deny):
         # Print help information about modifiable parameters
-        print("Usage: guacaman conn modify --name <connection_name> [--set <param=value> ...] [--parent CONNGROUP]")
+        print("Usage: guacaman conn modify --name <connection_name> [--set <param=value> ...] [--parent CONNGROUP] [--permit USERNAME] [--deny USERNAME]")
         print("\nModification options:")
         print("  --set: Modify connection parameters")
         print("  --parent: Set parent connection group (use empty string to remove group)")
@@ -104,6 +104,15 @@ def handle_conn_modify(args, guacdb):
         sys.exit(1)
     
     try:
+        # Handle permission modifications
+        if args.permit:
+            guacdb.grant_connection_permission_to_user(args.permit, args.name)
+            guacdb.debug_print(f"Successfully granted permission to user '{args.permit}' for connection '{args.name}'")
+            
+        if args.deny:
+            guacdb.revoke_connection_permission_from_user(args.deny, args.name)
+            guacdb.debug_print(f"Successfully revoked permission from user '{args.deny}' for connection '{args.name}'")
+
         # Handle parent group modification
         if args.parent is not None:
             try:
