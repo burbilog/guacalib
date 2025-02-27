@@ -195,6 +195,12 @@ class GuacamoleDB:
             'table': 'connection'
         },
         # Parameters in guacamole_connection_parameter table
+        'username': {
+            'type': 'string',
+            'description': 'Username for the connection (unix username, etc.)',
+            'default': 'NULL',
+            'table': 'parameter'
+        },
         'hostname': {
             'type': 'string',
             'description': 'Hostname or IP address of the remote server',
