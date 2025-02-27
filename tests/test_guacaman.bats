@@ -306,6 +306,75 @@ teardown() {
     
 }
 
+@test "Connection modify grant permission to user" {
+    # Grant permission
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --permit testuser1
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully granted permission to user 'testuser1' for connection 'testconn2'"* ]]
+
+    # Verify permission exists
+    run guacaman --debug --config "$TEST_CONFIG" dump
+    [[ "$output" == *"testconn2:"* ]]
+    [[ "$output" == *"permissions:"* ]]
+    [[ "$output" == *"- testuser1"* ]]
+}
+
+@test "Connection modify grant permission to already permitted user should fail" {
+    # First grant permission
+    guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --permit testuser1
+    
+    # Try to grant again
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --permit testuser1
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"already has permission"* ]]
+}
+
+@test "Connection modify revoke permission from user" {
+    # First grant permission
+    guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --permit testuser1
+    
+    # Revoke permission
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --deny testuser1
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully revoked permission from user 'testuser1' for connection 'testconn2'"* ]]
+
+    # Verify permission is gone
+    run guacaman --debug --config "$TEST_CONFIG" dump
+    [[ "$output" == *"testconn2:"* ]]
+    [[ "$output" != *"permissions:"* ]]
+    [[ "$output" != *"- testuser1"* ]]
+}
+
+@test "Connection modify revoke permission from user without permission should fail" {
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --deny testuser1
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"has no permission"* ]]
+}
+
+@test "Connection modify grant permission to non-existent user should fail" {
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --permit nonexistentuser
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"not found"* ]]
+}
+
+@test "Connection modify revoke permission from non-existent user should fail" {
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn2 --deny nonexistentuser
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"not found"* ]]
+}
+
+@test "Connection modify grant permission to non-existent connection should fail" {
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name nonexistentconn --permit testuser1
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"not found"* ]]
+}
+
+@test "Connection modify revoke permission from non-existent connection should fail" {
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name nonexistentconn --deny testuser1
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"not found"* ]]
+}
+
 @test "Add user to usergroup" {
     run guacaman --debug --config "$TEST_CONFIG" usergroup modify --name testgroup1 --adduser testuser2
     [ "$status" -eq 0 ]
