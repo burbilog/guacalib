@@ -125,7 +125,21 @@ def handle_conn_modify(args, guacdb):
         print("\nParameters in guacamole_connection_parameter table:")
         for param, info in sorted(guacdb.CONNECTION_PARAMETERS.items()):
             if info['table'] == 'parameter':
-                print(f"  {VAR_COLOR}{param}{RESET}: {info['description']} (type: {info['type']}, default: {info['default']})")
+                # Build the description line
+                desc = f"  {VAR_COLOR}{param}{RESET}: {info['description']}"
+                
+                # Add reference if it exists
+                if 'ref' in info:
+                    if is_terminal():
+                        # Underline the URL if output is to terminal
+                        desc += f"\n    Reference: \033[4m{info['ref']}\033[0m"
+                    else:
+                        # Plain text if piped
+                        desc += f"\n    Reference: {info['ref']}"
+                
+                # Add type and default info
+                desc += f" (type: {info['type']}, default: {info['default']})"
+                print(desc)
         
         sys.exit(1)
     
