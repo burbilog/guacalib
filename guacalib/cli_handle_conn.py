@@ -1,5 +1,9 @@
 import sys
 
+def is_terminal():
+    """Check if stdout is a terminal (not piped)"""
+    return sys.stdout.isatty()
+
 def handle_conn_command(args, guacdb):
     command_handlers = {
         'new': handle_conn_new,
@@ -85,21 +89,29 @@ def handle_conn_exists(args, guacdb):
 def handle_conn_modify(args, guacdb):
     """Handle the connection modify command"""
     if not args.name or (not args.set and args.parent is None and not args.permit and not args.deny):
+        # Set up colors if output is to a terminal
+        if is_terminal():
+            VAR_COLOR = '\033[1;36m'  # Bright cyan
+            RESET = '\033[0m'         # Reset color
+        else:
+            VAR_COLOR = ''
+            RESET = ''
+            
         # Print help information about modifiable parameters
         print("Usage: guacaman conn modify --name <connection_name> [--set <param=value> ...] [--parent CONNGROUP] [--permit USERNAME] [--deny USERNAME]")
         print("\nModification options:")
-        print("  --set: Modify connection parameters")
-        print("  --parent: Set parent connection group (use empty string to remove group)")
+        print(f"  {VAR_COLOR}--set{RESET}: Modify connection parameters")
+        print(f"  {VAR_COLOR}--parent{RESET}: Set parent connection group (use empty string to remove group)")
         print("\nModifiable connection parameters:")
         print("\nParameters in guacamole_connection table:")
         for param, info in sorted(guacdb.CONNECTION_PARAMETERS.items()):
             if info['table'] == 'connection':
-                print(f"  {param}: {info['description']} (type: {info['type']}, default: {info['default']})")
+                print(f"  {VAR_COLOR}{param}{RESET}: {info['description']} (type: {info['type']}, default: {info['default']})")
         
         print("\nParameters in guacamole_connection_parameter table:")
         for param, info in sorted(guacdb.CONNECTION_PARAMETERS.items()):
             if info['table'] == 'parameter':
-                print(f"  {param}: {info['description']} (type: {info['type']}, default: {info['default']})")
+                print(f"  {VAR_COLOR}{param}{RESET}: {info['description']} (type: {info['type']}, default: {info['default']})")
         
         sys.exit(1)
     
