@@ -271,6 +271,21 @@ class GuacamoleDB:
             print(f"Error modifying connection parent group: {e}")
             raise
 
+    def get_connection_user_permissions(self, connection_name):
+        """Get list of users with direct permissions to a connection"""
+        try:
+            self.cursor.execute("""
+                SELECT e.name
+                FROM guacamole_connection c
+                JOIN guacamole_connection_permission cp ON c.connection_id = cp.connection_id
+                JOIN guacamole_entity e ON cp.entity_id = e.entity_id
+                WHERE c.connection_name = %s AND e.type = 'USER'
+            """, (connection_name,))
+            return [row[0] for row in self.cursor.fetchall()]
+        except mysql.connector.Error as e:
+            print(f"Error getting connection user permissions: {e}")
+            raise
+
     def modify_connection(self, connection_name, param_name, param_value):
         """Modify a connection parameter in either guacamole_connection or guacamole_connection_parameter table"""
         try:
@@ -966,34 +981,61 @@ class GuacamoleDB:
         return users_groups
 
     def list_connections_with_conngroups_and_parents(self):
-        """List all connections with their groups and parent group"""
+        """List all connections with their groups, parent group, and user permissions"""
         try:
+            # First get all connections with basic info
             self.cursor.execute("""
                 SELECT 
+                    c.connection_id,
                     c.connection_name,
                     c.protocol,
-                    MAX(CASE WHEN p1.parameter_name = 'hostname' THEN p1.parameter_value END) AS hostname,
-                    MAX(CASE WHEN p2.parameter_name = 'port' THEN p2.parameter_value END) AS port,
-                    GROUP_CONCAT(DISTINCT e.name) AS groups,
-                    cg.connection_group_name AS parent
+                    (SELECT parameter_value FROM guacamole_connection_parameter 
+                     WHERE connection_id = c.connection_id AND parameter_name = 'hostname' LIMIT 1) as hostname,
+                    (SELECT parameter_value FROM guacamole_connection_parameter 
+                     WHERE connection_id = c.connection_id AND parameter_name = 'port' LIMIT 1) as port,
+                    cg.connection_group_name as parent
                 FROM guacamole_connection c
-                LEFT JOIN guacamole_connection_parameter p1 
-                    ON c.connection_id = p1.connection_id
-                LEFT JOIN guacamole_connection_parameter p2 
-                    ON c.connection_id = p2.connection_id
-                LEFT JOIN guacamole_connection_permission cp 
-                    ON c.connection_id = cp.connection_id
-                LEFT JOIN guacamole_entity e 
-                    ON cp.entity_id = e.entity_id AND e.type = 'USER_GROUP'
-                LEFT JOIN guacamole_connection_group cg
-                    ON c.parent_id = cg.connection_group_id
-                GROUP BY c.connection_id
+                LEFT JOIN guacamole_connection_group cg ON c.parent_id = cg.connection_group_id
                 ORDER BY c.connection_name
             """)
-            return self.cursor.fetchall()
+            
+            connections = self.cursor.fetchall()
+            result = []
+            
+            # Process each connection to get groups and user permissions
+            for conn in connections:
+                connection_id, name, protocol, hostname, port, parent = conn
+                
+                # Get user group permissions
+                self.cursor.execute("""
+                    SELECT e.name
+                    FROM guacamole_connection_permission cp
+                    JOIN guacamole_entity e ON cp.entity_id = e.entity_id
+                    WHERE cp.connection_id = %s AND e.type = 'USER_GROUP'
+                """, (connection_id,))
+                
+                groups = [row[0] for row in self.cursor.fetchall()]
+                groups_str = ",".join(groups) if groups else None
+                
+                # Get user permissions
+                self.cursor.execute("""
+                    SELECT e.name
+                    FROM guacamole_connection_permission cp
+                    JOIN guacamole_entity e ON cp.entity_id = e.entity_id
+                    WHERE cp.connection_id = %s AND e.type = 'USER'
+                """, (connection_id,))
+                
+                user_permissions = [row[0] for row in self.cursor.fetchall()]
+                
+                # Add to results
+                result.append((name, protocol, hostname, port, groups_str, parent, user_permissions))
+            
+            return result
+            
         except mysql.connector.Error as e:
             print(f"Error listing connections: {e}")
             raise
+
 
     def list_usergroups_with_users_and_connections(self):
         """List all groups with their users and connections"""
@@ -1276,3 +1318,58 @@ class GuacamoleDB:
             groups_users[groupname] = usernames
         
         return groups_users
+
+    def debug_connection_permissions(self, connection_name):
+        """Debug function to check permissions for a connection"""
+        try:
+            print(f"\n[DEBUG] Checking permissions for connection '{connection_name}'")
+            
+            # Get connection ID
+            self.cursor.execute("""
+                SELECT connection_id FROM guacamole_connection
+                WHERE connection_name = %s
+            """, (connection_name,))
+            result = self.cursor.fetchone()
+            if not result:
+                print(f"[DEBUG] Connection '{connection_name}' not found")
+                return
+            connection_id = result[0]
+            print(f"[DEBUG] Connection ID: {connection_id}")
+            
+            # Check all permissions
+            self.cursor.execute("""
+                SELECT cp.entity_id, e.name, e.type, cp.permission
+                FROM guacamole_connection_permission cp
+                JOIN guacamole_entity e ON cp.entity_id = e.entity_id
+                WHERE cp.connection_id = %s
+            """, (connection_id,))
+            
+            permissions = self.cursor.fetchall()
+            if not permissions:
+                print(f"[DEBUG] No permissions found for connection '{connection_name}'")
+            else:
+                print(f"[DEBUG] Found {len(permissions)} permissions:")
+                for perm in permissions:
+                    entity_id, name, entity_type, permission = perm
+                    print(f"[DEBUG]   Entity ID: {entity_id}, Name: {name}, Type: {entity_type}, Permission: {permission}")
+            
+            # Specifically check user permissions
+            self.cursor.execute("""
+                SELECT e.name
+                FROM guacamole_connection_permission cp
+                JOIN guacamole_entity e ON cp.entity_id = e.entity_id
+                WHERE cp.connection_id = %s AND e.type = 'USER'
+            """, (connection_id,))
+            
+            user_permissions = self.cursor.fetchall()
+            if not user_permissions:
+                print(f"[DEBUG] No user permissions found for connection '{connection_name}'")
+            else:
+                print(f"[DEBUG] Found {len(user_permissions)} user permissions:")
+                for perm in user_permissions:
+                    print(f"[DEBUG]   User: {perm[0]}")
+            
+            print("[DEBUG] End of debug info")
+            
+        except mysql.connector.Error as e:
+            print(f"[DEBUG] Error debugging permissions: {e}")

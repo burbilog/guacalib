@@ -342,7 +342,8 @@ teardown() {
     run guacaman --debug --config "$TEST_CONFIG" dump
     [[ "$output" == *"testconn2:"* ]]
     [[ "$output" != *"permissions:"* ]]
-    [[ "$output" != *"- testuser1"* ]]
+    #[[ "$output" != *"- testuser1"* ]]
+    [[ ! $(echo "$output" | grep -A10 "testconn2:" | grep -A5 "permissions:" | grep "testuser1") ]]
 }
 
 @test "Connection modify revoke permission from user without permission should fail" {

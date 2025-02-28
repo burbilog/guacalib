@@ -13,7 +13,7 @@ pub: build
 
 FORCE:
 tests: FORCE
-	./tests/test_guacaman.bats
+	bats -t  --print-output-on-failure tests/test_guacaman.bats
 
 .PHONY: push
 push:

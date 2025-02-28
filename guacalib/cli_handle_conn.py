@@ -32,6 +32,7 @@ def handle_conn_command(args, guacdb):
         print(f"Unknown connection command: {args.conn_command}")
         sys.exit(1)
 
+"""
 def handle_conn_list(args, guacdb):
     # Get connections with both groups and parent group info
     connections = guacdb.list_connections_with_conngroups_and_parents()
@@ -47,6 +48,39 @@ def handle_conn_list(args, guacdb):
         print("    groups:")
         for group in (groups.split(',') if groups else []):
             print(f"      - {group}")
+"""
+
+def handle_conn_list(args, guacdb):
+    # Get all connection information
+    connections = guacdb.list_connections_with_conngroups_and_parents()
+    print("connections:")
+    for conn in connections:
+        try:
+            # Unpack the connection info
+            name, protocol, host, port, groups_str, parent, user_permissions = conn
+        except ValueError:
+            # For backward compatibility in case the return format changes
+            name, protocol, host, port, groups_str, parent = conn
+            user_permissions = []
+        
+        print(f"  {name}:")
+        print(f"    type: {protocol}")
+        print(f"    hostname: {host}")
+        print(f"    port: {port}")
+        if parent:
+            print(f"    parent: {parent}")
+        
+        # Print groups
+        print("    groups:")
+        if groups_str:
+            for group in groups_str.split(','):
+                print(f"      - {group}")
+        
+        # Print user permissions
+        if user_permissions:
+            print("    permissions:")
+            for user in user_permissions:
+                print(f"      - {user}")
 
 def handle_conn_new(args, guacdb):
     try:
@@ -132,10 +166,12 @@ def handle_conn_modify(args, guacdb):
         sys.exit(1)
     
     try:
+        guacdb.debug_connection_permissions(args.name)
         # Handle permission modifications
         if args.permit:
             guacdb.grant_connection_permission_to_user(args.permit, args.name)
             guacdb.debug_print(f"Successfully granted permission to user '{args.permit}' for connection '{args.name}'")
+            guacdb.debug_connection_permissions(args.name)
             
         if args.deny:
             guacdb.revoke_connection_permission_from_user(args.deny, args.name)
