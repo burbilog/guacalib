@@ -983,60 +983,60 @@ class GuacamoleDB:
     def list_connections_with_conngroups_and_parents(self):
         """List all connections with their groups, parent group, and user permissions"""
         try:
-            # First get all connections with basic info
+            # Get basic connection info with groups
             self.cursor.execute("""
                 SELECT 
                     c.connection_id,
                     c.connection_name,
                     c.protocol,
-                    (SELECT parameter_value FROM guacamole_connection_parameter 
-                     WHERE connection_id = c.connection_id AND parameter_name = 'hostname' LIMIT 1) as hostname,
-                    (SELECT parameter_value FROM guacamole_connection_parameter 
-                     WHERE connection_id = c.connection_id AND parameter_name = 'port' LIMIT 1) as port,
-                    cg.connection_group_name as parent
+                    MAX(CASE WHEN p1.parameter_name = 'hostname' THEN p1.parameter_value END) AS hostname,
+                    MAX(CASE WHEN p2.parameter_name = 'port' THEN p2.parameter_value END) AS port,
+                    GROUP_CONCAT(DISTINCT CASE WHEN e.type = 'USER_GROUP' THEN e.name END) AS groups,
+                    cg.connection_group_name AS parent
                 FROM guacamole_connection c
-                LEFT JOIN guacamole_connection_group cg ON c.parent_id = cg.connection_group_id
+                LEFT JOIN guacamole_connection_parameter p1 
+                    ON c.connection_id = p1.connection_id AND p1.parameter_name = 'hostname'
+                LEFT JOIN guacamole_connection_parameter p2 
+                    ON c.connection_id = p2.connection_id AND p2.parameter_name = 'port'
+                LEFT JOIN guacamole_connection_permission cp 
+                    ON c.connection_id = cp.connection_id
+                LEFT JOIN guacamole_entity e 
+                    ON cp.entity_id = e.entity_id AND e.type = 'USER_GROUP'
+                LEFT JOIN guacamole_connection_group cg
+                    ON c.parent_id = cg.connection_group_id
+                GROUP BY c.connection_id
                 ORDER BY c.connection_name
             """)
             
-            connections = self.cursor.fetchall()
-            result = []
+            connections_info = self.cursor.fetchall()
             
-            # Process each connection to get groups and user permissions
-            for conn in connections:
-                connection_id, name, protocol, hostname, port, parent = conn
+            # Create a mapping of connection names to connection IDs
+            connection_map = {name: conn_id for conn_id, name, _, _, _, _, _ in connections_info}
+            
+            # Now prepare the result array
+            result = []
+            for conn_info in connections_info:
+                conn_id, name, protocol, host, port, groups, parent = conn_info
                 
-                # Get user group permissions
-                self.cursor.execute("""
-                    SELECT e.name
-                    FROM guacamole_connection_permission cp
-                    JOIN guacamole_entity e ON cp.entity_id = e.entity_id
-                    WHERE cp.connection_id = %s AND e.type = 'USER_GROUP'
-                """, (connection_id,))
-                
-                groups = [row[0] for row in self.cursor.fetchall()]
-                groups_str = ",".join(groups) if groups else None
-                
-                # Get user permissions
+                # Get user permissions for this connection - THIS IS THE KEY CHANGE
                 self.cursor.execute("""
                     SELECT e.name
                     FROM guacamole_connection_permission cp
                     JOIN guacamole_entity e ON cp.entity_id = e.entity_id
                     WHERE cp.connection_id = %s AND e.type = 'USER'
-                """, (connection_id,))
+                """, (conn_id,))
                 
                 user_permissions = [row[0] for row in self.cursor.fetchall()]
                 
-                # Add to results
-                result.append((name, protocol, hostname, port, groups_str, parent, user_permissions))
+                # Append user permissions to the connection info
+                result.append((name, protocol, host, port, groups, parent, user_permissions))
             
             return result
-            
+        
         except mysql.connector.Error as e:
             print(f"Error listing connections: {e}")
             raise
-
-
+    
     def list_usergroups_with_users_and_connections(self):
         """List all groups with their users and connections"""
         try:

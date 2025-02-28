@@ -51,32 +51,25 @@ def handle_conn_list(args, guacdb):
 """
 
 def handle_conn_list(args, guacdb):
-    # Get all connection information
+    # Get connections with both groups and parent group info
     connections = guacdb.list_connections_with_conngroups_and_parents()
     print("connections:")
     for conn in connections:
-        try:
-            # Unpack the connection info
-            name, protocol, host, port, groups_str, parent, user_permissions = conn
-        except ValueError:
-            # For backward compatibility in case the return format changes
-            name, protocol, host, port, groups_str, parent = conn
-            user_permissions = []
-        
+        # Unpack connection info
+        name, protocol, host, port, groups, parent, user_permissions = conn
+            
         print(f"  {name}:")
         print(f"    type: {protocol}")
         print(f"    hostname: {host}")
         print(f"    port: {port}")
         if parent:
             print(f"    parent: {parent}")
-        
-        # Print groups
         print("    groups:")
-        if groups_str:
-            for group in groups_str.split(','):
+        for group in (groups.split(',') if groups else []):
+            if group:  # Skip empty group names
                 print(f"      - {group}")
         
-        # Print user permissions
+        # Add this section to show individual user permissions
         if user_permissions:
             print("    permissions:")
             for user in user_permissions:
