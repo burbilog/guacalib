@@ -463,7 +463,7 @@ PRs implementing any of these features are welcome!
 
 ## Version
 
-This is version 0.11
+This is version 0.12
 
 ## Contributing
 
@@ -473,7 +473,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 Copyright Roman V. Isaev <rm@isaeff.net> 2024, though 95% of the code is written with Aider/DeepSeek-V3/Sonnet-3.5/etc
 
-This software is distributed under the terms of the GNU General Public license, version 0.11.
+This software is distributed under the terms of the GNU General Public license, version 0.12.
 
 ## Support
 
