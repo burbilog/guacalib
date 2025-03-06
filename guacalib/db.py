@@ -1079,6 +1079,27 @@ class GuacamoleDB:
             print(f"Error listing groups with users and connections: {e}")
             raise
 
+    def _check_connection_group_cycle(self, group_id, parent_id):
+        """Check if setting parent_id would create a cycle in connection groups"""
+        if parent_id is None:
+            return False
+            
+        current_parent = parent_id
+        while current_parent is not None:
+            if current_parent == group_id:
+                return True
+                
+            # Get next parent
+            self.cursor.execute("""
+                SELECT parent_id 
+                FROM guacamole_connection_group
+                WHERE connection_group_id = %s
+            """, (current_parent,))
+            result = self.cursor.fetchone()
+            current_parent = result[0] if result else None
+            
+        return False
+
     def create_connection_group(self, group_name, parent_group_name=None):
         """Create a new connection group"""
         try:
@@ -1094,6 +1115,11 @@ class GuacamoleDB:
                 if not result:
                     raise ValueError(f"Parent connection group '{parent_group_name}' not found")
                 parent_group_id = result[0]
+                
+                # Check for cycles - since this is a new group, we can't be creating a cycle
+                # but we should still validate the parent exists and is valid
+                if self._check_connection_group_cycle(None, parent_group_id):
+                    raise ValueError(f"Parent connection group '{parent_group_name}' is invalid")
 
             # Create the new connection group
             self.cursor.execute("""
@@ -1232,20 +1258,9 @@ class GuacamoleDB:
                     raise ValueError(f"Parent connection group '{new_parent_name}' not found")
                 new_parent_id = result[0]
 
-                # Check for cycles - make sure new parent isn't a descendant of this group
-                current_parent = new_parent_id
-                while current_parent is not None:
-                    if current_parent == group_id:
-                        raise ValueError(f"Setting parent would create a cycle in connection groups")
-                    
-                    # Get next parent
-                    self.cursor.execute("""
-                        SELECT parent_id 
-                        FROM guacamole_connection_group
-                        WHERE connection_group_id = %s
-                    """, (current_parent,))
-                    result = self.cursor.fetchone()
-                    current_parent = result[0] if result else None
+                # Check for cycles using helper method
+                if self._check_connection_group_cycle(group_id, new_parent_id):
+                    raise ValueError(f"Setting parent would create a cycle in connection groups")
 
             # Update the parent
             self.cursor.execute("""
