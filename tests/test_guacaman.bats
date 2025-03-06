@@ -583,6 +583,30 @@ teardown() {
 
 
 
+@test "Connection group creation detect cycles" {
+    group1="group1_$(date +%s)"
+    group2="group2_$(date +%s)"
+    group3="group3_$(date +%s)"
+    
+    # Create initial hierarchy: group1 -> group2
+    guacaman --config "$TEST_CONFIG" conngroup new --name "$group1"
+    guacaman --config "$TEST_CONFIG" conngroup new --name "$group2" --parent "$group1"
+    
+    # Try to create group3 with parent group2, then make group1 parent of group3
+    # This would create cycle: group1 -> group2 -> group3 -> group1
+    guacaman --config "$TEST_CONFIG" conngroup new --name "$group3" --parent "$group2"
+    
+    # Attempt to create cycle by modifying group1's parent to be group3
+    run guacaman --debug --config "$TEST_CONFIG" conngroup modify --name "$group1" --parent "$group3"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"would create a cycle"* ]]
+    
+    # Clean up
+    guacaman --config "$TEST_CONFIG" conngroup del --name "$group3"
+    guacaman --config "$TEST_CONFIG" conngroup del --name "$group2"
+    guacaman --config "$TEST_CONFIG" conngroup del --name "$group1"
+}
+
 @test "Connection group modify detect cycles" {
     group1="group1_$(date +%s)"
     group2="group2_$(date +%s)"
