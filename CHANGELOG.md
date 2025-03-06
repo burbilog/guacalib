@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Connection group cycle detection with new helper method
 - Enhanced tests for group creation/modification scenarios
 - Improved debug logging for group operations
+- Added more Guacamole connection variables to the available parameters that can be modified via command-line interface
 
 ### Fixed
 - Potential cycle creation in group hierarchies
