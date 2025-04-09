@@ -390,13 +390,6 @@ CONNECTION_PARAMETERS = {
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#device-redirection',
         'table': 'parameter'
     },
-    'force-lossless': {
-        'type': 'boolean',
-        'description': 'Only use lossless compression for graphical updates.',
-        'default': 'false',
-        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#display-settings',
-        'table': 'parameter'
-    },
     'read-only': {
         'type': 'boolean',
         'description': 'Whether the connection is read-only (true/false)',
@@ -640,6 +633,125 @@ CONNECTION_PARAMETERS = {
         'description': 'Enable menu animations.',
         'default': 'false',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#performance-flags',
+        'table': 'parameter'
+    },
+    'username-regex': {
+        'type': 'string',
+        'description': 'Regular expression for detecting username prompt in telnet.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#telnet-authentication',
+        'table': 'parameter'
+    },
+    'password-regex': {
+        'type': 'string',
+        'description': 'Regular expression for detecting password prompt in telnet.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#telnet-authentication',
+        'table': 'parameter'
+    },
+    'login-success-regex': {
+        'type': 'string',
+        'description': 'Regular expression for detecting successful login in telnet.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#telnet-authentication',
+        'table': 'parameter'
+    },
+    'login-failure-regex': {
+        'type': 'string',
+        'description': 'Regular expression for detecting failed login in telnet.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#telnet-authentication',
+        'table': 'parameter'
+    },
+    'load-balance-info': {
+        'type': 'string',
+        'description': 'Load balancing information for RDP connection brokers.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#load-balancing-and-rdp-connection-brokers',
+        'table': 'parameter'
+    },
+    'disable-bitmap-caching': {
+        'type': 'boolean',
+        'description': 'Disable RDP bitmap caching functionality.',
+        'default': 'false',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#performance-flags',
+        'table': 'parameter'
+    },
+    'disable-offscreen-caching': {
+        'type': 'boolean',
+        'description': 'Disable caching of offscreen regions.',
+        'default': 'false',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#performance-flags',
+        'table': 'parameter'
+    },
+    'disable-glyph-caching': {
+        'type': 'boolean',
+        'description': 'Disable caching of frequently used symbols/fonts.',
+        'default': 'false',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#performance-flags',
+        'table': 'parameter'
+    },
+    'container': {
+        'type': 'string',
+        'description': 'Name of Kubernetes container to attach to.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#network-container-parameters',
+        'table': 'parameter'
+    },
+    'exec-command': {
+        'type': 'string',
+        'description': 'Command to run in Kubernetes container.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#network-container-parameters',
+        'table': 'parameter'
+    },
+    'namespace': {
+        'type': 'string',
+        'description': 'Kubernetes namespace of the pod.',
+        'default': 'default',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#network-container-parameters',
+        'table': 'parameter'
+    },
+    'sftp-server-alive-interval': {
+        'type': 'int',
+        'description': 'Interval in seconds to send keepalive packets to SFTP server.',
+        'default': '0',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#sftp',
+        'table': 'parameter'
+    },
+    'wol-send-packet': {
+        'type': 'boolean',
+        'description': 'Send Wake-on-LAN packet before connecting.',
+        'default': 'false',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#wake-on-lan',
+        'table': 'parameter'
+    },
+    'wol-mac-addr': {
+        'type': 'string',
+        'description': 'MAC address for Wake-on-LAN packet.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#wake-on-lan',
+        'table': 'parameter'
+    },
+    'wol-broadcast-addr': {
+        'type': 'string',
+        'description': 'Broadcast address for Wake-on-LAN packet.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#wake-on-lan',
+        'table': 'parameter'
+    },
+    'wol-udp-port': {
+        'type': 'int',
+        'description': 'UDP port for Wake-on-LAN packet.',
+        'default': '9',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#wake-on-lan',
+        'table': 'parameter'
+    },
+    'wol-wait-time': {
+        'type': 'int',
+        'description': 'Seconds to wait after sending Wake-on-LAN packet.',
+        'default': '0',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#wake-on-lan',
         'table': 'parameter'
     }
 }
