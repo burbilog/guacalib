@@ -17,6 +17,7 @@
 - Use descriptive error messages
 - Handle exceptions appropriately
 - Avoid global variables
+- Strictly adhere to single-responsibility principles
 
 ## Security
 - Never hardcode sensitive information
@@ -34,3 +35,5 @@
 - Offer complete solutions, not partial fixes
 - Respect the existing architecture
 
+## When reviewing the code
+- Check for issues such as rule violations in this rules file, deviations from best practices, design patterns, or security concerns. Have it document these reviews into a file for follow-up AI sessions to iteratively address each issue.
