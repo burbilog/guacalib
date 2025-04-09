@@ -120,9 +120,65 @@ CONNECTION_PARAMETERS = {
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#clipboard-encoding',
         'table': 'parameter'
     },
+    'autoretry': {
+        'type': 'int',
+        'description': 'Seconds to wait before retrying connection on failure.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#network-parameters',
+        'table': 'parameter'
+    },
     'enable-sftp': {
         'type': 'string',
         'description': 'Whether file transfer should be enabled.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#sftp',
+        'table': 'parameter'
+    },
+    'sftp-hostname': {
+        'type': 'string',
+        'description': 'Hostname of the SFTP server.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#sftp',
+        'table': 'parameter'
+    },
+    'sftp-port': {
+        'type': 'int',
+        'description': 'Port of the SFTP server.',
+        'default': '22',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#sftp',
+        'table': 'parameter'
+    },
+    'sftp-username': {
+        'type': 'string',
+        'description': 'Username for SFTP authentication.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#sftp',
+        'table': 'parameter'
+    },
+    'sftp-password': {
+        'type': 'string',
+        'description': 'Password for SFTP authentication.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#sftp',
+        'table': 'parameter'
+    },
+    'sftp-private-key': {
+        'type': 'string',
+        'description': 'Private key for SFTP authentication.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#sftp',
+        'table': 'parameter'
+    },
+    'sftp-passphrase': {
+        'type': 'string',
+        'description': 'Passphrase for SFTP private key.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#sftp',
+        'table': 'parameter'
+    },
+    'sftp-directory': {
+        'type': 'string',
+        'description': 'Directory to expose via SFTP.',
         'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#sftp',
         'table': 'parameter'
@@ -180,6 +236,27 @@ CONNECTION_PARAMETERS = {
         'type': 'string',
         'description': 'The color scheme to use for the terminal session.',
         'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#terminal-display-settings',
+        'table': 'parameter'
+    },
+    'font-name': {
+        'type': 'string',
+        'description': 'Font to use for SSH terminal.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#terminal-display-settings',
+        'table': 'parameter'
+    },
+    'font-size': {
+        'type': 'int',
+        'description': 'Font size in points for SSH terminal.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#terminal-display-settings',
+        'table': 'parameter'
+    },
+    'scrollback': {
+        'type': 'int',
+        'description': 'Number of lines in SSH terminal scrollback buffer.',
+        'default': '1000',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#terminal-display-settings',
         'table': 'parameter'
     },
@@ -451,6 +528,118 @@ CONNECTION_PARAMETERS = {
         'description': 'The domain to use when attempting authentication, if any. This parameter is optional',
         'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#authentication-and-security',
+        'table': 'parameter'
+    },
+    'gateway-hostname': {
+        'type': 'string',
+        'description': 'Hostname of the RD Gateway server.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#remote-desktop-gateway',
+        'table': 'parameter'
+    },
+    'gateway-port': {
+        'type': 'int',
+        'description': 'Port of the RD Gateway server.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#remote-desktop-gateway',
+        'table': 'parameter'
+    },
+    'gateway-username': {
+        'type': 'string',
+        'description': 'Username for RD Gateway authentication.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#remote-desktop-gateway',
+        'table': 'parameter'
+    },
+    'gateway-password': {
+        'type': 'string',
+        'description': 'Password for RD Gateway authentication.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#remote-desktop-gateway',
+        'table': 'parameter'
+    },
+    'gateway-domain': {
+        'type': 'string',
+        'description': 'Domain for RD Gateway authentication.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#remote-desktop-gateway',
+        'table': 'parameter'
+    },
+    'preconnection-id': {
+        'type': 'int',
+        'description': 'Integer ID for preconnection PDU.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#preconnection-pdu-hyper-v-vmconnect',
+        'table': 'parameter'
+    },
+    'preconnection-blob': {
+        'type': 'string',
+        'description': 'String blob for preconnection PDU.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#preconnection-pdu-hyper-v-vmconnect',
+        'table': 'parameter'
+    },
+    'remote-app': {
+        'type': 'string',
+        'description': 'RemoteApp program alias to launch.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#remoteapp',
+        'table': 'parameter'
+    },
+    'remote-app-dir': {
+        'type': 'string',
+        'description': 'Working directory for the RemoteApp.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#remoteapp',
+        'table': 'parameter'
+    },
+    'remote-app-args': {
+        'type': 'string',
+        'description': 'Arguments for the RemoteApp.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#remoteapp',
+        'table': 'parameter'
+    },
+    'enable-wallpaper': {
+        'type': 'boolean',
+        'description': 'Enable desktop wallpaper in RDP session.',
+        'default': 'false',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#performance-flags',
+        'table': 'parameter'
+    },
+    'enable-theming': {
+        'type': 'boolean',
+        'description': 'Enable theming of windows and controls.',
+        'default': 'false',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#performance-flags',
+        'table': 'parameter'
+    },
+    'enable-font-smoothing': {
+        'type': 'boolean',
+        'description': 'Enable font smoothing (ClearType).',
+        'default': 'false',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#performance-flag',
+        'table': 'parameter'
+    },
+    'enable-full-window-drag': {
+        'type': 'boolean',
+        'description': 'Enable full window drag (show contents while dragging).',
+        'default': 'false',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#performance-flags',
+        'table': 'parameter'
+    },
+    'enable-desktop-composition': {
+        'type': 'boolean',
+        'description': 'Enable desktop composition (Aero).',
+        'default': 'false',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#performance-flags',
+        'table': 'parameter'
+    },
+    'enable-menu-animations': {
+        'type': 'boolean',
+        'description': 'Enable menu animations.',
+        'default': 'false',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#performance-flags',
         'table': 'parameter'
     }
 }
