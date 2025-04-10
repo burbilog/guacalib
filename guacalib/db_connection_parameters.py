@@ -753,5 +753,86 @@ CONNECTION_PARAMETERS = {
         'default': '0',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#wake-on-lan',
         'table': 'parameter'
+    },
+    # Session recording (typescript)
+    'typescript-path': {
+        'type': 'string',
+        'description': 'Directory in which typescript files should be created.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#text-session-recording-typescripts',
+        'table': 'parameter'
+    },
+    'create-typescript-path': {
+        'type': 'boolean',
+        'description': 'If true, automatically create the typescript-path directory if it does not exist.',
+        'default': 'false',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#text-session-recording-typescripts',
+        'table': 'parameter'
+    },
+    'typescript-name': {
+        'type': 'string',
+        'description': 'Base filename for typescript data and timing files.',
+        'default': 'typescript',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#text-session-recording-typescripts',
+        'table': 'parameter'
+    },
+    # Session recording (graphical)
+    'recording-path': {
+        'type': 'string',
+        'description': 'Directory in which screen recording files should be created.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#graphical-session-recording',
+        'table': 'parameter'
+    },
+    'create-recording-path': {
+        'type': 'boolean',
+        'description': 'If true, automatically create the recording-path directory if it does not exist.',
+        'default': 'false',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#graphical-session-recording',
+        'table': 'parameter'
+    },
+    'recording-name': {
+        'type': 'string',
+        'description': 'Filename to use for created recordings.',
+        'default': 'recording',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#graphical-session-recording',
+        'table': 'parameter'
+    },
+    'recording-exclude-output': {
+        'type': 'boolean',
+        'description': 'If true, exclude graphical output from the recording.',
+        'default': 'false',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#graphical-session-recording',
+        'table': 'parameter'
+    },
+    'recording-exclude-mouse': {
+        'type': 'boolean',
+        'description': 'If true, exclude mouse events from the recording.',
+        'default': 'false',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#graphical-session-recording',
+        'table': 'parameter'
+    },
+    'recording-include-keys': {
+        'type': 'boolean',
+        'description': 'If true, include key events in the recording.',
+        'default': 'false',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#graphical-session-recording',
+        'table': 'parameter'
+    },
+
+    # Common options
+    'disable-copy': {
+        'type': 'boolean',
+        'description': 'If set to true, disables copying from the remote clipboard to the client.',
+        'default': 'false',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#disabling-clipboard-access',
+        'table': 'parameter'
+    },
+    'disable-paste': {
+        'type': 'boolean',
+        'description': 'If set to true, disables pasting from the client clipboard to the remote session.',
+        'default': 'false',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#disabling-clipboard-access',
+        'table': 'parameter'
     }
 }
