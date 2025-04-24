@@ -435,7 +435,7 @@ CONNECTION_PARAMETERS = {
     'resize-method': {
         'type': 'string',
         'description': 'The method to use to update the RDP server when the width or height of the client display changes. ',
-        'default': 'false',
+        'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#rdp-display-settings',
         'table': 'parameter'
     },  
@@ -503,7 +503,7 @@ CONNECTION_PARAMETERS = {
         'table': 'parameter'
     },
     'disable-auth': {
-        'type': 'string',
+        'type': 'boolean',
         'description': 'If set to “true”, authentication will be disabled.',
         'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#authentication-and-security',
@@ -618,7 +618,7 @@ CONNECTION_PARAMETERS = {
         'type': 'boolean',
         'description': 'Enable font smoothing (ClearType).',
         'default': 'false',
-        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#performance-flag',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#performance-flags',
         'table': 'parameter'
     },
     'enable-full-window-drag': {
@@ -693,7 +693,7 @@ CONNECTION_PARAMETERS = {
     },
     'disable-glyph-caching': {
         'type': 'boolean',
-        'description': 'Disable caching of frequently used symbols/fonts.',
+        'description': 'Disable caching of frequently used symbols/fonts. DISABLED, see GUACAMOLE-1191.',
         'default': 'false',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#performance-flags',
         'table': 'parameter'
