@@ -148,6 +148,13 @@ CONNECTION_PARAMETERS = {
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#sftp',
         'table': 'parameter'
     },
+    'sftp-host-key': {
+        'type': 'string',
+        'description': 'The known hosts entry for the SFTP server.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#sftp',
+        'table': 'parameter'
+    },
     'sftp-username': {
         'type': 'string',
         'description': 'Username for SFTP authentication.',
