@@ -88,7 +88,7 @@ CONNECTION_PARAMETERS = {
     'server-alive-interval': {
         'type': 'int',
         'description': 'Configure the the server keepalive interval. The minimum value is 2.',
-        'default': 'NULL',
+        'default': '0',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#ssh-network-parameters',
         'table': 'parameter'
     },
@@ -122,13 +122,13 @@ CONNECTION_PARAMETERS = {
     },
     'autoretry': {
         'type': 'int',
-        'description': 'Seconds to wait before retrying connection on failure.',
+        'description': 'The number of times to retry connecting before giving up and returning an error.',
         'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#network-parameters',
         'table': 'parameter'
     },
     'enable-sftp': {
-        'type': 'string',
+        'type': 'boolean',
         'description': 'Whether file transfer should be enabled.',
         'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#sftp',
@@ -198,16 +198,16 @@ CONNECTION_PARAMETERS = {
         'table': 'parameter'
     },
     'sftp-disable-download': {
-        'type': 'string',
+        'type': 'boolean',
         'description': 'If set to true downloads from the remote system to the client (browser) will be disabled.',
-        'default': 'NULL',
+        'default': 'false',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#sftp',
         'table': 'parameter'
     },
     'sftp-disable-upload': {
-        'type': 'string',
+        'type': 'boolean',
         'description': 'If set to true uploads from the client (browser) to the remote system will be disabled.',
-        'default': 'NULL',
+        'default': 'false',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#sftp',
         'table': 'parameter'
     },
@@ -256,7 +256,7 @@ CONNECTION_PARAMETERS = {
     'font-size': {
         'type': 'int',
         'description': 'Font size in points for SSH terminal.',
-        'default': 'NULL',
+        'default': '12',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#terminal-display-settings',
         'table': 'parameter'
     },
@@ -295,14 +295,14 @@ CONNECTION_PARAMETERS = {
     'dest-host': {
         'type': 'string',
         'description': 'The destination host to request when connecting to a VNC proxy.',
-        'default': 'false',
+        'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#vnc-repeater',
         'table': 'parameter'
     },
     'dest-port': {
         'type': 'string',
         'description': 'The destination port to request when connecting to a VNC proxy.',
-        'default': 'false',
+        'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#vnc-repeater',
         'table': 'parameter'
     },
@@ -322,7 +322,7 @@ CONNECTION_PARAMETERS = {
     },
     'static-channels': {
         'type': 'string',
-        'description': 'A comma-separated list of static channel names to open and expose as pipes. ',
+        'description': 'A comma-separated list of static channel names to open and expose as pipes.',
         'default': 'false',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#device-redirection',
         'table': 'parameter'
@@ -419,7 +419,7 @@ CONNECTION_PARAMETERS = {
         'table': 'parameter'
     },
     'swap-red-blue': {
-        'type': 'string',
+        'type': 'boolean',
         'description': 'The red and blue components of each color are swapped.',
         'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#display-settings',
@@ -442,28 +442,28 @@ CONNECTION_PARAMETERS = {
     'dpi': {
         'type': 'int',
         'description': 'The desired effective resolution of the client display, in DPI.',
-        'default': 'false',
+        'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#rdp-display-settings',
         'table': 'parameter'
     },  
     'height': {
         'type': 'int',
         'description': 'The height of the display to request, in pixels.',
-        'default': 'false',
+        'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#rdp-display-settings',
         'table': 'parameter'
     },  
     'width': {
         'type': 'int',
         'description': 'The width of the display to request, in pixels.',
-        'default': 'false',
+        'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#rdp-display-settings',
         'table': 'parameter'
     },  
     'color-depth': {
         'type': 'int',
         'description': 'The color depth to request, in bits-per-pixel.',
-        'default': 'false',
+        'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#display-settings',
         'table': 'parameter'
     },  
@@ -505,7 +505,7 @@ CONNECTION_PARAMETERS = {
     'disable-auth': {
         'type': 'boolean',
         'description': 'If set to “true”, authentication will be disabled.',
-        'default': 'NULL',
+        'default': 'false',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#authentication-and-security',
         'table': 'parameter'
     },
@@ -693,7 +693,7 @@ CONNECTION_PARAMETERS = {
     },
     'disable-glyph-caching': {
         'type': 'boolean',
-        'description': 'Disable caching of frequently used symbols/fonts. DISABLED, see GUACAMOLE-1191.',
+        'description': 'Disable caching of frequently used symbols/fonts. DISABLED due GUACAMOLE-1191.',
         'default': 'false',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#performance-flags',
         'table': 'parameter'
@@ -840,6 +840,41 @@ CONNECTION_PARAMETERS = {
         'description': 'If set to true, disables pasting from the client clipboard to the remote session.',
         'default': 'false',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#disabling-clipboard-access',
+        'table': 'parameter'
+    },
+    'ignore-cert': {
+        'type': 'boolean',
+        'description': 'If set to “true”, the validity of the SSL/TLS certificate used by the Kubernetes server will be ignored if it cannot be validated. Optional.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#authentication-and-ssl-tls',
+        'table': 'parameter'
+    },
+    'ca-cert': {
+        'type': 'string',
+        'description': 'The certificate of the certificate authority that signed the certificate of the Kubernetes server, in PEM format. Optional.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#authentication-and-ssl-tls',
+        'table': 'parameter'
+    },
+    'client-key': {
+        'type': 'string',
+        'description': 'The key to use if performing SSL/TLS client authentication to authenticate with the Kubernetes server, in PEM format. Optional.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#authentication-and-ssl-tls',
+        'table': 'parameter'
+    },
+    'client-cert': {
+        'type': 'string',
+        'description': 'The certificate to use if performing SSL/TLS client authentication to authenticate with the Kubernetes server, in PEM format.  Optional.',
+        'default': 'NULL',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#authentication-and-ssl-tls',
+        'table': 'parameter'
+    },
+    'use-ssl': {
+        'type': 'boolean',
+        'description': 'If set to “true”, SSL/TLS will be used to connect to the Kubernetes server. Optional.',
+        'default': 'false',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#authentication-and-ssl-tls',
         'table': 'parameter'
     }
 }
