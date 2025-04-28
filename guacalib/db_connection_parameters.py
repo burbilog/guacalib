@@ -213,7 +213,7 @@ CONNECTION_PARAMETERS = {
     },
     'timezone': {
         'type': 'string',
-        'description': 'This parameter allows you to control the timezone..',
+        'description': 'This parameter allows you to control the timezone.',
         'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#internationalization-locale-settings',
         'table': 'parameter'
@@ -235,7 +235,7 @@ CONNECTION_PARAMETERS = {
     'terminal-type': {
         'type': 'string',
         'description': 'This parameter sets the terminal emulator type string that is passed to the server.', 
-        'default': 'NULL',
+        'default': 'linux',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#controlling-terminal-behavior',
         'table': 'parameter'
     },
@@ -269,7 +269,7 @@ CONNECTION_PARAMETERS = {
     },
     'backspace': {
         'type': 'string',
-        'description': 'This parameter controls the ASCII code that the backspace key sends to the remote system.',
+        'description': 'ASCII code that the backspace key sends to the remote system. Default is 127 (Delete).',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#controlling-terminal-behavior',
         'default': 'NULL',
         'table': 'parameter'
@@ -322,7 +322,7 @@ CONNECTION_PARAMETERS = {
     },
     'static-channels': {
         'type': 'string',
-        'description': 'A comma-separated list of static channel names to open and expose as pipes.',
+        'description': 'A comma-separated list of static channel names to open and expose as pipes (up to 7 characters each)',
         'default': 'false',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#device-redirection',
         'table': 'parameter'
@@ -434,7 +434,7 @@ CONNECTION_PARAMETERS = {
     },  
     'resize-method': {
         'type': 'string',
-        'description': 'The method to use to update the RDP server when the width or height of the client display changes. ',
+        'description': 'The method to use to update the RDP server when the width or height of the client display changes: display-update|reconnect',
         'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#rdp-display-settings',
         'table': 'parameter'
@@ -462,14 +462,14 @@ CONNECTION_PARAMETERS = {
     },  
     'color-depth': {
         'type': 'int',
-        'description': 'The color depth to request, in bits-per-pixel.',
+        'description': 'The color depth to request, in bits-per-pixel. Allowed 8, 16, 24, or 32 (bits-per-pixel).',
         'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#display-settings',
         'table': 'parameter'
     },  
     'server-layout': {
         'type': 'string',
-        'description': 'The server-side keyboard layout.',
+        'description': 'The server-side keyboard layout (like en-us-qwerty, etc).',
         'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#session-settings',
         'table': 'parameter'
@@ -497,7 +497,7 @@ CONNECTION_PARAMETERS = {
     },
     'normalize-clipboard': {
         'type': 'string',
-        'description': 'The type of line ending normalization to apply to text within the clipboard, if any.',
+        'description': 'The type of line ending normalization to apply to text within the clipboard, if any: preserve|unix|windows',
         'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#clipboard-normalization',
         'table': 'parameter'
