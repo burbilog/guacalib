@@ -509,13 +509,6 @@ CONNECTION_PARAMETERS = {
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#authentication-and-security',
         'table': 'parameter'
     },
-    'ignore-cert': {
-        'type': 'string',
-        'description': 'If set to “true”, the certificate returned by the server will be ignored.',
-        'default': 'NULL',
-        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#authentication-and-security',
-        'table': 'parameter'
-    },
     'security': {
         'type': 'string',
         'description': 'The security mode to use for the RDP connection: any|nla|nla-ext|tls|vmconnect|rdp',
@@ -712,9 +705,16 @@ CONNECTION_PARAMETERS = {
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#network-container-parameters',
         'table': 'parameter'
     },
+    'pod': {
+        'type': 'string',
+        'description': 'The name of the Kubernetes pod containing with the container being attached to.',
+        'default': 'default',
+        'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#network-container-parameters',
+        'table': 'parameter'
+    },
     'namespace': {
         'type': 'string',
-        'description': 'Kubernetes namespace of the pod.',
+        'description': 'The name of the Kubernetes namespace of the pod containing the container being attached to',
         'default': 'default',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#network-container-parameters',
         'table': 'parameter'
