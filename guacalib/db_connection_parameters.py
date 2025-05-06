@@ -68,7 +68,7 @@ CONNECTION_PARAMETERS = {
         'type': 'int',
         'description': 'If reverse connection is in use, the maximum amount of time to wait.',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#reverse-vnc-connections',
-        'default': 'NULL',
+        'default': '5000',
         'table': 'parameter'
     },
     'reverse-connect': {
@@ -185,7 +185,7 @@ CONNECTION_PARAMETERS = {
     },
     'sftp-directory': {
         'type': 'string',
-        'description': 'Directory to expose via SFTP.',
+        'description': 'The directory to upload files to if they are simply dragged and dropped, and thus otherwise lack a specific upload location.',
         'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#sftp',
         'table': 'parameter'
@@ -323,7 +323,7 @@ CONNECTION_PARAMETERS = {
     'static-channels': {
         'type': 'string',
         'description': 'A comma-separated list of static channel names to open and expose as pipes (up to 7 characters each)',
-        'default': 'false',
+        'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#device-redirection',
         'table': 'parameter'
     },
@@ -344,14 +344,14 @@ CONNECTION_PARAMETERS = {
     'drive-path': {
         'type': 'string',
         'description': 'The directory on the Guacamole server in which transferred files should be stored.',
-        'default': 'false',
+        'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#device-redirection',
         'table': 'parameter'
     },
     'drive-name': {
         'type': 'string',
         'description': 'The name of the filesystem used when passed through to the RDP session.',
-        'default': 'false',
+        'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#device-redirection',
         'table': 'parameter'
     },
@@ -365,7 +365,7 @@ CONNECTION_PARAMETERS = {
     'printer-name': {
         'type': 'string',
         'description': 'The name of the redirected printer device that is passed through to the RDP session.',
-        'default': 'false',
+        'default': 'NULL',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#device-redirection',
         'table': 'parameter'
     },
@@ -533,7 +533,7 @@ CONNECTION_PARAMETERS = {
     'gateway-port': {
         'type': 'int',
         'description': 'Port of the RD Gateway server.',
-        'default': 'NULL',
+        'default': '443',
         'ref': 'https://guacamole.apache.org/doc/gug/configuring-guacamole.html#remote-desktop-gateway',
         'table': 'parameter'
     },
