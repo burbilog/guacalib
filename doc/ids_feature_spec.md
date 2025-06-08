@@ -122,41 +122,11 @@ Tasks:
 
 Verification Steps:
 
- • [ ] Create test_stage1.py script to verify database methods
+ • [ ] Implement Stage 1 database method tests in tests/test_guacaman.bats
  • [ ] Test each enhanced method with both name and ID parameters
  • [ ] Verify validation logic (exactly one parameter required)
  • [ ] Test error handling for non-existent IDs
  • [ ] Confirm backward compatibility with existing method calls
-
-Example verification script:
-```python
-#!/usr/bin/env python3
-from guacalib import GuacamoleDB
-
-with GuacamoleDB('~/.guacaman.ini') as db:
-    # Test connection_exists with ID
-    print("Testing connection_exists with ID...")
-    result = db.connection_exists(connection_id=123)
-    print(f"Connection 123 exists: {result}")
-    
-    # Test connection_exists with name  
-    result = db.connection_exists(connection_name="testconn1")
-    print(f"Connection testconn1 exists: {result}")
-    
-    # Test validation (should raise error)
-    try:
-        db.connection_exists()  # Neither name nor ID
-        print("ERROR: Should have raised exception")
-    except ValueError as e:
-        print(f"✓ Validation works: {e}")
-        
-    # Test both parameters (should raise error)
-    try:
-        db.connection_exists(connection_name="test", connection_id=123)
-        print("ERROR: Should have raised exception")
-    except ValueError as e:
-        print(f"✓ Mutual exclusion works: {e}")
-```
 
 Acceptance Criteria:
 
@@ -180,40 +150,11 @@ Tasks:
 
 Verification Steps:
 
- • [ ] Create test_stage2.py script to verify list output format
+ • [ ] Implement Stage 2 list output format tests in tests/test_guacaman.bats
  • [ ] Verify list methods return ID information in correct format
  • [ ] Check that ID values match actual database IDs
  • [ ] Ensure existing output structure is preserved
  • [ ] Test with empty databases and populated databases
-
-Example verification script:
-```python
-#!/usr/bin/env python3
-from guacalib import GuacamoleDB
-
-with GuacamoleDB('~/.guacaman.ini') as db:
-    # Test connections list includes IDs
-    print("Testing connection list format...")
-    connections = db.list_connections_with_conngroups_and_parents()
-    if connections:
-        sample_conn = connections[0]
-        print(f"Sample connection format: {sample_conn}")
-        # Verify ID is included in the tuple/structure
-        print(f"Connection has ID field: {'id' in str(sample_conn)}")
-    else:
-        print("No connections found")
-    
-    # Test connection groups list includes IDs  
-    print("\nTesting connection groups list format...")
-    groups = db.list_connection_groups()
-    if groups:
-        sample_group_name, sample_group_data = list(groups.items())[0]
-        print(f"Sample group: {sample_group_name}")
-        print(f"Sample group data: {sample_group_data}")
-        print(f"Group has ID field: {'id' in sample_group_data}")
-    else:
-        print("No connection groups found")
-```
 
 Acceptance Criteria:
 
@@ -237,27 +178,11 @@ Tasks:
 
 Verification Steps:
 
+ • [ ] Implement Stage 3 CLI argument parser tests in tests/test_guacaman.bats
  • [ ] Test argument parser help text includes --id parameters
  • [ ] Verify --id parameter accepts integer values
  • [ ] Test that --id and --name are properly parsed as separate options
  • [ ] Check help text is clear and informative
-
-Example verification commands:
-```bash
-# Test help text includes new parameters
-guacaman conn delete --help | grep -E "(--id|--name)"
-guacaman conngroup modify --help | grep -E "(--id|--name)"
-
-# Test argument parsing (dry run if available, or with debug)
-guacaman --debug conn delete --id 123 --name test 2>&1 | head -5
-guacaman --debug conngroup exists --id 456 2>&1 | head -5
-```
-
-Manual verification checklist:
- • [ ] Help text shows --id parameter for all target commands
- • [ ] --id parameter accepts positive integers
- • [ ] --name parameter still works as before
- • [ ] Both parameters can be specified (validation happens in handlers)
 
 Acceptance Criteria:
 
@@ -283,6 +208,7 @@ Tasks:
 
 Verification Steps:
 
+ • [ ] Implement Stage 4 connection command handler tests in tests/test_guacaman.bats
  • [ ] Test commands with valid connection IDs
  • [ ] Test commands with invalid/non-existent IDs
  • [ ] Test validation errors (both --name and --id provided)
@@ -290,32 +216,6 @@ Verification Steps:
  • [ ] Test ID format validation (negative, zero, non-integer)
  • [ ] Verify list command shows IDs in output
  • [ ] Test backward compatibility with existing --name usage
-
-Example verification commands:
-```bash
-# Test with valid ID (assuming connection ID 1 exists)
-guacaman conn exists --id 1
-echo "Exit code: $?"
-
-# Test with non-existent ID
-guacaman conn exists --id 99999
-echo "Exit code: $?"
-
-# Test validation errors
-guacaman conn delete --name test --id 123  # Should fail
-guacaman conn delete  # Should fail (no name or ID)
-
-# Test invalid ID formats
-guacaman conn exists --id -1     # Should fail
-guacaman conn exists --id 0      # Should fail  
-guacaman conn exists --id abc    # Should fail
-
-# Test list shows IDs
-guacaman conn list | grep "id:"
-
-# Test backward compatibility
-guacaman conn exists --name testconn1  # Should work as before
-```
 
 Acceptance Criteria:
 
@@ -344,6 +244,7 @@ Tasks:
 
 Verification Steps:
 
+ • [ ] Implement Stage 5 connection group command handler tests in tests/test_guacaman.bats
  • [ ] Test commands with valid connection group IDs
  • [ ] Test commands with invalid/non-existent group IDs
  • [ ] Test validation errors (both --name and --id provided)
@@ -352,35 +253,6 @@ Verification Steps:
  • [ ] Verify list command shows IDs in output
  • [ ] Test backward compatibility with existing --name usage
  • [ ] Test cycle detection still works with ID-based operations
-
-Example verification commands:
-```bash
-# Test with valid group ID (assuming group ID 1 exists)
-guacaman conngroup exists --id 1
-echo "Exit code: $?"
-
-# Test with non-existent group ID
-guacaman conngroup exists --id 99999
-echo "Exit code: $?"
-
-# Test validation errors
-guacaman conngroup delete --name test --id 123  # Should fail
-guacaman conngroup delete  # Should fail (no name or ID)
-
-# Test invalid ID formats
-guacaman conngroup exists --id -1     # Should fail
-guacaman conngroup exists --id 0      # Should fail  
-guacaman conngroup exists --id abc    # Should fail
-
-# Test list shows IDs
-guacaman conngroup list | grep "id:"
-
-# Test backward compatibility
-guacaman conngroup exists --name testgroup1  # Should work as before
-
-# Test cycle detection with IDs
-guacaman conngroup modify --id 1 --parent testgroup2  # Should detect cycles
-```
 
 Acceptance Criteria:
 
