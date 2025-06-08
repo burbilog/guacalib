@@ -43,18 +43,27 @@ guacaman conngroup list --show-ids
 
 2. Database Layer Requirements
 
-2.1 New Methods (Additive - Keep Existing Methods Unchanged)
+2.1 Enhanced Existing Methods (Backward Compatible)
 
-def get_connection_by_id(self, connection_id) -> dict
-def get_connection_group_by_id(self, group_id) -> dict
-def connection_id_exists(self, connection_id) -> bool
-def connection_group_id_exists(self, group_id) -> bool
-def delete_connection_by_id(self, connection_id)
-def delete_connection_group_by_id(self, group_id)
-def modify_connection_by_id(self, connection_id, param_name, param_value)
-def modify_connection_group_parent_by_id(self, group_id, new_parent_name)
+Extend existing methods to accept optional ID parameters while maintaining full backward compatibility:
 
-2.2 Enhanced List Methods
+def delete_existing_connection(self, connection_name=None, connection_id=None)
+def delete_connection_group(self, group_name=None, group_id=None)
+def modify_connection(self, connection_name=None, connection_id=None, param_name, param_value)
+def modify_connection_group_parent(self, group_name=None, group_id=None, new_parent_name)
+def connection_exists(self, connection_name=None, connection_id=None) -> bool
+def connection_group_exists(self, group_name=None, group_id=None) -> bool
+
+2.2 New Helper Methods (Internal Use)
+
+Add private helper methods for ID resolution:
+
+def _get_connection_id_by_name(self, connection_name) -> int
+def _get_connection_group_id_by_name(self, group_name) -> int
+def _get_connection_by_id(self, connection_id) -> dict
+def _get_connection_group_by_id(self, group_id) -> dict
+
+2.3 Enhanced List Methods
 
 Update list methods to optionally include IDs:
 def list_connections_with_conngroups_and_parents(self, include_ids=False)
@@ -94,27 +103,31 @@ conngroups:
 
 # Implementation Plan
 
-## Stage 1: Database Layer - New ID-Based Methods
+## Stage 1: Database Layer - Enhanced Existing Methods
 
 Files: guacalib/db.py
 
 Tasks:
 
- • [ ] Add get_connection_by_id(self, connection_id) method
- • [ ] Add get_connection_group_by_id(self, group_id) method
- • [ ] Add connection_id_exists(self, connection_id) method
- • [ ] Add connection_group_id_exists(self, group_id) method
- • [ ] Add delete_connection_by_id(self, connection_id) method
- • [ ] Add delete_connection_group_by_id(self, group_id) method
- • [ ] Add modify_connection_by_id(self, connection_id, param_name, param_value) method
- • [ ] Add modify_connection_group_parent_by_id(self, group_id, new_parent_name) method
+ • [ ] Add private helper methods: _get_connection_id_by_name(), _get_connection_group_id_by_name()
+ • [ ] Add private helper methods: _get_connection_by_id(), _get_connection_group_by_id()
+ • [ ] Enhance delete_existing_connection() to accept optional connection_id parameter
+ • [ ] Enhance delete_connection_group() to accept optional group_id parameter
+ • [ ] Enhance modify_connection() to accept optional connection_id parameter
+ • [ ] Enhance modify_connection_group_parent() to accept optional group_id parameter
+ • [ ] Enhance connection_exists() to accept optional connection_id parameter
+ • [ ] Enhance connection_group_exists() to accept optional group_id parameter
+ • [ ] Add validation logic: exactly one of name or ID must be provided
+ • [ ] Ensure all enhanced methods maintain backward compatibility
 
 Acceptance Criteria:
 
- • All new methods return expected data types
+ • All enhanced methods work with both name and ID parameters
+ • Validation ensures exactly one of name or ID is provided
  • Methods handle non-existent IDs gracefully with clear error messages
  • Database errors are properly caught and re-raised
- • Existing methods remain completely unchanged
+ • Existing method calls continue to work unchanged
+ • No code duplication between name and ID handling paths
 
 ## Stage 2: Enhanced List Commands
 
@@ -161,18 +174,20 @@ Files: guacalib/cli_handle_conn.py
 
 Tasks:
 
- • [ ] Update handle_conn_delete() to support --id parameter
- • [ ] Update handle_conn_exists() to support --id parameter
- • [ ] Update handle_conn_modify() to support --id parameter
+ • [ ] Update handle_conn_delete() to support --id parameter and pass to enhanced method
+ • [ ] Update handle_conn_exists() to support --id parameter and pass to enhanced method
+ • [ ] Update handle_conn_modify() to support --id parameter and pass to enhanced method
  • [ ] Update handle_conn_list() to support --show-ids flag
  • [ ] Add validation in each handler: ensure exactly one of --name or --id is provided
  • [ ] Add ID format validation (positive integer) in handlers
  • [ ] Add clear error handling for invalid/non-existent IDs
+ • [ ] Pass appropriate parameters to enhanced database methods
 
 Acceptance Criteria:
 
  • Commands work correctly with both --name and --id
  • Validation logic clearly implemented in command handlers
+ • Handlers call enhanced database methods with correct parameters
  • Proper error messages for invalid IDs or missing parameters
  • List command shows IDs when --show-ids flag is used
  • Backward compatibility maintained
@@ -184,18 +199,20 @@ Files: guacalib/cli_handle_conngroup.py
 
 Tasks:
 
- • [ ] Update handle_conngroup_command() for delete subcommand with --id
- • [ ] Update handle_conngroup_command() for exists subcommand with --id
- • [ ] Update handle_conngroup_command() for modify subcommand with --id
+ • [ ] Update handle_conngroup_command() for delete subcommand with --id and pass to enhanced method
+ • [ ] Update handle_conngroup_command() for exists subcommand with --id and pass to enhanced method
+ • [ ] Update handle_conngroup_command() for modify subcommand with --id and pass to enhanced method
  • [ ] Update list subcommand to support --show-ids flag
  • [ ] Add validation in each handler: ensure exactly one of --name or --id is provided
  • [ ] Add ID format validation (positive integer) in handlers
  • [ ] Add clear error handling for invalid/non-existent IDs
+ • [ ] Pass appropriate parameters to enhanced database methods
 
 Acceptance Criteria:
 
  • Commands work correctly with both --name and --id
  • Validation logic clearly implemented in command handlers
+ • Handlers call enhanced database methods with correct parameters
  • Proper error messages for invalid IDs or missing parameters
  • List command shows IDs when --show-ids flag is used
  • Backward compatibility maintained
