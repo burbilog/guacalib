@@ -8,7 +8,7 @@ Add --id parameter support to uniquely identify connections and connection group
 
  • Connection commands: delete, exists, modify
  • Connection group commands: delete, exists, modify
- • Enhanced list commands with --show-ids flag
+ • Enhanced list commands (always show IDs)
  • Basic test coverage
 
 # Requirements
@@ -38,8 +38,8 @@ guacaman conngroup modify --id <group_id> [other options]
 
 1.2.3 Enhanced list commands
 
-guacaman conn list --show-ids
-guacaman conngroup list --show-ids
+guacaman conn list
+guacaman conngroup list
 
 2. Database Layer Requirements
 
@@ -65,9 +65,9 @@ def _get_connection_group_by_id(self, group_id) -> dict
 
 2.3 Enhanced List Methods
 
-Update list methods to optionally include IDs:
-def list_connections_with_conngroups_and_parents(self, include_ids=False)
-def list_connection_groups(self, include_ids=False)
+Update list methods to always include IDs:
+def list_connections_with_conngroups_and_parents(self)
+def list_connection_groups(self)
 
 3. Validation Rules
 
@@ -78,7 +78,7 @@ def list_connection_groups(self, include_ids=False)
 
 4. Output Format Changes
 
-When --show-ids flag is used, add id field to existing structure:
+List commands will always include id field in existing structure:
 
 connections:
   testconn1:
@@ -135,17 +135,16 @@ Files: guacalib/db.py
 
 Tasks:
 
- • [ ] Update list_connections_with_conngroups_and_parents() to accept include_ids=False parameter
- • [ ] Update list_connection_groups() to accept include_ids=False parameter
- • [ ] Modify return formats to include ID information when requested
+ • [ ] Update list_connections_with_conngroups_and_parents() to always include ID information
+ • [ ] Update list_connection_groups() to always include ID information
+ • [ ] Modify return formats to include ID information in existing structure
  • [ ] Ensure ID field is added to existing YAML structure
 
 Acceptance Criteria:
 
- • List methods accept include_ids=False parameter
- • When include_ids=True, output includes id field in existing structure
- • Existing functionality unchanged when include_ids=False
+ • List methods always include id field in existing structure
  • ID information is accurate and matches database
+ • Output format remains consistent and parseable
 
 ## Stage 3: CLI Argument Parser Updates
 
@@ -159,8 +158,6 @@ Tasks:
  • [ ] Add --id parameter to conngroup delete subcommand
  • [ ] Add --id parameter to conngroup exists subcommand
  • [ ] Add --id parameter to conngroup modify subcommand
- • [ ] Add --show-ids flag to conn list subcommand
- • [ ] Add --show-ids flag to conngroup list subcommand
 
 Acceptance Criteria:
 
@@ -177,7 +174,7 @@ Tasks:
  • [ ] Update handle_conn_delete() to support --id parameter and pass to enhanced method
  • [ ] Update handle_conn_exists() to support --id parameter and pass to enhanced method
  • [ ] Update handle_conn_modify() to support --id parameter and pass to enhanced method
- • [ ] Update handle_conn_list() to support --show-ids flag
+ • [ ] Update handle_conn_list() to always show IDs
  • [ ] Add validation in each handler: ensure exactly one of --name or --id is provided
  • [ ] Add ID format validation (positive integer) in handlers
  • [ ] Add clear error handling for invalid/non-existent IDs
@@ -189,7 +186,7 @@ Acceptance Criteria:
  • Validation logic clearly implemented in command handlers
  • Handlers call enhanced database methods with correct parameters
  • Proper error messages for invalid IDs or missing parameters
- • List command shows IDs when --show-ids flag is used
+ • List command always shows IDs
  • Backward compatibility maintained
  • Error messages follow existing format (using sys.exit(1))
 
@@ -202,7 +199,7 @@ Tasks:
  • [ ] Update handle_conngroup_command() for delete subcommand with --id and pass to enhanced method
  • [ ] Update handle_conngroup_command() for exists subcommand with --id and pass to enhanced method
  • [ ] Update handle_conngroup_command() for modify subcommand with --id and pass to enhanced method
- • [ ] Update list subcommand to support --show-ids flag
+ • [ ] Update list subcommand to always show IDs
  • [ ] Add validation in each handler: ensure exactly one of --name or --id is provided
  • [ ] Add ID format validation (positive integer) in handlers
  • [ ] Add clear error handling for invalid/non-existent IDs
@@ -214,7 +211,7 @@ Acceptance Criteria:
  • Validation logic clearly implemented in command handlers
  • Handlers call enhanced database methods with correct parameters
  • Proper error messages for invalid IDs or missing parameters
- • List command shows IDs when --show-ids flag is used
+ • List command always shows IDs
  • Backward compatibility maintained
  • Error messages follow existing format (using sys.exit(1))
 
@@ -228,12 +225,12 @@ Tasks:
  • [ ] Test conn delete --id with non-existent connection ID
  • [ ] Test conn exists --id with existing and non-existing IDs
  • [ ] Test conn modify --id with valid connection ID
- • [ ] Test conn list --show-ids output format includes ID field
+ • [ ] Test conn list output format always includes ID field
  • [ ] Test conngroup delete --id with valid group ID
  • [ ] Test conngroup delete --id with non-existent group ID
  • [ ] Test conngroup exists --id with existing and non-existing IDs
  • [ ] Test conngroup modify --id with valid group ID
- • [ ] Test conngroup list --show-ids output format includes ID field
+ • [ ] Test conngroup list output format always includes ID field
  • [ ] Test parameter validation errors (both --name and --id provided)
  • [ ] Test parameter validation errors (neither --name nor --id provided)
  • [ ] Test invalid ID formats (negative, zero, non-integer)
@@ -258,7 +255,7 @@ Tasks:
  • [ ] Test all commands with invalid IDs (non-existent, negative, non-integer)
  • [ ] Test parameter validation (both name and ID provided, neither provided)
  • [ ] Test backward compatibility (existing scripts still work)
- • [ ] Test list commands with and without --show-ids
+ • [ ] Test list commands always show IDs in output
  • [ ] Verify error messages are clear and helpful
 
 Acceptance Criteria:
@@ -279,7 +276,7 @@ Success Criteria
  • Users can identify connections/groups by ID when names are ambiguous
  • All existing functionality continues to work unchanged
  • Clear error messages guide users when they make mistakes
- • List commands provide easy way to discover IDs
+ • List commands always provide IDs for easy discovery
  • Implementation is robust and handles edge cases
 
 ## Implementation Benefits
