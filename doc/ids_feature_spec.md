@@ -282,6 +282,48 @@ Success Criteria
  • List commands provide easy way to discover IDs
  • Implementation is robust and handles edge cases
 
+## Implementation Benefits
+
+This approach provides several key advantages:
+
+- ✅ **No code duplication** - Single implementation path for each operation
+- ✅ **Single code path** to maintain - Bug fixes apply to both name and ID operations
+- ✅ **Backward compatibility** - All existing method calls continue to work unchanged
+- ✅ **Consistent behavior** - Name and ID operations use identical logic
+- ✅ **Reduced complexity** - Much less boilerplate code than separate methods
+- ✅ **Easier testing** - Single code path reduces test complexity
+- ✅ **Future-proof** - Easy to add additional identification methods later
+
+## CLI Integration Pattern
+
+CLI handlers will use simple parameter passing:
+
+```python
+# Example CLI handler pattern
+if args.id:
+    guacdb.delete_existing_connection(connection_id=args.id)
+else:
+    guacdb.delete_existing_connection(connection_name=args.name)
+```
+
+## Database Method Enhancement Pattern
+
+```python
+# Example enhanced method signature
+def delete_existing_connection(self, connection_name=None, connection_id=None):
+    # Validation: exactly one must be provided
+    if not connection_name and not connection_id:
+        raise ValueError("Either connection_name or connection_id must be provided")
+    if connection_name and connection_id:
+        raise ValueError("Cannot specify both connection_name and connection_id")
+    
+    # Get connection_id if name was provided
+    if connection_name:
+        connection_id = self._get_connection_id_by_name(connection_name)
+    
+    # Rest of method uses connection_id (existing logic unchanged)
+```
+
 Out of Scope
 
  • User and usergroup ID support (future enhancement)
