@@ -18,7 +18,6 @@ Add --id parameter support to uniquely identify connections and connection group
 1.1 New Parameters
 
  • Add --id parameter to specific subcommands
- • Add --show-ids flag to list commands
  • --id and --name are mutually exclusive
  • --id must be a positive integer
 
