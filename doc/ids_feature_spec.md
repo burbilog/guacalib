@@ -50,8 +50,12 @@ def delete_existing_connection(self, connection_name=None, connection_id=None)
 def delete_connection_group(self, group_name=None, group_id=None)
 def modify_connection(self, connection_name=None, connection_id=None, param_name, param_value)
 def modify_connection_group_parent(self, group_name=None, group_id=None, new_parent_name)
+def modify_connection_parent_group(self, connection_name=None, connection_id=None, group_name)
 def connection_exists(self, connection_name=None, connection_id=None) -> bool
 def connection_group_exists(self, group_name=None, group_id=None) -> bool
+def grant_connection_permission_to_user(self, username, connection_name=None, connection_id=None)
+def revoke_connection_permission_from_user(self, username, connection_name=None, connection_id=None)
+def get_connection_user_permissions(self, connection_name=None, connection_id=None)
 
 2.2 New Helper Methods (Internal Use)
 
@@ -61,6 +65,8 @@ def _get_connection_id_by_name(self, connection_name) -> int
 def _get_connection_group_id_by_name(self, group_name) -> int
 def _get_connection_by_id(self, connection_id) -> dict
 def _get_connection_group_by_id(self, group_id) -> dict
+def _get_connection_name_by_id(self, connection_id) -> str
+def _get_connection_group_name_by_id(self, group_id) -> str
 
 2.3 Enhanced List Methods
 
@@ -110,12 +116,17 @@ Tasks:
 
  • [ ] Add private helper methods: _get_connection_id_by_name(), _get_connection_group_id_by_name()
  • [ ] Add private helper methods: _get_connection_by_id(), _get_connection_group_by_id()
+ • [ ] Add private helper methods: _get_connection_name_by_id(), _get_connection_group_name_by_id()
  • [ ] Enhance delete_existing_connection() to accept optional connection_id parameter
  • [ ] Enhance delete_connection_group() to accept optional group_id parameter
  • [ ] Enhance modify_connection() to accept optional connection_id parameter
  • [ ] Enhance modify_connection_group_parent() to accept optional group_id parameter
+ • [ ] Enhance modify_connection_parent_group() to accept optional connection_id parameter
  • [ ] Enhance connection_exists() to accept optional connection_id parameter
  • [ ] Enhance connection_group_exists() to accept optional group_id parameter
+ • [ ] Enhance grant_connection_permission_to_user() to accept optional connection_id parameter
+ • [ ] Enhance revoke_connection_permission_from_user() to accept optional connection_id parameter
+ • [ ] Enhance get_connection_user_permissions() to accept optional connection_id parameter
  • [ ] Add validation logic: exactly one of name or ID must be provided
  • [ ] Ensure all enhanced methods maintain backward compatibility
 
@@ -377,4 +388,3 @@ Out of Scope
  • Bulk operations with ID lists
  • Discovery mechanism for naming conflicts (can be added later)
  • Performance optimization beyond basic functionality
-
