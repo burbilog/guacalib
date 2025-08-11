@@ -146,8 +146,8 @@ Tasks:
 
  • [ ] Update handle_conn_delete(), handle_conn_exists(), handle_conn_modify() to support --id and pass to enhanced DB methods
  • [ ] Update handle_conn_list() to always show IDs
- • [ ] Add validation in handlers to ensure exactly one of --name or --id is provided
- • [ ] Add ID format validation (positive integer) in handlers
+ • [ ] Add syntax-level validation in handlers: ensure that at least one of --name or --id is provided (business rule validation will be centralized in Stage 1 resolvers)
+ • [ ] Add ID format validation (positive integer, strictly greater than 0) in handlers
  • [ ] Proper error handling for invalid or non-existent IDs
  • [ ] Pass correct params to DB methods
 
@@ -175,8 +175,8 @@ Tasks:
 
  • [ ] Update relevant branches to support --id and pass to enhanced DB methods
  • [ ] Update list subcommand to show IDs
- • [ ] Add validation in handlers for name vs ID
- • [ ] Add ID format validation
+ • [ ] Add syntax-level validation in handlers: ensure at least one parameter is provided, format for ID is a positive integer >0 (business rule validation kept in Stage 1 resolvers)
+ • [ ] Add ID format validation (>0, integer)
  • [ ] Handle invalid/non-existent IDs
  • [ ] Pass correct params to DB
 
@@ -257,6 +257,7 @@ Success Criteria
  • Clear error messages  
  • List commands always show IDs  
  • Robust to edge cases
+ • Business rule validation for "exactly one of name or ID" is centralized in Stage 1 resolvers to avoid duplication
 
 Implementation Benefits
 
