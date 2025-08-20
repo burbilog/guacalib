@@ -461,9 +461,13 @@ Current limitations and planned improvements:
 
 PRs implementing any of these features are welcome!
 
+## AI guidelines
+
+For all AI agents: use rules in AGENTS.md
+
 ## Version
 
-This is version 
+This is version 0.19
 
 ## Contributing
 
@@ -471,9 +475,9 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-Copyright Roman V. Isaev <rm@isaeff.net> 2024, though 95% of the code is written with Aider/DeepSeek-V3/Sonnet-3.5/etc
+Copyright Roman V. Isaev <rm@isaeff.net> 2024-2025, though 95% of the code is written with Aider/DeepSeek/Sonnet/etc
 
-This software is distributed under the terms of the GNU General Public license, version .
+This software is distributed under the terms of the GNU General Public license, version 3.
 
 ## Support
 
