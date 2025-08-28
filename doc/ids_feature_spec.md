@@ -48,10 +48,10 @@ Files: guacalib/db.py
 
 Tasks:
 
-- [ ] Add two reusable internal helper methods:
+- [x] Add two reusable internal helper methods:
   - `resolve_connection_id(connection_name=None, connection_id=None)` to validate inputs, ensure exactly one is provided, enforce id > 0, and resolve IDs from names if needed.
   - `resolve_conngroup_id(group_name=None, group_id=None)` to do the same for connection groups.
-- [ ] Update the following existing methods to accept optional `*_id` arguments and internally call the relevant resolver:
+- [x] Update the following existing methods to accept optional `*_id` arguments and internally call the relevant resolver:
   - delete_existing_connection()
   - delete_connection_group()
   - modify_connection()
@@ -59,17 +59,17 @@ Tasks:
   - modify_connection_parent_group()
   - connection_exists()
   - connection_group_exists()
-- [ ] All validation for “exactly one of name or ID” and “positive integer IDs” is performed inside the shared resolver methods.
-- [ ] Ensure all enhanced methods maintain backward compatibility with existing name-based calls.
+- [x] All validation for "exactly one of name or ID" and "positive integer IDs" is performed inside the shared resolver methods.
+- [x] Ensure all enhanced methods maintain backward compatibility with existing name-based calls.
 - [ ] Note: Permission-related methods (grant/revoke/get permissions) are out of scope and unchanged in this feature.
 
 Verification Steps:
 
-- [ ] Implement Stage 1 tests in tests/test_guacaman.bats (integration-focus)  
-- [ ] Test each enhanced method path via CLI with both name and ID selectors  
-- [ ] Verify validation logic (“exactly one parameter required”)  
-- [ ] Test error handling for non-existent IDs  
-- [ ] Confirm backward compatibility with existing name-based calls
+- [x] Implement Stage 1 tests in tests/test_guacaman.bats (integration-focus)  
+- [x] Test each enhanced method path via CLI with both name and ID selectors  
+- [x] Verify validation logic ("exactly one parameter required")  
+- [x] Test error handling for non-existent IDs  
+- [x] Confirm backward compatibility with existing name-based calls
 
 Acceptance Criteria:
 

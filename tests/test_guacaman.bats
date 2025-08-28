@@ -717,13 +717,13 @@ get_conngroup_id() {
     
     # Test validation: both name and ID provided should fail
     run guacaman --config "$TEST_CONFIG" conn exists --name testconn1 --id "$conn_id"
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"exactly one"* ]] || [[ "$output" == *"mutually exclusive"* ]]
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"not allowed with argument"* ]]
     
     # Test validation: neither name nor ID provided should fail
     run guacaman --config "$TEST_CONFIG" conn exists
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"exactly one"* ]] || [[ "$output" == *"required"* ]]
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"one of the arguments"* ]] && [[ "$output" == *"is required"* ]]
 }
 
 @test "Stage 1: Connection exists with invalid ID format" {
@@ -764,8 +764,8 @@ get_conngroup_id() {
     
     # Test validation: both name and ID provided
     run guacaman --config "$TEST_CONFIG" conn del --name testconn1 --id 1
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"exactly one"* ]] || [[ "$output" == *"mutually exclusive"* ]]
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"not allowed with argument"* ]]
 }
 
 @test "Stage 1: Connection modify with ID parameter" {
@@ -815,8 +815,8 @@ get_conngroup_id() {
     
     # Test validation: both name and ID provided
     run guacaman --config "$TEST_CONFIG" conngroup exists --name testconngroup1 --id "$group_id"
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"exactly one"* ]] || [[ "$output" == *"mutually exclusive"* ]]
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"not allowed with argument"* ]]
 }
 
 @test "Stage 1: Connection group delete with ID parameter" {

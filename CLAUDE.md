@@ -18,7 +18,7 @@ make tests
 
 # The test suite uses bats (Bash Automated Testing System)
 # Set TEST_CONFIG to point to a valid .guacaman.ini file:
-export TEST_CONFIG=/path/to/test_config.ini
+export TEST_CONFIG=/home/rm/.guacaman.ini
 bats -t --print-output-on-failure tests/test_guacaman.bats
 ```
 
