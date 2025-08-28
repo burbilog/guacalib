@@ -51,14 +51,25 @@ def handle_conn_list(args, guacdb):
 """
 
 def handle_conn_list(args, guacdb):
-    # Get connections with both groups and parent group info
-    connections = guacdb.list_connections_with_conngroups_and_parents()
+    # Check if specific ID is requested
+    if hasattr(args, 'id') and args.id:
+        # Get specific connection by ID
+        connection = guacdb.get_connection_by_id(args.id)
+        if not connection:
+            print(f"Connection with ID {args.id} not found")
+            sys.exit(1)
+        connections = [connection]
+    else:
+        # Get all connections
+        connections = guacdb.list_connections_with_conngroups_and_parents()
+    
     print("connections:")
     for conn in connections:
-        # Unpack connection info
-        name, protocol, host, port, groups, parent, user_permissions = conn
+        # Unpack connection info (now includes connection_id)
+        conn_id, name, protocol, host, port, groups, parent, user_permissions = conn
             
         print(f"  {name}:")
+        print(f"    id: {conn_id}")
         print(f"    type: {protocol}")
         print(f"    hostname: {host}")
         print(f"    port: {port}")

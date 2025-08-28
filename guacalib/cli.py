@@ -72,7 +72,8 @@ def setup_conngroup_subcommands(subparsers):
     new_conngroup.add_argument('--parent', help='Parent connection group name (optional)')
 
     # Conngroup list command
-    conngroup_subparsers.add_parser('list', help='List all connection groups')
+    list_conngroup = conngroup_subparsers.add_parser('list', help='List all connection groups')
+    list_conngroup.add_argument('--id', help='Show connection group by specific ID')
 
     # Conngroup exists command
     exists_conngroup = conngroup_subparsers.add_parser('exists', help='Check if a connection group exists')
@@ -109,7 +110,8 @@ def setup_conn_subcommands(subparsers):
     new_conn.add_argument('--usergroup', help='Comma-separated list of user groups to grant access to')
 
     # Connection list command
-    conn_subparsers.add_parser('list', help='List all connections')
+    list_conn = conn_subparsers.add_parser('list', help='List all connections')
+    list_conn.add_argument('--id', help='Show connection by specific ID')
 
     # Connection exists command
     exists_conn = conn_subparsers.add_parser('exists', help='Check if a connection exists')

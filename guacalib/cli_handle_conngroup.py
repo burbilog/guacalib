@@ -22,10 +22,21 @@ def handle_conngroup_command(args, guacdb):
             sys.exit(1)
 
     elif args.conngroup_command == 'list':
-        groups = guacdb.list_connection_groups()
+        # Check if specific ID is requested
+        if hasattr(args, 'id') and args.id:
+            # Get specific connection group by ID
+            groups = guacdb.get_connection_group_by_id(args.id)
+            if not groups:
+                print(f"Connection group with ID {args.id} not found")
+                sys.exit(1)
+        else:
+            # Get all connection groups
+            groups = guacdb.list_connection_groups()
+        
         print("conngroups:")
         for group_name, data in groups.items():
             print(f"  {group_name}:")
+            print(f"    id: {data['id']}")
             print(f"    parent: {data['parent']}")
             print("    connections:")
             for conn in data['connections']:
