@@ -125,22 +125,66 @@ def handle_conn_new(args, guacdb):
 
 def handle_conn_delete(args, guacdb):
     try:
-        guacdb.delete_existing_connection(args.name)
+        if hasattr(args, 'id') and args.id is not None:
+            # Validate ID format
+            guacdb.validate_positive_id(args.id, "Connection")
+            # Get connection name by ID first
+            name = guacdb.get_connection_name_by_id(args.id)
+            if not name:
+                print(f"Connection with ID {args.id} not found")
+                sys.exit(1)
+            guacdb.delete_existing_connection(name)
+        else:
+            # Use name-based deletion
+            guacdb.delete_existing_connection(args.name)
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
     except Exception as e:
         print(f"Error deleting connection: {e}")
         sys.exit(1)
 
 def handle_conn_exists(args, guacdb):
-    if guacdb.connection_exists(args.name):
-        sys.exit(0)
-    else:
+    try:
+        if hasattr(args, 'id') and args.id is not None:
+            # Validate ID format
+            guacdb.validate_positive_id(args.id, "Connection")
+            # Check if connection exists by ID
+            name = guacdb.get_connection_name_by_id(args.id)
+            if name:
+                sys.exit(0)
+            else:
+                sys.exit(1)
+        else:
+            # Use name-based lookup
+            if guacdb.connection_exists(args.name):
+                sys.exit(0)
+            else:
+                sys.exit(1)
+    except ValueError as e:
+        print(f"Error: {e}")
         sys.exit(1)
         
 def handle_conn_modify(args, guacdb):
     """Handle the connection modify command"""
-    if not args.name or (not args.set and args.parent is None and not args.permit and not args.deny):
+    # Resolve connection name from ID if provided
+    connection_name = None
+    if hasattr(args, 'id') and args.id is not None:
+        try:
+            guacdb.validate_positive_id(args.id, "Connection")
+            connection_name = guacdb.get_connection_name_by_id(args.id)
+            if not connection_name:
+                print(f"Connection with ID {args.id} not found")
+                sys.exit(1)
+        except ValueError as e:
+            print(f"Error: {e}")
+            sys.exit(1)
+    else:
+        connection_name = args.name
+    
+    if not connection_name or (not args.set and args.parent is None and not args.permit and not args.deny):
         # Print help information about modifiable parameters
-        print("Usage: guacaman conn modify --name <connection_name> [--set <param=value> ...] [--parent CONNGROUP] [--permit USERNAME] [--deny USERNAME]")
+        print("Usage: guacaman conn modify {--name <connection_name> | --id <connection_id>} [--set <param=value> ...] [--parent CONNGROUP] [--permit USERNAME] [--deny USERNAME]")
         print("\nModification options:")
         print(f"  {VAR_COLOR}--set{RESET}: Modify connection parameters")
         print(f"  {VAR_COLOR}--parent{RESET}: Set parent connection group (use empty string to remove group)")
@@ -170,24 +214,24 @@ def handle_conn_modify(args, guacdb):
         sys.exit(1)
     
     try:
-        guacdb.debug_connection_permissions(args.name)
+        guacdb.debug_connection_permissions(connection_name)
         # Handle permission modifications
         if args.permit:
-            guacdb.grant_connection_permission_to_user(args.permit, args.name)
-            guacdb.debug_print(f"Successfully granted permission to user '{args.permit}' for connection '{args.name}'")
-            guacdb.debug_connection_permissions(args.name)
+            guacdb.grant_connection_permission_to_user(args.permit, connection_name)
+            guacdb.debug_print(f"Successfully granted permission to user '{args.permit}' for connection '{connection_name}'")
+            guacdb.debug_connection_permissions(connection_name)
             
         if args.deny:
-            guacdb.revoke_connection_permission_from_user(args.deny, args.name)
-            guacdb.debug_print(f"Successfully revoked permission from user '{args.deny}' for connection '{args.name}'")
+            guacdb.revoke_connection_permission_from_user(args.deny, connection_name)
+            guacdb.debug_print(f"Successfully revoked permission from user '{args.deny}' for connection '{connection_name}'")
 
         # Handle parent group modification
         if args.parent is not None:
             try:
                 # Convert empty string to None to unset parent group
                 parent_group = args.parent if args.parent != "" else None
-                guacdb.modify_connection_parent_group(args.name, parent_group)
-                guacdb.debug_print(f"Successfully set parent group to '{args.parent}' for connection '{args.name}'")
+                guacdb.modify_connection_parent_group(connection_name, parent_group)
+                guacdb.debug_print(f"Successfully set parent group to '{args.parent}' for connection '{connection_name}'")
             except Exception as e:
                 print(f"Error setting parent group: {e}")
                 sys.exit(1)
@@ -198,11 +242,11 @@ def handle_conn_modify(args, guacdb):
                 sys.exit(1)
                 
             param, value = param_value.split('=', 1)
-            guacdb.debug_print(f"Modifying connection '{args.name}': setting {param}={value}")
+            guacdb.debug_print(f"Modifying connection '{connection_name}': setting {param}={value}")
             
             try:
-                guacdb.modify_connection(args.name, param, value)
-                guacdb.debug_print(f"Successfully updated {param} for connection '{args.name}'")
+                guacdb.modify_connection(connection_name, param, value)
+                guacdb.debug_print(f"Successfully updated {param} for connection '{connection_name}'")
             except ValueError as e:
                 print(f"Error: {str(e)}")
                 sys.exit(1)

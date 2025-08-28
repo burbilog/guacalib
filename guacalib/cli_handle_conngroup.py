@@ -44,37 +44,85 @@ def handle_conngroup_command(args, guacdb):
         sys.exit(0)
 
     elif args.conngroup_command == 'exists':
-        if guacdb.connection_group_exists(args.name):
-            guacdb.debug_print(f"Connection group '{args.name}' exists")
-            sys.exit(0)
-        else:
-            guacdb.debug_print(f"Connection group '{args.name}' does not exist")
+        try:
+            if hasattr(args, 'id') and args.id is not None:
+                # Validate ID format
+                guacdb.validate_positive_id(args.id, "Connection group")
+                # Check if connection group exists by ID
+                name = guacdb.get_connection_group_name_by_id(args.id)
+                if name:
+                    guacdb.debug_print(f"Connection group with ID '{args.id}' exists: {name}")
+                    sys.exit(0)
+                else:
+                    guacdb.debug_print(f"Connection group with ID '{args.id}' does not exist")
+                    sys.exit(1)
+            else:
+                # Use name-based lookup
+                if guacdb.connection_group_exists(args.name):
+                    guacdb.debug_print(f"Connection group '{args.name}' exists")
+                    sys.exit(0)
+                else:
+                    guacdb.debug_print(f"Connection group '{args.name}' does not exist")
+                    sys.exit(1)
+        except ValueError as e:
+            print(f"Error: {e}")
             sys.exit(1)
 
     elif args.conngroup_command == 'del':
         try:
-            # Check if group exists
-            groups = guacdb.list_connection_groups()
-            if args.name not in groups:
-                print(f"Error: Connection group '{args.name}' does not exist")
-                sys.exit(1)
+            group_name = None
+            if hasattr(args, 'id') and args.id is not None:
+                # Validate ID format
+                guacdb.validate_positive_id(args.id, "Connection group")
+                # Get group name by ID
+                group_name = guacdb.get_connection_group_name_by_id(args.id)
+                if not group_name:
+                    print(f"Error: Connection group with ID '{args.id}' does not exist")
+                    sys.exit(1)
+            else:
+                # Use name-based deletion
+                group_name = args.name
+                # Check if group exists
+                groups = guacdb.list_connection_groups()
+                if group_name not in groups:
+                    print(f"Error: Connection group '{group_name}' does not exist")
+                    sys.exit(1)
                 
             # Delete the group
-            guacdb.delete_connection_group(args.name)
-            guacdb.debug_print(f"Successfully deleted connection group: {args.name}")
+            guacdb.delete_connection_group(group_name)
+            guacdb.debug_print(f"Successfully deleted connection group: {group_name}")
             sys.exit(0)
+        except ValueError as e:
+            print(f"Error: {e}")
+            sys.exit(1)
         except Exception as e:
             print(f"Error deleting connection group: {e}")
             sys.exit(1)
 
     elif args.conngroup_command == 'modify':
         try:
+            group_name = None
+            if hasattr(args, 'id') and args.id is not None:
+                # Validate ID format
+                guacdb.validate_positive_id(args.id, "Connection group")
+                # Get group name by ID
+                group_name = guacdb.get_connection_group_name_by_id(args.id)
+                if not group_name:
+                    print(f"Error: Connection group with ID '{args.id}' does not exist")
+                    sys.exit(1)
+            else:
+                # Use name-based modification
+                group_name = args.name
+                
             if args.parent is not None:
                 guacdb.debug_print(f"Setting parent connection group: {args.parent}")
-                guacdb.modify_connection_group_parent(args.name, args.parent)
+                guacdb.modify_connection_group_parent(group_name, args.parent)
                 guacdb.conn.commit()  # Explicitly commit the transaction
-                guacdb.debug_print(f"Successfully set parent group for '{args.name}' to '{args.parent}'")
+                guacdb.debug_print(f"Successfully set parent group for '{group_name}' to '{args.parent}'")
             sys.exit(0)
+        except ValueError as e:
+            print(f"Error: {e}")
+            sys.exit(1)
         except Exception as e:
             guacdb.conn.rollback()  # Rollback on error
             print(f"Error modifying connection group: {e}")

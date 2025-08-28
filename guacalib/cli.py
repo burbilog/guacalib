@@ -77,15 +77,21 @@ def setup_conngroup_subcommands(subparsers):
 
     # Conngroup exists command
     exists_conngroup = conngroup_subparsers.add_parser('exists', help='Check if a connection group exists')
-    exists_conngroup.add_argument('--name', required=True, help='Connection group name to check')
+    exists_conngroup_group = exists_conngroup.add_mutually_exclusive_group(required=True)
+    exists_conngroup_group.add_argument('--name', help='Connection group name to check')
+    exists_conngroup_group.add_argument('--id', type=int, help='Connection group ID to check')
 
     # Conngroup delete command
     del_conngroup = conngroup_subparsers.add_parser('del', help='Delete a connection group')
-    del_conngroup.add_argument('--name', required=True, help='Connection group name to delete')
+    del_conngroup_group = del_conngroup.add_mutually_exclusive_group(required=True)
+    del_conngroup_group.add_argument('--name', help='Connection group name to delete')
+    del_conngroup_group.add_argument('--id', type=int, help='Connection group ID to delete')
 
     # Conngroup modify command
     modify_conngroup = conngroup_subparsers.add_parser('modify', help='Modify connection group')
-    modify_conngroup.add_argument('--name', required=True, help='Connection group name to modify')
+    modify_conngroup_group = modify_conngroup.add_mutually_exclusive_group(required=True)
+    modify_conngroup_group.add_argument('--name', help='Connection group name to modify')
+    modify_conngroup_group.add_argument('--id', type=int, help='Connection group ID to modify')
     modify_conngroup.add_argument('--parent', 
                                help='Set parent connection group name (use empty string to unset parent group)')
 
@@ -115,15 +121,21 @@ def setup_conn_subcommands(subparsers):
 
     # Connection exists command
     exists_conn = conn_subparsers.add_parser('exists', help='Check if a connection exists')
-    exists_conn.add_argument('--name', required=True, help='Connection name to check')
+    exists_group = exists_conn.add_mutually_exclusive_group(required=True)
+    exists_group.add_argument('--name', help='Connection name to check')
+    exists_group.add_argument('--id', type=int, help='Connection ID to check')
 
     # Connection delete command
     del_conn = conn_subparsers.add_parser('del', help='Delete a connection')
-    del_conn.add_argument('--name', required=True, help='Connection name to delete')
+    del_group = del_conn.add_mutually_exclusive_group(required=True)
+    del_group.add_argument('--name', help='Connection name to delete')
+    del_group.add_argument('--id', type=int, help='Connection ID to delete')
     
     # Connection modify command
     modify_conn = conn_subparsers.add_parser('modify', help='Modify connection parameters')
-    modify_conn.add_argument('--name', help='Connection name to modify')
+    modify_group = modify_conn.add_mutually_exclusive_group(required=True)
+    modify_group.add_argument('--name', help='Connection name to modify')
+    modify_group.add_argument('--id', type=int, help='Connection ID to modify')
     modify_conn.add_argument('--set', action='append', help='Parameter to set in format param=value (can be used multiple times)')
     modify_conn.add_argument('--parent', 
                            help='Set parent connection group name (use empty string to unset group)')

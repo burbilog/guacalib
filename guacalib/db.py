@@ -1401,6 +1401,40 @@ class GuacamoleDB:
             print(f"Error getting connection group by ID: {e}")
             raise
 
+    def get_connection_name_by_id(self, connection_id):
+        """Get connection name by ID"""
+        try:
+            self.cursor.execute("""
+                SELECT connection_name 
+                FROM guacamole_connection 
+                WHERE connection_id = %s
+            """, (connection_id,))
+            result = self.cursor.fetchone()
+            return result[0] if result else None
+        except mysql.connector.Error as e:
+            print(f"Error getting connection name by ID: {e}")
+            raise
+
+    def get_connection_group_name_by_id(self, group_id):
+        """Get connection group name by ID"""
+        try:
+            self.cursor.execute("""
+                SELECT connection_group_name 
+                FROM guacamole_connection_group 
+                WHERE connection_group_id = %s
+            """, (group_id,))
+            result = self.cursor.fetchone()
+            return result[0] if result else None
+        except mysql.connector.Error as e:
+            print(f"Error getting connection group name by ID: {e}")
+            raise
+
+    def validate_positive_id(self, id_value, entity_type="entity"):
+        """Validate that ID is a positive integer"""
+        if id_value is not None and id_value <= 0:
+            raise ValueError(f"{entity_type} ID must be a positive integer greater than 0")
+        return id_value
+
     def list_groups_with_users(self):
         query = """
             SELECT 
