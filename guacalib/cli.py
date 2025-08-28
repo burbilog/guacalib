@@ -133,7 +133,7 @@ def setup_conn_subcommands(subparsers):
     
     # Connection modify command
     modify_conn = conn_subparsers.add_parser('modify', help='Modify connection parameters')
-    modify_group = modify_conn.add_mutually_exclusive_group(required=True)
+    modify_group = modify_conn.add_mutually_exclusive_group(required=False)
     modify_group.add_argument('--name', help='Connection name to modify')
     modify_group.add_argument('--id', type=int, help='Connection ID to modify')
     modify_conn.add_argument('--set', action='append', help='Parameter to set in format param=value (can be used multiple times)')

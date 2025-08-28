@@ -118,7 +118,7 @@ def handle_conngroup_command(args, guacdb):
                 guacdb.debug_print(f"Setting parent connection group: {args.parent}")
                 guacdb.modify_connection_group_parent(group_name, args.parent)
                 guacdb.conn.commit()  # Explicitly commit the transaction
-                guacdb.debug_print(f"Successfully set parent group for '{group_name}' to '{args.parent}'")
+                print(f"Successfully set parent group for '{group_name}' to '{args.parent}'")
             sys.exit(0)
         except ValueError as e:
             print(f"Error: {e}")
