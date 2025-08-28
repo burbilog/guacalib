@@ -682,3 +682,221 @@ teardown() {
     # Verify testconn1 group associations
     echo "$output" | grep -A 10 'testconn1:' | grep -q 'testgroup1'
 }
+
+# =============================================================================
+# STAGE 1 TESTS: Database Layer ID Support (IDs Feature)
+# =============================================================================
+# These tests verify the database layer resolver methods and enhanced existing
+# methods that accept both name and ID parameters. Tests are designed to pass
+# once Stage 1 implementation is complete.
+
+# Helper function to extract connection ID from list output
+get_connection_id() {
+    local conn_name="$1"
+    guacaman --config "$TEST_CONFIG" conn list | grep -A 1 "^  $conn_name:" | grep "id:" | cut -d: -f2 | tr -d ' '
+}
+
+# Helper function to extract connection group ID from list output  
+get_conngroup_id() {
+    local group_name="$1"
+    guacaman --config "$TEST_CONFIG" conngroup list | grep -A 1 "^  $group_name:" | grep "id:" | cut -d: -f2 | tr -d ' '
+}
+
+@test "Stage 1: Connection exists with ID parameter" {
+    # Get the ID of testconn1
+    conn_id=$(get_connection_id "testconn1")
+    [ -n "$conn_id" ]
+    
+    # Test exists with valid ID
+    run guacaman --config "$TEST_CONFIG" conn exists --id "$conn_id"
+    [ "$status" -eq 0 ]
+    
+    # Test exists with invalid ID
+    run guacaman --config "$TEST_CONFIG" conn exists --id 99999
+    [ "$status" -eq 1 ]
+    
+    # Test validation: both name and ID provided should fail
+    run guacaman --config "$TEST_CONFIG" conn exists --name testconn1 --id "$conn_id"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"exactly one"* ]] || [[ "$output" == *"mutually exclusive"* ]]
+    
+    # Test validation: neither name nor ID provided should fail
+    run guacaman --config "$TEST_CONFIG" conn exists
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"exactly one"* ]] || [[ "$output" == *"required"* ]]
+}
+
+@test "Stage 1: Connection exists with invalid ID format" {
+    # Test zero ID
+    run guacaman --config "$TEST_CONFIG" conn exists --id 0
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"positive integer"* ]] || [[ "$output" == *"must be greater than 0"* ]]
+    
+    # Test negative ID
+    run guacaman --config "$TEST_CONFIG" conn exists --id -1
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"positive integer"* ]] || [[ "$output" == *"must be greater than 0"* ]]
+}
+
+@test "Stage 1: Connection delete with ID parameter" {
+    # Create a temporary connection for deletion test
+    temp_conn="temp_del_$(date +%s)"
+    guacaman --config "$TEST_CONFIG" conn new --type vnc --name "$temp_conn" --hostname 192.168.1.200 --port 5900 --password temp
+    
+    # Get its ID
+    conn_id=$(get_connection_id "$temp_conn")
+    [ -n "$conn_id" ]
+    
+    # Delete by ID
+    run guacaman --config "$TEST_CONFIG" conn del --id "$conn_id"
+    [ "$status" -eq 0 ]
+    
+    # Verify it's gone
+    run guacaman --config "$TEST_CONFIG" conn exists --name "$temp_conn"
+    [ "$status" -eq 1 ]
+}
+
+@test "Stage 1: Connection delete with invalid ID" {
+    # Test delete with non-existent ID
+    run guacaman --config "$TEST_CONFIG" conn del --id 99999
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"not found"* ]] || [[ "$output" == *"does not exist"* ]]
+    
+    # Test validation: both name and ID provided
+    run guacaman --config "$TEST_CONFIG" conn del --name testconn1 --id 1
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"exactly one"* ]] || [[ "$output" == *"mutually exclusive"* ]]
+}
+
+@test "Stage 1: Connection modify with ID parameter" {
+    # Get ID of testconn2
+    conn_id=$(get_connection_id "testconn2")
+    [ -n "$conn_id" ]
+    
+    # Modify by ID
+    run guacaman --config "$TEST_CONFIG" conn modify --id "$conn_id" --set hostname=10.0.0.99
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully updated hostname"* ]]
+    
+    # Verify the change
+    run guacaman --config "$TEST_CONFIG" conn list
+    [[ "$output" == *"testconn2"* ]]
+    [[ "$output" == *"hostname: 10.0.0.99"* ]]
+}
+
+@test "Stage 1: Connection modify parent group with ID parameter" {
+    # Get connection ID
+    conn_id=$(get_connection_id "testconn2")
+    [ -n "$conn_id" ]
+    
+    # Set parent group using ID
+    run guacaman --config "$TEST_CONFIG" conn modify --id "$conn_id" --parent testconngroup1
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully set parent group"* ]]
+    
+    # Verify in listing
+    run guacaman --config "$TEST_CONFIG" conn list
+    [[ "$output" == *"testconn2"* ]]
+    [[ "$output" == *"parent: testconngroup1"* ]]
+}
+
+@test "Stage 1: Connection group exists with ID parameter" {
+    # Get ID of testconngroup1
+    group_id=$(get_conngroup_id "testconngroup1")
+    [ -n "$group_id" ]
+    
+    # Test exists with valid ID
+    run guacaman --config "$TEST_CONFIG" conngroup exists --id "$group_id"
+    [ "$status" -eq 0 ]
+    
+    # Test exists with invalid ID
+    run guacaman --config "$TEST_CONFIG" conngroup exists --id 99999
+    [ "$status" -eq 1 ]
+    
+    # Test validation: both name and ID provided
+    run guacaman --config "$TEST_CONFIG" conngroup exists --name testconngroup1 --id "$group_id"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"exactly one"* ]] || [[ "$output" == *"mutually exclusive"* ]]
+}
+
+@test "Stage 1: Connection group delete with ID parameter" {
+    # Create temporary group for deletion
+    temp_group="temp_del_group_$(date +%s)"
+    guacaman --config "$TEST_CONFIG" conngroup new --name "$temp_group"
+    
+    # Get its ID
+    group_id=$(get_conngroup_id "$temp_group")
+    [ -n "$group_id" ]
+    
+    # Delete by ID
+    run guacaman --config "$TEST_CONFIG" conngroup del --id "$group_id"
+    [ "$status" -eq 0 ]
+    
+    # Verify it's gone
+    run guacaman --config "$TEST_CONFIG" conngroup exists --name "$temp_group"
+    [ "$status" -eq 1 ]
+}
+
+@test "Stage 1: Connection group modify parent with ID parameter" {
+    # Create test groups
+    parent_group="parent_id_test_$(date +%s)"
+    child_group="child_id_test_$(date +%s)"
+    
+    guacaman --config "$TEST_CONFIG" conngroup new --name "$parent_group"
+    guacaman --config "$TEST_CONFIG" conngroup new --name "$child_group"
+    
+    # Get child group ID
+    child_id=$(get_conngroup_id "$child_group")
+    [ -n "$child_id" ]
+    
+    # Set parent using ID
+    run guacaman --config "$TEST_CONFIG" conngroup modify --id "$child_id" --parent "$parent_group"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully set parent group"* ]]
+    
+    # Verify relationship
+    run guacaman --config "$TEST_CONFIG" conngroup list
+    [[ "$output" == *"$child_group:"* ]]
+    [[ "$output" == *"parent: $parent_group"* ]]
+    
+    # Clean up
+    guacaman --config "$TEST_CONFIG" conngroup del --name "$child_group"
+    guacaman --config "$TEST_CONFIG" conngroup del --name "$parent_group"
+}
+
+@test "Stage 1: Backward compatibility - existing name-based calls unchanged" {
+    # All existing name-based operations should continue to work exactly as before
+    
+    # Connection operations
+    run guacaman --config "$TEST_CONFIG" conn exists --name testconn1
+    [ "$status" -eq 0 ]
+    
+    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set port=5999
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully updated port"* ]]
+    
+    # Connection group operations  
+    run guacaman --config "$TEST_CONFIG" conngroup exists --name testconngroup1
+    [ "$status" -eq 0 ]
+    
+    # Verify nothing changed in the existing behavior
+    run guacaman --config "$TEST_CONFIG" conn list
+    [[ "$output" == *"testconn1"* ]]
+    [[ "$output" == *"testconn2"* ]]
+    [[ "$output" == *"port: 5999"* ]]
+}
+
+@test "Stage 1: Error handling for resolver edge cases" {
+    # Test resolver with empty/null values
+    run guacaman --config "$TEST_CONFIG" conn exists --id ""
+    [ "$status" -ne 0 ]
+    
+    # Test resolver with very large ID
+    run guacaman --config "$TEST_CONFIG" conn exists --id 999999999
+    [ "$status" -eq 1 ]  # Should return "not found" not crash
+    
+    # Test resolver maintains existing error message format
+    run guacaman --config "$TEST_CONFIG" conn del --name "nonexistent_connection"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"not found"* ]] || [[ "$output" == *"doesn't exist"* ]]
+}
