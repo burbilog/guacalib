@@ -86,11 +86,11 @@ Files: guacalib/db.py, guacalib/cli_handle_conn.py, guacalib/cli_handle_conngrou
 
 Tasks:
 
-- [ ] Update `list_connections_with_conngroups_and_parents()` (DB) to always include `id` in its return structure alongside existing fields.
-- [ ] Update `list_connection_groups()` (DB) to always include `id` in its return structure.
-- [ ] Modify CLI printing in `handle_conn_list()` to display each connection’s `id` directly under the connection name as a separate YAML key `id: <ID>`.
-- [ ] Modify CLI printing in `handle_conngroup_command()` (list subcommand) to display each connection group’s `id` directly under the group name as `id: <ID>`.
-- [ ] Ensure both the DB return data and the CLI output contain `id` fields in the expected structure and stable position.
+- [x] Update `list_connections_with_conngroups_and_parents()` (DB) to always include `id` in its return structure alongside existing fields.
+- [x] Update `list_connection_groups()` (DB) to always include `id` in its return structure.
+- [x] Modify CLI printing in `handle_conn_list()` to display each connection's `id` directly under the connection name as a separate YAML key `id: <ID>`.
+- [x] Modify CLI printing in `handle_conngroup_command()` (list subcommand) to display each connection group's `id` directly under the group name as `id: <ID>`.
+- [x] Ensure both the DB return data and the CLI output contain `id` fields in the expected structure and stable position.
 
 Verification Steps:
 

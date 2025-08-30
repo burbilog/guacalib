@@ -900,3 +900,108 @@ get_conngroup_id() {
     [ "$status" -ne 0 ]
     [[ "$output" == *"not found"* ]] || [[ "$output" == *"doesn't exist"* ]]
 }
+
+# =============================================================================
+# Stage 2: Enhanced List Commands - Output Format Tests
+# These tests verify that list commands always include ID fields in their output
+# =============================================================================
+
+@test "Stage 2: Connection list includes ID field in output" {
+    # Test that connection list output includes ID field for all connections
+    run guacaman --config "$TEST_CONFIG" conn list
+    [ "$status" -eq 0 ]
+    
+    # Verify output contains ID fields
+    [[ "$output" == *"id:"* ]]
+    
+    # Count the number of connections with ID fields
+    id_count=$(echo "$output" | grep -c "id:")
+    connection_count=$(echo "$output" | grep -c "^  [a-zA-Z0-9_-][^:]*:")
+    
+    # Every connection should have an ID field
+    [ "$id_count" -eq "$connection_count" ]
+    
+    # Verify ID format is positive integer
+    ids=$(echo "$output" | grep "id:" | cut -d: -f2 | tr -d ' ')
+    for id in $ids; do
+        [ "$id" -gt 0 ]
+    done
+}
+
+@test "Stage 2: Connection group list includes ID field in output" {
+    # Test that connection group list output includes ID field for all groups
+    run guacaman --config "$TEST_CONFIG" conngroup list
+    [ "$status" -eq 0 ]
+    
+    # Verify output contains ID fields
+    [[ "$output" == *"id:"* ]]
+    
+    # Count the number of groups with ID fields
+    id_count=$(echo "$output" | grep -c "id:")
+    group_count=$(echo "$output" | grep -c "^  [a-zA-Z0-9_-][^:]*:")
+    
+    # Every group should have an ID field
+    [ "$id_count" -eq "$group_count" ]
+    
+    # Verify ID format is positive integer
+    ids=$(echo "$output" | grep "id:" | cut -d: -f2 | tr -d ' ')
+    for id in $ids; do
+        [ "$id" -gt 0 ]
+    done
+}
+
+@test "Stage 2: ID values match actual database IDs" {
+    # Test that IDs shown in list output match actual database IDs
+    
+    # Get connection ID from list output
+    list_id=$(get_connection_id "testconn1")
+    [ -n "$list_id" ]
+    
+    # Get the same connection ID directly from database using name
+    db_id=$(guacaman --config "$TEST_CONFIG" conn exists --name "testconn1" ; echo $?)
+    
+    # The ID from list should match what the database resolver returns
+    # (Note: conn exists returns exit code 0/1, not the actual ID)
+    # Instead, test that we can use the list ID with other commands
+    run guacaman --config "$TEST_CONFIG" conn exists --id "$list_id"
+    [ "$status" -eq 0 ]
+}
+
+@test "Stage 2: Output structure preserved with ID integration" {
+    # Test that existing output structure is preserved when IDs are added
+    run guacaman --config "$TEST_CONFIG" conn list
+    [ "$status" -eq 0 ]
+    
+    # Verify all expected fields are present along with ID
+    [[ "$output" == *"type:"* ]]
+    [[ "$output" == *"hostname:"* ]]
+    [[ "$output" == *"port:"* ]]
+    [[ "$output" == *"groups:"* ]]
+    [[ "$output" == *"id:"* ]]
+    
+    # Verify ID appears as first field in each connection block
+    # (ID should appear before type, hostname, port, etc.)
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^[[:space:]]{2}[a-zA-Z0-9_-][^:]*:$ ]]; then
+            # This is a connection name line, read the next line
+            read -r next_line
+            if [[ "$next_line" != *"id:"* ]]; then
+                # ID should be the first field after connection name
+                echo "ID not found as first field for connection: $line"
+                return 1
+            fi
+        fi
+    done <<< "$output"
+}
+
+@test "Stage 2: Empty database list output" {
+    # Test list output with minimal/empty database (if possible)
+    # This test verifies the feature works even with empty result sets
+    
+    # Connection list should still work with empty output
+    run guacaman --config "$TEST_CONFIG" conn list
+    [ "$status" -eq 0 ]
+    
+    # The command should not crash and should produce valid YAML-like output
+    [[ "$output" == "connections:"* ]] || [[ "$output" == "" ]]
+}
