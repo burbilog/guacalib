@@ -169,29 +169,29 @@ Files: guacalib/cli.py
 
 Tasks:
 
-- [ ] Add --id parameter to conn del subcommand
-- [ ] Add --id parameter to conn exists subcommand
-- [ ] Add --id parameter to conn modify subcommand
-- [ ] Add --id parameter to conngroup del subcommand
-- [ ] Add --id parameter to conngroup exists subcommand
-- [ ] Add --id parameter to conngroup modify subcommand
-- [ ] Add a mutually exclusive group for --name and --id in each affected subparser; do not mark the group as required to preserve backward compatibility. Set --id type=int.
-- [ ] Ensure help text clearly states: “Exactly one of --name or --id must be provided.”
+- [x] Add --id parameter to conn del subcommand
+- [x] Add --id parameter to conn exists subcommand
+- [x] Add --id parameter to conn modify subcommand
+- [x] Add --id parameter to conngroup del subcommand
+- [x] Add --id parameter to conngroup exists subcommand
+- [x] Add --id parameter to conngroup modify subcommand
+- [x] Add a mutually exclusive group for --name and --id in each affected subparser; do not mark the group as required to preserve backward compatibility. Set --id type=int.
+- [x] Ensure help text clearly states: "Exactly one of --name or --id must be provided."
 
 Verification Steps:
 
-- [ ] Implement Stage 3 CLI argument parser tests in tests/test_guacaman.bats  
-- [ ] Test argument parser help text includes --id parameters and the exclusivity note  
-- [ ] Verify --id parameter accepts integer values  
-- [ ] Test that --id and --name are properly parsed as separate options  
-- [ ] Check help text clarity
+- [x] Implement Stage 3 CLI argument parser tests in tests/test_guacaman.bats  
+- [x] Test argument parser help text includes --id parameters and the exclusivity note  
+- [x] Verify --id parameter accepts integer values  
+- [x] Test that --id and --name are properly parsed as separate options  
+- [x] Check help text clarity
 
 Acceptance Criteria:
 
-- All new parameters defined with correct types  
-- Help text is accurate  
-- Parameters are optional and don’t break existing functionality  
-- Parser handles --id and --name correctly
+- [x] All new parameters defined with correct types  
+- [x] Help text is accurate  
+- [x] Parameters are optional and don't break existing functionality  
+- [x] Parser handles --id and --name correctly
 
 ## Stage 4: Connection Command Handlers with Validation
 
