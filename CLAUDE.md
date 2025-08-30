@@ -22,6 +22,8 @@ export TEST_CONFIG=/home/rm/.guacaman.ini
 bats -t --print-output-on-failure tests/test_guacaman.bats
 ```
 
+**ATTENTION** running tests requires more than 2 minutes! Claude code will time out, if make tests is ran without working around this default time limitation.
+
 ### Building and Publishing
 ```bash
 # Build the package
