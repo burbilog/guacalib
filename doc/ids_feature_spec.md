@@ -94,11 +94,11 @@ Tasks:
 
 Verification Steps:
 
-- [ ] Implement Stage 2 list output format tests in tests/test_guacaman.bats  
-- [ ] Verify list methods return ID information in correct format in DB and CLI layers  
-- [ ] Check that ID values match actual database IDs  
-- [ ] Ensure existing output structure is preserved and augmented with IDs  
-- [ ] Test with empty databases and populated data
+- [x] Implement Stage 2 list output format tests in tests/test_guacaman.bats  
+- [x] Verify list methods return ID information in correct format in DB and CLI layers  
+- [x] Check that ID values match actual database IDs  
+- [x] Ensure existing output structure is preserved and augmented with IDs  
+- [x] Test with empty databases and populated data
 
 Acceptance Criteria:
 
