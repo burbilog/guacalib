@@ -153,16 +153,8 @@ teardown() {
 
 @test "Connection modify command shows parameters" {
     run guacaman --config "$TEST_CONFIG" conn modify
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"Modifiable connection parameters"* ]]
-    [[ "$output" == *"Parameters in guacamole_connection table"* ]]
-    [[ "$output" == *"Parameters in guacamole_connection_parameter table"* ]]
-    [[ "$output" == *"max_connections"* ]]
-    [[ "$output" == *"max_connections_per_user"* ]]
-    [[ "$output" == *"hostname"* ]]
-    [[ "$output" == *"port"* ]]
-    [[ "$output" == *"password"* ]]
-    [[ "$output" == *"read-only"* ]]
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"one of the arguments --name --id is required"* ]]
 }
 
 @test "Connection modify hostname parameter" {
@@ -1004,4 +996,190 @@ get_conngroup_id() {
     
     # The command should not crash and should produce valid YAML-like output
     [[ "$output" == "connections:"* ]] || [[ "$output" == "" ]]
+}
+
+# =============================================================================
+# Stage 4: Connection Command Handlers with Validation Tests
+# These tests verify that connection command handlers properly support --id
+# parameter and validate selector requirements
+# =============================================================================
+
+@test "Stage 4: Connection delete with ID parameter via handler" {
+    # Create a temporary connection for deletion test
+    temp_conn="temp_del_handler_$(date +%s)"
+    guacaman --config "$TEST_CONFIG" conn new --type vnc --name "$temp_conn" --hostname 192.168.1.200 --port 5900 --password temp
+    
+    # Get its ID
+    conn_id=$(get_connection_id "$temp_conn")
+    [ -n "$conn_id" ]
+    
+    # Delete by ID using the handler
+    run guacaman --config "$TEST_CONFIG" conn del --id "$conn_id"
+    [ "$status" -eq 0 ]
+    
+    # Verify it's gone
+    run guacaman --config "$TEST_CONFIG" conn exists --name "$temp_conn"
+    [ "$status" -eq 1 ]
+}
+
+@test "Stage 4: Connection exists with ID parameter via handler" {
+    # Get the ID of testconn1
+    conn_id=$(get_connection_id "testconn1")
+    [ -n "$conn_id" ]
+    
+    # Test exists with valid ID via handler
+    run guacaman --config "$TEST_CONFIG" conn exists --id "$conn_id"
+    [ "$status" -eq 0 ]
+    
+    # Test exists with invalid ID via handler
+    run guacaman --config "$TEST_CONFIG" conn exists --id 99999
+    [ "$status" -eq 1 ]
+}
+
+@test "Stage 4: Connection modify with ID parameter via handler" {
+    # Get ID of testconn2
+    conn_id=$(get_connection_id "testconn2")
+    [ -n "$conn_id" ]
+    
+    # Modify by ID using handler
+    run guacaman --config "$TEST_CONFIG" conn modify --id "$conn_id" --set hostname=10.0.0.99
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully updated hostname"* ]]
+    
+    # Verify the change
+    run guacaman --config "$TEST_CONFIG" conn list
+    [[ "$output" == *"testconn2"* ]]
+    [[ "$output" == *"hostname: 10.0.0.99"* ]]
+}
+
+@test "Stage 4: Connection modify parent group with ID parameter via handler" {
+    # Get connection ID
+    conn_id=$(get_connection_id "testconn2")
+    [ -n "$conn_id" ]
+    
+    # Set parent group using ID via handler
+    run guacaman --config "$TEST_CONFIG" conn modify --id "$conn_id" --parent testconngroup1
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully set parent group"* ]]
+    
+    # Verify in listing
+    run guacaman --config "$TEST_CONFIG" conn list
+    [[ "$output" == *"testconn2"* ]]
+    [[ "$output" == *"parent: testconngroup1"* ]]
+}
+
+@test "Stage 4: Connection handlers require exactly one selector" {
+    # Test that handlers require exactly one of --name or --id
+    
+    # Delete command - both name and ID provided
+    run guacaman --config "$TEST_CONFIG" conn del --name testconn1 --id 1
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"not allowed with argument"* ]] || [[ "$output" == *"exactly one"* ]]
+    
+    # Exists command - both name and ID provided
+    run guacaman --config "$TEST_CONFIG" conn exists --name testconn1 --id 1
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"not allowed with argument"* ]] || [[ "$output" == *"exactly one"* ]]
+    
+    # Modify command - both name and ID provided
+    run guacaman --config "$TEST_CONFIG" conn modify --name testconn1 --id 1 --set hostname=test
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"not allowed with argument"* ]] || [[ "$output" == *"exactly one"* ]]
+}
+
+@test "Stage 4: Connection handlers require at least one selector" {
+    # Test that handlers require at least one selector
+    
+    # Delete command - no selector provided
+    run guacaman --config "$TEST_CONFIG" conn del
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"one of the arguments"* ]] || [[ "$output" == *"required"* ]]
+    
+    # Exists command - no selector provided
+    run guacaman --config "$TEST_CONFIG" conn exists
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"one of the arguments"* ]] || [[ "$output" == *"required"* ]]
+    
+    # Modify command - no selector provided (should show help or error)
+    run guacaman --config "$TEST_CONFIG" conn modify
+    [ "$status" -ne 0 ]
+    # Accept either help format or error message
+    [[ "$output" == *"Usage:"* ]] || [[ "$output" == *"Modification options:"* ]] || [[ "$output" == *"one of the arguments"* ]]
+}
+
+@test "Stage 4: Connection handlers handle invalid ID formats" {
+    # Test that handlers properly handle invalid ID formats
+    
+    # Delete command - zero ID
+    run guacaman --config "$TEST_CONFIG" conn del --id 0
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"positive integer"* ]] || [[ "$output" == *"must be greater than 0"* ]]
+    
+    # Exists command - negative ID
+    run guacaman --config "$TEST_CONFIG" conn exists --id -1
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"positive integer"* ]] || [[ "$output" == *"must be greater than 0"* ]]
+    
+    # Modify command - zero ID
+    run guacaman --config "$TEST_CONFIG" conn modify --id 0 --set hostname=test
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"positive integer"* ]] || [[ "$output" == *"must be greater than 0"* ]]
+}
+
+@test "Stage 4: Connection handlers handle non-existent IDs gracefully" {
+    # Test that handlers handle non-existent IDs with clear error messages
+    
+    # Delete command - non-existent ID
+    run guacaman --config "$TEST_CONFIG" conn del --id 99999
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"not found"* ]] || [[ "$output" == *"does not exist"* ]]
+    
+    # Exists command - non-existent ID (should exit with code 1)
+    run guacaman --config "$TEST_CONFIG" conn exists --id 99999
+    [ "$status" -eq 1 ]
+    
+    # Modify command - non-existent ID
+    run guacaman --config "$TEST_CONFIG" conn modify --id 99999 --set hostname=test
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"not found"* ]] || [[ "$output" == *"does not exist"* ]]
+}
+
+@test "Stage 4: Backward compatibility - name-based operations unchanged" {
+    # Test that all existing name-based operations continue to work exactly as before
+    
+    # Connection operations with names
+    run guacaman --config "$TEST_CONFIG" conn exists --name testconn1
+    [ "$status" -eq 0 ]
+    
+    run guacaman --config "$TEST_CONFIG" conn modify --name testconn2 --set port=5999
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully updated port"* ]]
+    
+    run guacaman --config "$TEST_CONFIG" conn del --name testconn1
+    [ "$status" -eq 0 ]
+    
+    # Recreate testconn1 for subsequent tests
+    guacaman --config "$TEST_CONFIG" conn new --type vnc --name testconn1 --hostname 192.168.1.100 --port 5901 --password vncpass1 --usergroup testgroup1
+}
+
+@test "Stage 4: Connection list includes ID field via handler" {
+    # Test that connection list output includes ID field via the handler
+    run guacaman --config "$TEST_CONFIG" conn list
+    [ "$status" -eq 0 ]
+    
+    # Verify output contains ID fields
+    [[ "$output" == *"id:"* ]]
+    
+    # Count the number of connections with ID fields
+    id_count=$(echo "$output" | grep -c "id:")
+    connection_count=$(echo "$output" | grep -c "^  [a-zA-Z0-9_-][^:]*:")
+    
+    # Every connection should have an ID field
+    [ "$id_count" -eq "$connection_count" ]
+    
+    # Verify ID format is positive integer
+    ids=$(echo "$output" | grep "id:" | cut -d: -f2 | tr -d ' ')
+    for id in $ids; do
+        [ "$id" -gt 0 ]
+    done
 }

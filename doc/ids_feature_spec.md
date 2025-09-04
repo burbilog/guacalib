@@ -199,28 +199,28 @@ Files: guacalib/cli_handle_conn.py
 
 Tasks:
 
-- [ ] Update handle_conn_delete(), handle_conn_exists(), handle_conn_modify() to support --id and pass to enhanced DB methods
-- [ ] Update handle_conn_list() to always show IDs
-- [ ] Add syntax-level validation in handlers: ensure that at least one of --name or --id is provided
-- [ ] Do not duplicate business-rule validation in handlers; “exactly one” and “positive integer” checks live in Stage 1 resolvers
-- [ ] Proper error handling for invalid or non-existent IDs (surfaces resolver/DB errors with clear messages)
-- [ ] Pass correct params to DB methods
+- [x] Update handle_conn_delete(), handle_conn_exists(), handle_conn_modify() to support --id and pass to enhanced DB methods
+- [x] Update handle_conn_list() to always show IDs
+- [x] Add syntax-level validation in handlers: ensure that at least one of --name or --id is provided
+- [x] Do not duplicate business-rule validation in handlers; "exactly one" and "positive integer" checks live in Stage 1 resolvers
+- [x] Proper error handling for invalid or non-existent IDs (surfaces resolver/DB errors with clear messages)
+- [x] Pass correct params to DB methods
 
 Verification Steps:
 
-- [ ] Implement Stage 4 tests in tests/test_guacaman.bats  
-- [ ] Test everything with both valid and invalid IDs/names  
-- [ ] Verify list command shows IDs in output  
-- [ ] Test backward compatibility with --name usage
+- [x] Implement Stage 4 tests in tests/test_guacaman.bats  
+- [x] Test everything with both valid and invalid IDs/names  
+- [x] Verify list command shows IDs in output  
+- [x] Test backward compatibility with --name usage
 
 Acceptance Criteria:
 
-- Works with both name and ID  
-- Validation in handlers for presence of at least one selector  
-- Correct DB calls  
-- Clear error messages for invalid IDs  
-- Backward compatible  
-- Matches existing error formatting
+- [x] Works with both name and ID  
+- [x] Validation in handlers for presence of at least one selector  
+- [x] Correct DB calls  
+- [x] Clear error messages for invalid IDs  
+- [x] Backward compatible  
+- [x] Matches existing error formatting
 
 ## Stage 5: Connection Group Command Handlers with Validation
 
