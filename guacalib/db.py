@@ -1459,7 +1459,7 @@ class GuacamoleDB:
                 """, (connection_name,))
                 result = self.cursor.fetchone()
                 if not result:
-                    raise ValueError(f"Connection '{connection_name}' not found")
+                    raise ValueError(f"Connection '{connection_name}' doesn't exist")
                 return result[0]
             except mysql.connector.Error as e:
                 raise ValueError(f"Database error while resolving connection name: {e}")

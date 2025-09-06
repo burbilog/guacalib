@@ -116,7 +116,7 @@ def handle_conngroup_command(args, guacdb):
                 
             if args.parent is not None:
                 guacdb.debug_print(f"Setting parent connection group: {args.parent}")
-                guacdb.modify_connection_group_parent(group_name, args.parent)
+                guacdb.modify_connection_group_parent(group_name=group_name, new_parent_name=args.parent)
                 guacdb.conn.commit()  # Explicitly commit the transaction
                 print(f"Successfully set parent group for '{group_name}' to '{args.parent}'")
             sys.exit(0)
