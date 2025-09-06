@@ -12,9 +12,14 @@ else:
     VAR_COLOR = ''
     RESET = ''
 
-def is_terminal():
-    """Check if stdout is a terminal (not piped)"""
-    return sys.stdout.isatty()
+def validate_selector(args, entity_type="connection"):
+    """Validate exactly one of name or id is provided"""
+    has_name = hasattr(args, 'name') and args.name is not None
+    has_id = hasattr(args, 'id') and args.id is not None
+    
+    if not (has_name ^ has_id):
+        print(f"Error: Exactly one of --name or --id must be provided for {entity_type}")
+        sys.exit(1)
 
 def handle_conn_command(args, guacdb):
     command_handlers = {
@@ -124,19 +129,16 @@ def handle_conn_new(args, guacdb):
         sys.exit(1)
 
 def handle_conn_delete(args, guacdb):
+    # Validate exactly one selector provided
+    validate_selector(args, "connection")
+    
     try:
         if hasattr(args, 'id') and args.id is not None:
-            # Validate ID format
-            guacdb.validate_positive_id(args.id, "Connection")
-            # Get connection name by ID first
-            name = guacdb.get_connection_name_by_id(args.id)
-            if not name:
-                print(f"Connection with ID {args.id} not found")
-                sys.exit(1)
-            guacdb.delete_existing_connection(name)
+            # Delete by ID using resolver
+            guacdb.delete_existing_connection(connection_id=args.id)
         else:
-            # Use name-based deletion
-            guacdb.delete_existing_connection(args.name)
+            # Delete by name using resolver
+            guacdb.delete_existing_connection(connection_name=args.name)
     except ValueError as e:
         print(f"Error: {e}")
         sys.exit(1)
@@ -145,44 +147,33 @@ def handle_conn_delete(args, guacdb):
         sys.exit(1)
 
 def handle_conn_exists(args, guacdb):
+    # Validate exactly one selector provided
+    validate_selector(args, "connection")
+    
     try:
         if hasattr(args, 'id') and args.id is not None:
-            # Validate ID format
-            guacdb.validate_positive_id(args.id, "Connection")
-            # Check if connection exists by ID
-            name = guacdb.get_connection_name_by_id(args.id)
-            if name:
+            # Check existence by ID using resolver
+            if guacdb.connection_exists(connection_id=args.id):
                 sys.exit(0)
             else:
                 sys.exit(1)
         else:
-            # Use name-based lookup
-            if guacdb.connection_exists(args.name):
+            # Check existence by name using resolver
+            if guacdb.connection_exists(connection_name=args.name):
                 sys.exit(0)
             else:
                 sys.exit(1)
     except ValueError as e:
         print(f"Error: {e}")
         sys.exit(1)
+    except Exception as e:
+        print(f"Error checking connection existence: {e}")
+        sys.exit(1)
         
 def handle_conn_modify(args, guacdb):
     """Handle the connection modify command"""
-    # Resolve connection name from ID if provided
-    connection_name = None
-    if hasattr(args, 'id') and args.id is not None:
-        try:
-            guacdb.validate_positive_id(args.id, "Connection")
-            connection_name = guacdb.get_connection_name_by_id(args.id)
-            if not connection_name:
-                print(f"Connection with ID {args.id} not found")
-                sys.exit(1)
-        except ValueError as e:
-            print(f"Error: {e}")
-            sys.exit(1)
-    elif hasattr(args, 'name') and args.name is not None:
-        connection_name = args.name
-    
-    if not connection_name and (not args.set and args.parent is None and not args.permit and not args.deny):
+    # Check if no modification options provided - show help
+    if (not args.set and args.parent is None and not args.permit and not args.deny):
         # Print help information about modifiable parameters
         print("Usage: guacaman conn modify {--name <connection_name> | --id <connection_id>} [--set <param=value> ...] [--parent CONNGROUP] [--permit USERNAME] [--deny USERNAME]")
         print("\nModification options:")
@@ -212,13 +203,24 @@ def handle_conn_modify(args, guacdb):
                 print(desc)
         
         sys.exit(1)
-    elif not connection_name:
-        print("Error: Must specify either --name or --id to identify the connection to modify")
-        sys.exit(1)
+    
+    # Validate exactly one selector provided
+    validate_selector(args, "connection")
     
     try:
+        # Get connection name for display purposes (resolvers handle the actual lookup)
+        if hasattr(args, 'id') and args.id is not None:
+            # For ID-based operations, get name for display
+            connection_name = guacdb.get_connection_name_by_id(args.id)
+            if not connection_name:
+                print(f"Error: Connection with ID {args.id} not found")
+                sys.exit(1)
+        else:
+            connection_name = args.name
+        
         guacdb.debug_connection_permissions(connection_name)
-        # Handle permission modifications
+        
+        # Handle permission modifications (these methods expect connection_name)
         if args.permit:
             guacdb.grant_connection_permission_to_user(args.permit, connection_name)
             print(f"Successfully granted permission to user '{args.permit}' for connection '{connection_name}'")
@@ -228,17 +230,21 @@ def handle_conn_modify(args, guacdb):
             guacdb.revoke_connection_permission_from_user(args.deny, connection_name)
             print(f"Successfully revoked permission from user '{args.deny}' for connection '{connection_name}'")
 
-        # Handle parent group modification
+        # Handle parent group modification using resolver
         if args.parent is not None:
             try:
                 # Convert empty string to None to unset parent group
                 parent_group = args.parent if args.parent != "" else None
-                guacdb.modify_connection_parent_group(connection_name=connection_name, group_name=parent_group)
+                if hasattr(args, 'id') and args.id is not None:
+                    guacdb.modify_connection_parent_group(connection_id=args.id, group_name=parent_group)
+                else:
+                    guacdb.modify_connection_parent_group(connection_name=args.name, group_name=parent_group)
                 print(f"Successfully set parent group to '{args.parent}' for connection '{connection_name}'")
             except Exception as e:
                 print(f"Error setting parent group: {e}")
                 sys.exit(1)
-        # Process each --set argument (if any)
+                
+        # Process each --set argument (if any) using resolver
         for param_value in args.set or []:
             if '=' not in param_value:
                 print(f"Error: Invalid format for --set. Must be param=value, got: {param_value}")
@@ -248,12 +254,18 @@ def handle_conn_modify(args, guacdb):
             guacdb.debug_print(f"Modifying connection '{connection_name}': setting {param}={value}")
             
             try:
-                guacdb.modify_connection(connection_name=connection_name, param_name=param, param_value=value)
+                if hasattr(args, 'id') and args.id is not None:
+                    guacdb.modify_connection(connection_id=args.id, param_name=param, param_value=value)
+                else:
+                    guacdb.modify_connection(connection_name=args.name, param_name=param, param_value=value)
                 print(f"Successfully updated {param} for connection '{connection_name}'")
             except ValueError as e:
                 print(f"Error: {str(e)}")
                 sys.exit(1)
                 
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
     except Exception as e:
         print(f"Error modifying connection: {e}")
         sys.exit(1)
