@@ -22,8 +22,11 @@ def handle_conngroup_command(args, guacdb):
             sys.exit(1)
 
     elif args.conngroup_command == 'list':
-        # Check if specific ID is requested
-        if hasattr(args, 'id') and args.id:
+        # Validate --id if provided
+        if hasattr(args, 'id') and args.id is not None:
+            if args.id <= 0:
+                print("Error: Connection group ID must be a positive integer greater than 0")
+                sys.exit(1)
             # Get specific connection group by ID
             groups = guacdb.get_connection_group_by_id(args.id)
             if not groups:
