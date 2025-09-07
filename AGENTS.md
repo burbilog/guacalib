@@ -40,3 +40,19 @@
 
 ## When reviewing the code
 - Check for issues such as rule violations in this rules file, deviations from best practices, design patterns, or security concerns. Have it document these reviews into a file for follow-up AI sessions to iteratively address each issue.
+
+## Running the tests
+
+The test suite uses bats (Bash Automated Testing System)
+
+To run the tests TEST_CONFIG must be set up. By default it 
+should be set /home/rm/.guacaman.ini unless user prompts something
+else.
+
+```bash
+# Set TEST_CONFIG to point to a valid .guacaman.ini file:
+export TEST_CONFIG=/home/rm/.guacaman.ini
+bats -t --print-output-on-failure tests/test_guacaman.bats
+or
+make tests
+```
