@@ -15,7 +15,7 @@ FORCE:
 tests: FORCE
 	pip uninstall -y guacalib
 	pip install -e .
-	bats -t  --print-output-on-failure tests/test_guacaman.bats
+	bats -t  --print-output-on-failure tests/*.bats
 
 .PHONY: push
 push:
