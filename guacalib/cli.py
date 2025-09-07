@@ -10,6 +10,13 @@ from guacalib.cli_handle_user import handle_user_command
 from guacalib.cli_handle_conn import handle_conn_command
 from guacalib.cli_handle_conngroup import handle_conngroup_command
 
+def positive_int(value):
+    """Convert to integer and validate that it is positive"""
+    ivalue = int(value)
+    if ivalue <= 0:
+        raise argparse.ArgumentTypeError(f"{value} is not a positive integer")
+    return ivalue
+
 def validate_selector(args, entity_type="connection"):
     """Validate exactly one of name or id is provided and validate ID format"""
     has_name = hasattr(args, 'name') and args.name is not None
@@ -87,7 +94,7 @@ def setup_conngroup_subcommands(subparsers):
 
     # Conngroup list command
     list_conngroup = conngroup_subparsers.add_parser('list', help='List all connection groups')
-    list_conngroup.add_argument('--id', type=int, help='Show connection group by specific ID')
+    list_conngroup.add_argument('--id', type=positive_int, help='Show connection group by specific ID')
 
     # Conngroup exists command
     exists_conngroup = conngroup_subparsers.add_parser('exists', help='Check if a connection group exists. Exactly one of --name or --id must be provided.')
@@ -131,7 +138,7 @@ def setup_conn_subcommands(subparsers):
 
     # Connection list command
     list_conn = conn_subparsers.add_parser('list', help='List all connections')
-    list_conn.add_argument('--id', help='Show connection by specific ID')
+    list_conn.add_argument('--id', type=positive_int, help='Show connection by specific ID')
 
     # Connection exists command
     exists_conn = conn_subparsers.add_parser('exists', help='Check if a connection exists. Exactly one of --name or --id must be provided.')
