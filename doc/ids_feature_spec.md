@@ -284,20 +284,20 @@ Files: All modified files, existing test suite
 
 Tasks:
 
-- [ ] Run full existing test suite  
-- [ ] Test all commands with valid IDs realistically  
-- [ ] Test with invalid IDs  
-- [ ] Validate both/missing parameter rules  
-- [ ] Verify backward compatibility  
-- [ ] List commands always show IDs  
-- [ ] Check error messages clarity
+- [x] Run full existing test suite  
+- [x] Test all commands with valid IDs realistically  
+- [x] Test with invalid IDs  
+- [x] Validate both/missing parameter rules  
+- [x] Verify backward compatibility  
+- [x] List commands always show IDs  
+- [x] Check error messages clarity
 
 Acceptance Criteria:
 
-- Graceful error handling  
-- User-friendly messages  
-- No regressions  
-- All tests pass
+- [x] Graceful error handling  
+- [x] User-friendly messages  
+- [x] No regressions  
+- [x] All tests pass
 
 Testing Approach
 
