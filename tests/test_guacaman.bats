@@ -502,7 +502,7 @@ teardown() {
     # Delete it
     run guacaman --debug --config "$TEST_CONFIG" conngroup del --name "$group_name"
     [ "$status" -eq 0 ]
-    [[ "$output" == *"Successfully deleted connection group: $group_name"* ]]
+    [[ "$output" == *"Successfully deleted connection group '$group_name'"* ]]
     
     # Verify it's gone
     run guacaman --debug --config "$TEST_CONFIG" conngroup exists --name "$group_name"
@@ -524,7 +524,7 @@ teardown() {
 @test "Delete non-existent connection group should fail" {
     run guacaman --debug --config "$TEST_CONFIG" conngroup del --name "nonexistentgroup_$(date +%s)"
     [ "$status" -ne 0 ]
-    [[ "$output" == *"does not exist"* ]]
+    [[ "$output" == *"not found"* ]]
 }
 
 @test "Connection group modify parent" {
