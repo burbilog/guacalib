@@ -228,30 +228,30 @@ Files: guacalib/cli_handle_conngroup.py
 
 Tasks:
 
-- [ ] Update relevant branches to support --id and pass to enhanced DB methods
-- [ ] Update list subcommand to show IDs
-- [ ] Add syntax-level validation in handlers: ensure at least one selector (--name or --id) is provided (business-rule validation remains in resolvers)
-- [ ] Do not duplicate ID format or “exactly one” validation in handlers; rely on resolvers
-- [ ] Handle invalid/non-existent IDs
-- [ ] Pass correct params to DB
+- [x] Update relevant branches to support --id and pass to enhanced DB methods
+- [x] Update list subcommand to show IDs
+- [x] Add syntax-level validation in handlers: ensure at least one selector (--name or --id) is provided (business-rule validation remains in resolvers)
+- [x] Do not duplicate ID format or “exactly one” validation in handlers; rely on resolvers
+- [x] Handle invalid/non-existent IDs
+- [x] Pass correct params to DB
 
 Verification Steps:
 
-- [ ] Implement Stage 5 tests in tests/test_guacaman.bats  
-- [ ] Test with valid and invalid IDs  
-- [ ] Validate errors for multiple/both/missing params  
-- [ ] Verify list output shows IDs  
-- [ ] Confirm backward compatibility  
-- [ ] Verify cycle detection works with IDs
+- [x] Implement Stage 5 tests in tests/test_guacaman.bats  
+- [x] Test with valid and invalid IDs  
+- [x] Validate errors for multiple/both/missing params  
+- [x] Verify list output shows IDs  
+- [x] Confirm backward compatibility  
+- [x] Verify cycle detection works with IDs
 
 Acceptance Criteria:
 
-- Works with both name and ID  
-- Validation rules in handlers (presence)  
-- Correct parameters passed to DB  
-- Clear error messages  
-- Backward compatibility  
-- Cycle detection intact
+- [x] Works with both name and ID  
+- [x] Validation rules in handlers (presence)  
+- [x] Correct parameters passed to DB  
+- [x] Clear error messages  
+- [x] Backward compatibility  
+- [x] Cycle detection intact
 
 ## Stage 6: Integration Tests
 
