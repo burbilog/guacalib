@@ -47,11 +47,8 @@ def handle_conngroup_command(args, guacdb):
         sys.exit(0)
 
     elif args.conngroup_command == 'exists':
-        # Validate exactly one selector provided
-        from .cli import validate_selector
-        validate_selector(args, "connection group")
-        
         try:
+            # Rely on database layer validation via resolvers
             if hasattr(args, 'id') and args.id is not None:
                 # Check if connection group exists by ID using resolver
                 if guacdb.connection_group_exists(group_id=args.id):
@@ -76,11 +73,8 @@ def handle_conngroup_command(args, guacdb):
             sys.exit(1)
 
     elif args.conngroup_command == 'del':
-        # Validate exactly one selector provided
-        from .cli import validate_selector
-        validate_selector(args, "connection group")
-        
         try:
+            # Rely on database layer validation via resolvers
             if hasattr(args, 'id') and args.id is not None:
                 # Delete by ID using resolver
                 guacdb.delete_connection_group(group_id=args.id)
@@ -97,11 +91,8 @@ def handle_conngroup_command(args, guacdb):
             sys.exit(1)
 
     elif args.conngroup_command == 'modify':
-        # Validate exactly one selector provided
-        from .cli import validate_selector
-        validate_selector(args, "connection group")
-        
         try:
+            # Rely on database layer validation via resolvers
             # Get group name for display purposes (resolvers handle the actual lookup)
             if hasattr(args, 'id') and args.id is not None:
                 # For ID-based operations, get name for display
