@@ -259,17 +259,17 @@ Files: tests/test_guacaman.bats (add new tests to existing file)
 
 Tasks:
 
-- [ ] Test conn del --id  
-- [ ] Test conn exists --id for existing/non-existing  
-- [ ] Test conn modify --id  
-- [ ] Test conn list includes id field  
-- [ ] Test conngroup del --id  
-- [ ] Test conngroup exists --id  
-- [ ] Test conngroup modify --id  
-- [ ] Test conngroup list includes id  
-- [ ] Test validation errors for both/missing params  
-- [ ] Test invalid ID formats (negative/zero via resolvers; non-integer rejected by argparse)  
-- [ ] Backward compatibility
+- [x] Test conn del --id  
+- [x] Test conn exists --id for existing/non-existing  
+- [x] Test conn modify --id  
+- [x] Test conn list includes id field  
+- [x] Test conngroup del --id  
+- [x] Test conngroup exists --id  
+- [x] Test conngroup modify --id  
+- [x] Test conngroup list includes id  
+- [x] Test validation errors for both/missing params  
+- [x] Test invalid ID formats (negative/zero via resolvers; non-integer rejected by argparse)  
+- [x] Backward compatibility
 
 Acceptance Criteria:
 
