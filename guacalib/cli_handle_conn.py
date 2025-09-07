@@ -13,12 +13,17 @@ else:
     RESET = ''
 
 def validate_selector(args, entity_type="connection"):
-    """Validate exactly one of name or id is provided"""
+    """Validate exactly one of name or id is provided and validate ID format"""
     has_name = hasattr(args, 'name') and args.name is not None
     has_id = hasattr(args, 'id') and args.id is not None
     
     if not (has_name ^ has_id):
         print(f"Error: Exactly one of --name or --id must be provided for {entity_type}")
+        sys.exit(1)
+    
+    # Validate ID format if ID is provided
+    if has_id and args.id <= 0:
+        print(f"Error: {entity_type.capitalize()} ID must be a positive integer greater than 0")
         sys.exit(1)
 
 def handle_conn_command(args, guacdb):
