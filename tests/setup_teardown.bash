@@ -17,17 +17,17 @@ setup_file() {
             exit 1
         fi
 
-        # Create test groups, users and connections
-        guacaman --config "$TEST_CONFIG" usergroup new --name testgroup1
-        guacaman --config "$TEST_CONFIG" usergroup new --name testgroup2
-        guacaman --config "$TEST_CONFIG" user new --name testuser1 --password testpass1 --usergroup testgroup1,testgroup2
-        guacaman --config "$TEST_CONFIG" user new --name testuser2 --password testpass2
-        guacaman --config "$TEST_CONFIG" conn new --type vnc --name testconn1 --hostname 192.168.1.100 --port 5901 --password vncpass1 --usergroup testgroup1
-        guacaman --config "$TEST_CONFIG" conn new --type vnc --name testconn2 --hostname 192.168.1.101 --port 5902 --password vncpass2
-        guacaman --config "$TEST_CONFIG" usergroup new --name parentgroup1
-        guacaman --config "$TEST_CONFIG" usergroup new --name nested/parentgroup2
-        guacaman --config "$TEST_CONFIG" conngroup new --name testconngroup1
-        guacaman --config "$TEST_CONFIG" conngroup new --name testconngroup2 --parent testconngroup1
+        # Create test groups, users and connections, ignoring errors if they already exist
+        guacaman --config "$TEST_CONFIG" usergroup new --name testgroup1 || true
+        guacaman --config "$TEST_CONFIG" usergroup new --name testgroup2 || true
+        guacaman --config "$TEST_CONFIG" user new --name testuser1 --password testpass1 --usergroup testgroup1,testgroup2 || true
+        guacaman --config "$TEST_CONFIG" user new --name testuser2 --password testpass2 || true
+        guacaman --config "$TEST_CONFIG" conn new --type vnc --name testconn1 --hostname 192.168.1.100 --port 5901 --password vncpass1 --usergroup testgroup1 || true
+        guacaman --config "$TEST_CONFIG" conn new --type vnc --name testconn2 --hostname 192.168.1.101 --port 5902 --password vncpass2 || true
+        guacaman --config "$TEST_CONFIG" usergroup new --name parentgroup1 || true
+        guacaman --config "$TEST_CONFIG" usergroup new --name nested/parentgroup2 || true
+        guacaman --config "$TEST_CONFIG" conngroup new --name testconngroup1 || true
+        guacaman --config "$TEST_CONFIG" conngroup new --name testconngroup2 --parent testconngroup1 || true
 
         touch "$SUITE_SETUP_DONE"
     fi
@@ -47,6 +47,14 @@ teardown_file() {
         guacaman --config "$TEST_CONFIG" usergroup del --name nested/parentgroup2 || true
         guacaman --config "$TEST_CONFIG" conngroup del --name testconngroup1 || true
         guacaman --config "$TEST_CONFIG" conngroup del --name testconngroup2 || true
+
+        # Additional cleanup for any leftover objects
+        guacaman --config "$TEST_CONFIG" conngroup del --name testconngroup1 || true
+        guacaman --config "$TEST_CONFIG" conngroup del --name testconngroup2 || true
+        guacaman --config "$TEST_CONFIG" usergroup del --name testgroup1 || true
+        guacaman --config "$TEST_CONFIG" usergroup del --name testgroup2 || true
+        guacaman --config "$TEST_CONFIG" usergroup del --name parentgroup1 || true
+        guacaman --config "$TEST_CONFIG" usergroup del --name nested/parentgroup2 || true
 
         touch "$SUITE_TEARDOWN_DONE"
     fi
