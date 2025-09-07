@@ -694,7 +694,7 @@ get_conngroup_id() {
     guacaman --config "$TEST_CONFIG" conngroup list | grep -A 1 "^  $group_name:" | grep "id:" | cut -d: -f2 | tr -d ' '
 }
 
-@test "Stage 1: Connection exists with ID parameter" {
+@test "Connection exists with ID parameter" {
     # Get the ID of testconn1
     conn_id=$(get_connection_id "testconn1")
     [ -n "$conn_id" ]
@@ -718,7 +718,7 @@ get_conngroup_id() {
     [[ "$output" == *"one of the arguments"* ]] && [[ "$output" == *"is required"* ]]
 }
 
-@test "Stage 1: Connection exists with invalid ID format" {
+@test "Connection exists with invalid ID format" {
     # Test zero ID
     run guacaman --config "$TEST_CONFIG" conn exists --id 0
     [ "$status" -eq 1 ]
@@ -730,7 +730,7 @@ get_conngroup_id() {
     [[ "$output" == *"positive integer"* ]] || [[ "$output" == *"must be greater than 0"* ]]
 }
 
-@test "Stage 1: Connection delete with ID parameter" {
+@test "Connection delete with ID parameter" {
     # Create a temporary connection for deletion test
     temp_conn="temp_del_$(date +%s)"
     guacaman --config "$TEST_CONFIG" conn new --type vnc --name "$temp_conn" --hostname 192.168.1.200 --port 5900 --password temp
@@ -748,7 +748,7 @@ get_conngroup_id() {
     [ "$status" -eq 1 ]
 }
 
-@test "Stage 1: Connection delete with invalid ID" {
+@test "Connection delete with invalid ID" {
     # Test delete with non-existent ID
     run guacaman --config "$TEST_CONFIG" conn del --id 99999
     [ "$status" -eq 1 ]
@@ -760,7 +760,7 @@ get_conngroup_id() {
     [[ "$output" == *"not allowed with argument"* ]]
 }
 
-@test "Stage 1: Connection modify with ID parameter" {
+@test "Connection modify with ID parameter" {
     # Get ID of testconn2
     conn_id=$(get_connection_id "testconn2")
     [ -n "$conn_id" ]
@@ -776,7 +776,7 @@ get_conngroup_id() {
     [[ "$output" == *"hostname: 10.0.0.99"* ]]
 }
 
-@test "Stage 1: Connection modify parent group with ID parameter" {
+@test "Connection modify parent group with ID parameter" {
     # Get connection ID
     conn_id=$(get_connection_id "testconn2")
     [ -n "$conn_id" ]
@@ -792,7 +792,7 @@ get_conngroup_id() {
     [[ "$output" == *"parent: testconngroup1"* ]]
 }
 
-@test "Stage 1: Connection group exists with ID parameter" {
+@test "Connection group exists with ID parameter" {
     # Get ID of testconngroup1
     group_id=$(get_conngroup_id "testconngroup1")
     [ -n "$group_id" ]
@@ -811,7 +811,7 @@ get_conngroup_id() {
     [[ "$output" == *"not allowed with argument"* ]]
 }
 
-@test "Stage 1: Connection group delete with ID parameter" {
+@test "Connection group delete with ID parameter" {
     # Create temporary group for deletion
     temp_group="temp_del_group_$(date +%s)"
     guacaman --config "$TEST_CONFIG" conngroup new --name "$temp_group"
@@ -829,7 +829,7 @@ get_conngroup_id() {
     [ "$status" -eq 1 ]
 }
 
-@test "Stage 1: Connection group modify parent with ID parameter" {
+@test "Connection group modify parent with ID parameter" {
     # Create test groups
     parent_group="parent_id_test_$(date +%s)"
     child_group="child_id_test_$(date +%s)"
@@ -856,7 +856,7 @@ get_conngroup_id() {
     guacaman --config "$TEST_CONFIG" conngroup del --name "$parent_group"
 }
 
-@test "Stage 1: Backward compatibility - existing name-based calls unchanged" {
+@test "Backward compatibility - existing name-based calls unchanged" {
     # All existing name-based operations should continue to work exactly as before
     
     # Connection operations
@@ -878,7 +878,7 @@ get_conngroup_id() {
     [[ "$output" == *"port: 5999"* ]]
 }
 
-@test "Stage 1: Error handling for resolver edge cases" {
+@test "Error handling for resolver edge cases" {
     # Test resolver with empty/null values
     run guacaman --config "$TEST_CONFIG" conn exists --id ""
     [ "$status" -ne 0 ]
@@ -898,7 +898,7 @@ get_conngroup_id() {
 # These tests verify that list commands always include ID fields in their output
 # =============================================================================
 
-@test "Stage 2: Connection list includes ID field in output" {
+@test "Connection list includes ID field in output" {
     # Test that connection list output includes ID field for all connections
     run guacaman --config "$TEST_CONFIG" conn list
     [ "$status" -eq 0 ]
@@ -920,7 +920,7 @@ get_conngroup_id() {
     done
 }
 
-@test "Stage 2: Connection group list includes ID field in output" {
+@test "Connection group list includes ID field in output" {
     # Test that connection group list output includes ID field for all groups
     run guacaman --config "$TEST_CONFIG" conngroup list
     [ "$status" -eq 0 ]
@@ -942,7 +942,7 @@ get_conngroup_id() {
     done
 }
 
-@test "Stage 2: ID values match actual database IDs" {
+@test "ID values match actual database IDs" {
     # Test that IDs shown in list output match actual database IDs
     
     # Get connection ID from list output
@@ -959,7 +959,7 @@ get_conngroup_id() {
     [ "$status" -eq 0 ]
 }
 
-@test "Stage 2: Output structure preserved with ID integration" {
+@test "Output structure preserved with ID integration" {
     # Test that existing output structure is preserved when IDs are added
     run guacaman --config "$TEST_CONFIG" conn list
     [ "$status" -eq 0 ]
@@ -986,7 +986,7 @@ get_conngroup_id() {
     done <<< "$output"
 }
 
-@test "Stage 2: Empty database list output" {
+@test "Empty database list output" {
     # Test list output with minimal/empty database (if possible)
     # This test verifies the feature works even with empty result sets
     
@@ -1004,7 +1004,7 @@ get_conngroup_id() {
 # parameter and validate selector requirements
 # =============================================================================
 
-@test "Stage 4: Connection delete with ID parameter via handler" {
+@test "Connection delete with ID parameter via handler" {
     # Create a temporary connection for deletion test
     temp_conn="temp_del_handler_$(date +%s)"
     guacaman --config "$TEST_CONFIG" conn new --type vnc --name "$temp_conn" --hostname 192.168.1.200 --port 5900 --password temp
@@ -1022,7 +1022,7 @@ get_conngroup_id() {
     [ "$status" -eq 1 ]
 }
 
-@test "Stage 4: Connection exists with ID parameter via handler" {
+@test "Connection exists with ID parameter via handler" {
     # Get the ID of testconn1
     conn_id=$(get_connection_id "testconn1")
     [ -n "$conn_id" ]
@@ -1036,7 +1036,7 @@ get_conngroup_id() {
     [ "$status" -eq 1 ]
 }
 
-@test "Stage 4: Connection modify with ID parameter via handler" {
+@test "Connection modify with ID parameter via handler" {
     # Get ID of testconn2
     conn_id=$(get_connection_id "testconn2")
     [ -n "$conn_id" ]
@@ -1052,7 +1052,7 @@ get_conngroup_id() {
     [[ "$output" == *"hostname: 10.0.0.99"* ]]
 }
 
-@test "Stage 4: Connection modify parent group with ID parameter via handler" {
+@test "Connection modify parent group with ID parameter via handler" {
     # Get connection ID
     conn_id=$(get_connection_id "testconn2")
     [ -n "$conn_id" ]
@@ -1068,7 +1068,7 @@ get_conngroup_id() {
     [[ "$output" == *"parent: testconngroup1"* ]]
 }
 
-@test "Stage 4: Connection handlers require exactly one selector" {
+@test "Connection handlers require exactly one selector" {
     # Test that handlers require exactly one of --name or --id
     
     # Delete command - both name and ID provided
@@ -1087,7 +1087,7 @@ get_conngroup_id() {
     [[ "$output" == *"not allowed with argument"* ]] || [[ "$output" == *"exactly one"* ]]
 }
 
-@test "Stage 4: Connection handlers require at least one selector" {
+@test "Connection handlers require at least one selector" {
     # Test that handlers require at least one selector
     
     # Delete command - no selector provided
@@ -1107,7 +1107,7 @@ get_conngroup_id() {
     [[ "$output" == *"Usage:"* ]] || [[ "$output" == *"Modification options:"* ]] || [[ "$output" == *"one of the arguments"* ]]
 }
 
-@test "Stage 4: Connection handlers handle invalid ID formats" {
+@test "Connection handlers handle invalid ID formats" {
     # Test that handlers properly handle invalid ID formats
     
     # Delete command - zero ID
@@ -1126,7 +1126,7 @@ get_conngroup_id() {
     [[ "$output" == *"positive integer"* ]] || [[ "$output" == *"must be greater than 0"* ]]
 }
 
-@test "Stage 4: Connection handlers handle non-existent IDs gracefully" {
+@test "Connection handlers handle non-existent IDs gracefully" {
     # Test that handlers handle non-existent IDs with clear error messages
     
     # Delete command - non-existent ID
@@ -1144,7 +1144,7 @@ get_conngroup_id() {
     [[ "$output" == *"not found"* ]] || [[ "$output" == *"does not exist"* ]]
 }
 
-@test "Stage 4: Backward compatibility - name-based operations unchanged" {
+@test "Backward compatibility - name-based operations unchanged" {
     # Test that all existing name-based operations continue to work exactly as before
     
     # Connection operations with names
@@ -1162,7 +1162,7 @@ get_conngroup_id() {
     guacaman --config "$TEST_CONFIG" conn new --type vnc --name testconn1 --hostname 192.168.1.100 --port 5901 --password vncpass1 --usergroup testgroup1
 }
 
-@test "Stage 4: Connection list includes ID field via handler" {
+@test "Connection list includes ID field via handler" {
     # Test that connection list output includes ID field via the handler
     run guacaman --config "$TEST_CONFIG" conn list
     [ "$status" -eq 0 ]
