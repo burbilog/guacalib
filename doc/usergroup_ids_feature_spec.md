@@ -1,118 +1,185 @@
-# Streamlined Specification: --id Implementation for User Groups
+# TDD Plan: --id Implementation for User Groups
 
-# Overview
+Overview
 
-Add --id parameter support to uniquely identify user groups by their database IDs, following the proven patterns already implemented for connections and connection groups.
+Add --id parameter support to uniquely identify user groups by their database IDs, following the proven patterns already implemented for connections and connection groups. We will follow a strict test-driven development (TDD) workflow: write failing tests first, then implement the minimal code to make them pass, and finally refactor.
 
-# Scope
+Guiding Principles
 
-- User group commands: del, exists, modify
-- Enhanced list commands (always show IDs)
-- Basic test coverage
+- Tests first: No production code changes until the failing tests exist.
+- Consistency: Mirror the UX, CLI parser shape, and error messaging used by connections/conngroups.
+- Backward compatibility: Name-based behavior remains unchanged.
+- Small, verifiable steps: Commit after each small red→green cycle.
 
-# Requirements
+Scope
 
-## Stage 1: Database Layer + Handler Validation (Combined)
+- User group subcommands: del, exists, modify
+- List output enhanced to always show ID for user groups
+- Integration tests in tests/test_guacaman.bats
 
-Files: guacalib/db.py, guacalib/cli_handle_usergroup.py
+Out of Scope
 
-### Database Tasks:
+- Changing dump output format
+- Adding new database tables
+- Altering permissions model
 
-- [ ] Add `resolve_usergroup_id(usergroup_name=None, usergroup_id=None)` resolver following existing patterns
-- [ ] Update existing methods to accept optional `*_id` arguments:
-  - `delete_existing_usergroup()`
-  - `usergroup_exists()`
-  - `add_user_to_usergroup()`
-  - `remove_user_from_usergroup()`
-- [ ] Update `list_usergroups_with_users_and_connections()` to include `id` in return structure
-- [ ] Add `get_usergroup_name_by_id()` helper method
+Progress Checklist (High-Level)
 
-### Handler Tasks:
+- [ ] Write tests (fail first)
+- [ ] Implement minimal code to pass tests
+- [ ] Refactor and cleanup
+- [ ] Documentation updates complete
 
-- [ ] Update handlers to use `validate_selector()` function (already exists in cli.py)
-- [ ] Update handlers to support --id parameter and pass to enhanced DB methods
-- [ ] Update list handler to display IDs in output
-- [ ] Use existing error handling patterns
+Stage UG-T: Author Tests First
 
-### Validation Strategy:
+Target file: tests/test_guacaman.bats
 
-- CLI: Use existing `validate_selector(args, "usergroup")` function
-- Database: Centralize validation in `resolve_usergroup_id()` like other resolvers
-- Follow exact same patterns as connection/conngroup implementations
+Helper utilities
+- [ ] Add helper: get_usergroup_id "<group_name>" to parse ID from usergroup list output once IDs are present.
 
-## Stage 2: CLI Argument Parser Updates
+Parser and selector validation tests (CLI-level, mirrors connection tests)
+- [ ] usergroup exists: requires exactly one selector
+  - [ ] both --name and --id provided → parser error (exit 2) with helpful text
+  - [ ] neither provided → parser error (exit 2)
+  - [ ] invalid ID formats (0, negative) → error message referencing positive integer, non-zero
+- [ ] usergroup del: same selector validation cases as above
+- [ ] usergroup modify: same selector validation cases as above when any of --adduser/--rmuser provided
+- [ ] usergroup modify with no modification flags shows usage/help text (gracefully exits like conn modify)
 
-Files: guacalib/cli.py
+List output tests (IDs visible)
+- [ ] usergroup list includes ID field for every group
+- [ ] ID is positive integer for all groups
+- [ ] Output structure preserved:
+  - [ ] Keep:
+    - usergroups:
+      - group_name:
+        - id:
+        - users:
+        - connections:
+- [ ] Optional: list by specific --id (if we introduce it) prints only that group (match connection/conngroup behavior)
 
-Tasks:
+Existence by ID tests
+- [ ] Create test groups in setup
+- [ ] exists --id <valid_id> returns 0
+- [ ] exists --id <nonexistent_id> returns 1
+- [ ] exists --id with invalid ID (0, -1) prints validation error and non-zero exit
 
-- [ ] Add --id parameter to usergroup del, exists, modify subcommands
-- [ ] Use mutually exclusive groups like existing connection commands
-- [ ] Copy help text patterns from connection commands
+Delete by ID tests
+- [ ] Create a temporary user group
+- [ ] del --id <valid_id> succeeds (exit 0)
+- [ ] Subsequent exists --name <group_name> returns 1
+- [ ] del --id <nonexistent_id> returns non-zero with “not found”/“does not exist” style message
 
-## Stage 3: Integration Tests
+Modify by ID tests
+- [ ] Prepare: ensure an existing user userA and a group G
+- [ ] modify --id <G_id> --adduser userA succeeds and shows success message consistent with name-based flow
+- [ ] usergroup list shows userA under users for group G
+- [ ] modify --id <G_id> --rmuser userA succeeds and shows success message
+- [ ] Removing non-member should fail with “is not in group” message
+- [ ] add/rm with nonexistent user should fail with “does not exist” message
+- [ ] add/rm against nonexistent group ID should fail with “not found/does not exist”
 
-Files: tests/test_guacaman.bats
+Backward compatibility tests
+- [ ] All existing name-based operations continue to work as before (exists/del/modify/list)
+- [ ] Mixed validation: providing both name and ID is rejected
+- [ ] Existing test suites continue to pass (no changes required to previous name-based tests)
 
-Tasks:
+Error message parity tests
+- [ ] Resolver “not found” messages for usergroups by ID match connection/conngroup style
+- [ ] Validation messages for invalid IDs match connection/conngroup style
 
-- [ ] Copy and adapt existing connection ID tests for usergroups
-- [ ] Test usergroup del/exists/modify with --id
-- [ ] Test list command includes id field
-- [ ] Test validation errors and backward compatibility
+Stage UG-I: Implement After Tests Are Red
 
-## Implementation Patterns
+Database layer (guacalib/db.py)
+- [ ] Add resolve_usergroup_id(usergroup_name=None, usergroup_id=None)
+  - [ ] Exactly one selector validation
+  - [ ] Positive integer validation for IDs
+  - [ ] Name→ID lookup with clear “not found” message
+  - [ ] ID existence verification with clear “not found” message
+- [ ] Add get_usergroup_name_by_id(usergroup_id)
+- [ ] Update methods to accept either name or ID and internally resolve to ID:
+  - [ ] delete_existing_usergroup(usergroup_name=None, usergroup_id=None)
+  - [ ] usergroup_exists(usergroup_name=None, usergroup_id=None)
+  - [ ] add_user_to_usergroup(username, usergroup_name=None, usergroup_id=None)
+  - [ ] remove_user_from_usergroup(username, usergroup_name=None, usergroup_id=None)
+- [ ] Update list_usergroups_with_users_and_connections() to include each group’s ID in the return structure
 
-### CLI Integration (copy from connections):
-```python
-# Validate exactly one selector provided
-from .cli import validate_selector
-validate_selector(args, "usergroup")
+CLI parser (guacalib/cli.py)
+- [ ] usergroup exists: add mutually exclusive --name/--id (type=int, positive_int validator where used elsewhere)
+- [ ] usergroup del: add mutually exclusive --name/--id
+- [ ] usergroup modify: add mutually exclusive --name/--id
+- [ ] Optional: usergroup list: add --id (to mirror conn/conngroup list capabilities)
+- [ ] Help texts mirror connection/conngroup patterns
 
-if hasattr(args, 'id') and args.id is not None:
-    guacdb.delete_existing_usergroup(usergroup_id=args.id)
-else:
-    guacdb.delete_existing_usergroup(usergroup_name=args.name)
+Handlers (guacalib/cli_handle_usergroup.py)
+- [ ] Use validate_selector(args, "usergroup") for del/exists/modify
+- [ ] del: call guacdb.delete_existing_usergroup(usergroup_id=args.id) or by name
+- [ ] exists: call guacdb.usergroup_exists(usergroup_id=args.id) or by name
+- [ ] modify: support --adduser/--rmuser with either selector (pass *_id to DB)
+- [ ] list: display id: field in output (and filter by --id if parser supports it)
+- [ ] Use same error handling style/messages as connection/conngroup handlers
+
+Refactor and cleanup
+- [ ] Ensure messages in CLI reflect either group name or resolved name when operating by ID
+- [ ] Share helper message formatting if needed
+- [ ] Keep consistency with AGENTS.md guidelines
+
+Success Criteria
+
+- [ ] All newly added tests pass
+- [ ] All existing tests remain green
+- [ ] User experience matches connections/conngroups
+- [ ] Clear, consistent error messages
+- [ ] IDs always displayed in usergroup list
+
+Example Test Snippets (bats, indicative)
+
+Note: These are planning examples; actual tests will be added in tests/test_guacaman.bats.
+
+- Selector validation for exists:
+```bash
+run guacaman --config "$TEST_CONFIG" usergroup exists --name g --id 1
+[ "$status" -eq 2 ]
+[[ "$output" == *"not allowed with argument"* ]] || [[ "$output" == *"Exactly one of --name or --id must be provided"* ]]
+
+run guacaman --config "$TEST_CONFIG" usergroup exists
+[ "$status" -eq 2 ]
+[[ "$output" == *"one of the arguments --name --id is required"* ]] || [[ "$output" == *"Exactly one"* ]]
 ```
 
-### Database Method Enhancement (copy from connections):
-```python
-def delete_existing_usergroup(self, usergroup_name=None, usergroup_id=None):
-    resolved_usergroup_id = self.resolve_usergroup_id(usergroup_name, usergroup_id)
-    # operate on resolved_usergroup_id only...
+- List includes ID:
+```bash
+run guacaman --config "$TEST_CONFIG" usergroup list
+[ "$status" -eq 0 ]
+[[ "$output" == *"usergroups:"* ]]
+[[ "$output" == *"id:"* ]]
+ids=$(echo "$output" | grep -A1 "^  [^:]\+:" | grep "id:" | cut -d: -f2 | tr -d ' ')
+for id in $ids; do [ "$id" -gt 0 ]; done
 ```
 
-### Resolver Implementation (copy from connections):
-```python
-def resolve_usergroup_id(self, usergroup_name=None, usergroup_id=None):
-    # Validate exactly one parameter provided
-    if (usergroup_name is None) == (usergroup_id is None):
-        raise ValueError("Exactly one of usergroup_name or usergroup_id must be provided")
-    
-    # If ID provided, validate and return it
-    if usergroup_id is not None:
-        if usergroup_id <= 0:
-            raise ValueError("Usergroup ID must be a positive integer greater than 0")
-        # Verify the usergroup exists and return ID
-        # ... implementation follows connection pattern
-    
-    # If name provided, resolve to ID
-    # ... implementation follows connection pattern
+- Modify by ID:
+```bash
+gid=$(get_usergroup_id "testgroup1")
+run guacaman --config "$TEST_CONFIG" usergroup modify --id "$gid" --adduser testuser1
+[ "$status" -eq 0 ]
+[[ "$output" == *"Successfully added user 'testuser1' to usergroup 'testgroup1'"* ]]
 ```
 
-## Success Criteria
+Risks and Edge Cases
 
-- Users can specify user groups by ID using same syntax as connections
-- All existing functionality unchanged
-- Clear error messages matching existing patterns
-- List commands show IDs in consistent format
-- Robust error handling following existing patterns
+- Groups with identical names should not exist (DB uniqueness by entity name); ensure resolver messages are deterministic.
+- Large ID values: must gracefully return “not found” without crashing.
+- Output parsing in tests should be robust to minor whitespace differences (use grep patterns accordingly).
 
-## Benefits of Streamlined Approach
+Implementation Patterns (Reference)
 
-- ✅ Reuses proven patterns from connections/conngroups
-- ✅ Leverages existing `validate_selector()` function
-- ✅ Minimal code duplication
-- ✅ Consistent user experience across all entity types
-- ✅ Faster implementation with lower risk
-- ✅ Easier testing by copying existing test patterns
+- Use existing resolve_connection_id / resolve_conngroup_id as templates for resolve_usergroup_id.
+- Use validate_selector(args, "usergroup") uniformly in handlers.
+- Keep list output structure aligned with existing list handlers.
+
+Definition of Done
+
+- [ ] Tests for usergroup IDs are merged and initially failing on main
+- [ ] Database layer and CLI code implemented to make tests pass
+- [ ] Code reviewed for consistency with AGENTS.md (types, clarity, errors)
+- [ ] Documentation updated (this file) and README if CLI flags surface to users
