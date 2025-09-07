@@ -1,19 +1,5 @@
 import sys
 
-def validate_selector(args, entity_type="connection group"):
-    """Validate exactly one of name or id is provided and validate ID format"""
-    has_name = hasattr(args, 'name') and args.name is not None
-    has_id = hasattr(args, 'id') and args.id is not None
-    
-    if not (has_name ^ has_id):
-        print(f"Error: Exactly one of --name or --id must be provided for {entity_type}")
-        sys.exit(1)
-    
-    # Validate ID format if ID is provided
-    if has_id and args.id <= 0:
-        print(f"Error: {entity_type.capitalize()} ID must be a positive integer greater than 0")
-        sys.exit(1)
-
 def handle_conngroup_command(args, guacdb):
     """Handle all conngroup subcommands"""
     if args.conngroup_command == 'new':
@@ -59,6 +45,7 @@ def handle_conngroup_command(args, guacdb):
 
     elif args.conngroup_command == 'exists':
         # Validate exactly one selector provided
+        from .cli import validate_selector
         validate_selector(args, "connection group")
         
         try:
@@ -87,6 +74,7 @@ def handle_conngroup_command(args, guacdb):
 
     elif args.conngroup_command == 'del':
         # Validate exactly one selector provided
+        from .cli import validate_selector
         validate_selector(args, "connection group")
         
         try:
@@ -107,6 +95,7 @@ def handle_conngroup_command(args, guacdb):
 
     elif args.conngroup_command == 'modify':
         # Validate exactly one selector provided
+        from .cli import validate_selector
         validate_selector(args, "connection group")
         
         try:

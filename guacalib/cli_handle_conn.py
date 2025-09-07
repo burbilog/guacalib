@@ -12,20 +12,6 @@ else:
     VAR_COLOR = ''
     RESET = ''
 
-def validate_selector(args, entity_type="connection"):
-    """Validate exactly one of name or id is provided and validate ID format"""
-    has_name = hasattr(args, 'name') and args.name is not None
-    has_id = hasattr(args, 'id') and args.id is not None
-    
-    if not (has_name ^ has_id):
-        print(f"Error: Exactly one of --name or --id must be provided for {entity_type}")
-        sys.exit(1)
-    
-    # Validate ID format if ID is provided
-    if has_id and args.id <= 0:
-        print(f"Error: {entity_type.capitalize()} ID must be a positive integer greater than 0")
-        sys.exit(1)
-
 def handle_conn_command(args, guacdb):
     command_handlers = {
         'new': handle_conn_new,
@@ -135,6 +121,7 @@ def handle_conn_new(args, guacdb):
 
 def handle_conn_delete(args, guacdb):
     # Validate exactly one selector provided
+    from .cli import validate_selector
     validate_selector(args, "connection")
     
     try:
@@ -153,6 +140,7 @@ def handle_conn_delete(args, guacdb):
 
 def handle_conn_exists(args, guacdb):
     # Validate exactly one selector provided
+    from .cli import validate_selector
     validate_selector(args, "connection")
     
     try:
@@ -185,7 +173,6 @@ def handle_conn_modify(args, guacdb):
         print(f"  {VAR_COLOR}--set{RESET}: Modify connection parameters")
         print(f"  {VAR_COLOR}--parent{RESET}: Set parent connection group (use empty string to remove group)")
         print("\nModifiable connection parameters:")
-        print("\nParameters in guacamole_connection table:")
         for param, info in sorted(guacdb.CONNECTION_PARAMETERS.items()):
             if info['table'] == 'connection':
                 desc = f"  {VAR_COLOR}{param}{RESET}: {info['description']} (type: {info['type']}, default: {info['default']})"
@@ -210,6 +197,7 @@ def handle_conn_modify(args, guacdb):
         sys.exit(1)
     
     # Validate exactly one selector provided
+    from .cli import validate_selector
     validate_selector(args, "connection")
     
     try:

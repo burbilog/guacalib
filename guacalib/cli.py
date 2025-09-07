@@ -10,6 +10,20 @@ from guacalib.cli_handle_user import handle_user_command
 from guacalib.cli_handle_conn import handle_conn_command
 from guacalib.cli_handle_conngroup import handle_conngroup_command
 
+def validate_selector(args, entity_type="connection"):
+    """Validate exactly one of name or id is provided and validate ID format"""
+    has_name = hasattr(args, 'name') and args.name is not None
+    has_id = hasattr(args, 'id') and args.id is not None
+    
+    if not (has_name ^ has_id):
+        print(f"Error: Exactly one of --name or --id must be provided for {entity_type}")
+        sys.exit(1)
+    
+    # Validate ID format if ID is provided
+    if has_id and args.id <= 0:
+        print(f"Error: {entity_type.capitalize()} ID must be a positive integer greater than 0")
+        sys.exit(1)
+
 def setup_user_subcommands(subparsers):
     user_parser = subparsers.add_parser('user', help='Manage Guacamole users')
     user_subparsers = user_parser.add_subparsers(dest='user_command', help='User commands')
