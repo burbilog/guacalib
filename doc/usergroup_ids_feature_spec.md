@@ -35,16 +35,16 @@ Stage UG-T: Author Tests First
 Target file: tests/test_guacaman.bats
 
 Helper utilities
-- [ ] Add helper: get_usergroup_id "<group_name>" to parse ID from usergroup list output once IDs are present.
+- [x] Add helper: get_usergroup_id "<group_name>" to parse ID from usergroup list output once IDs are present.
 
 Parser and selector validation tests (CLI-level, mirrors connection tests)
-- [ ] usergroup exists: requires exactly one selector
-  - [ ] both --name and --id provided → parser error (exit 2) with helpful text
-  - [ ] neither provided → parser error (exit 2)
-  - [ ] invalid ID formats (0, negative) → error message referencing positive integer, non-zero
-- [ ] usergroup del: same selector validation cases as above
-- [ ] usergroup modify: same selector validation cases as above when any of --adduser/--rmuser provided
-- [ ] usergroup modify with no modification flags shows usage/help text (gracefully exits like conn modify)
+- [x] usergroup exists: requires exactly one selector
+  - [x] both --name and --id provided → parser error (exit 2) with helpful text
+  - [x] neither provided → parser error (exit 2)
+  - [x] invalid ID formats (0, negative) → error message referencing positive integer, non-zero
+- [x] usergroup del: same selector validation cases as above
+- [x] usergroup modify: same selector validation cases as above when any of --adduser/--rmuser provided
+- [x] usergroup modify with no modification flags shows usage/help text (gracefully exits like conn modify)
 
 List output tests (IDs visible)
 - [ ] usergroup list includes ID field for every group
