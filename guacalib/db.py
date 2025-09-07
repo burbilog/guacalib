@@ -232,21 +232,28 @@ class GuacamoleDB:
             print(f"Error getting connection group ID: {e}")
             raise
 
-    def modify_connection_parent_group(self, connection_name, group_name):
+    def modify_connection_parent_group(self, connection_name=None, connection_id=None, group_name=None):
         """Set parent connection group for a connection"""
         try:
+            # Use resolver to get connection_id and validate inputs
+            resolved_connection_id = self.resolve_connection_id(connection_name, connection_id)
+            
             group_id = self.get_connection_group_id_by_name(group_name) if group_name else None
             
-            # Get connection ID and current parent
+            # Get current parent
             self.cursor.execute("""
-                SELECT connection_id, parent_id 
+                SELECT parent_id 
                 FROM guacamole_connection 
-                WHERE connection_name = %s
-            """, (connection_name,))
+                WHERE connection_id = %s
+            """, (resolved_connection_id,))
             result = self.cursor.fetchone()
             if not result:
-                raise ValueError(f"Connection '{connection_name}' not found")
-            connection_id, current_parent_id = result
+                raise ValueError(f"Connection with ID {resolved_connection_id} not found")
+            current_parent_id = result[0]
+            
+            # Get connection name for error messages if we only have ID
+            if connection_name is None:
+                connection_name = self.get_connection_name_by_id(resolved_connection_id)
             
             # Check if we're trying to set to same group
             if group_id == current_parent_id:
@@ -260,7 +267,7 @@ class GuacamoleDB:
                 UPDATE guacamole_connection
                 SET parent_id = %s
                 WHERE connection_id = %s
-            """, (group_id, connection_id))
+            """, (group_id, resolved_connection_id))
             
             if self.cursor.rowcount == 0:
                 raise ValueError(f"Failed to update parent group for connection '{connection_name}'")
@@ -286,22 +293,15 @@ class GuacamoleDB:
             print(f"Error getting connection user permissions: {e}")
             raise
 
-    def modify_connection(self, connection_name, param_name, param_value):
+    def modify_connection(self, connection_name=None, connection_id=None, param_name=None, param_value=None):
         """Modify a connection parameter in either guacamole_connection or guacamole_connection_parameter table"""
         try:
             # Validate parameter name
             if param_name not in self.CONNECTION_PARAMETERS:
                 raise ValueError(f"Invalid parameter: {param_name}. Run 'guacaman conn modify' without arguments to see allowed parameters.")
             
-            # Get connection_id
-            self.cursor.execute("""
-                SELECT connection_id FROM guacamole_connection 
-                WHERE connection_name = %s
-            """, (connection_name,))
-            result = self.cursor.fetchone()
-            if not result:
-                raise ValueError(f"Connection '{connection_name}' not found")
-            connection_id = result[0]
+            # Use resolver to get connection_id and validate inputs
+            resolved_connection_id = self.resolve_connection_id(connection_name, connection_id)
             
             param_info = self.CONNECTION_PARAMETERS[param_name]
             param_table = param_info['table']
@@ -321,7 +321,7 @@ class GuacamoleDB:
                     SET {param_name} = %s
                     WHERE connection_id = %s
                 """
-                self.cursor.execute(query, (param_value, connection_id))
+                self.cursor.execute(query, (param_value, resolved_connection_id))
                 
             elif param_table == 'parameter':
                 # Special handling for read-only parameter
@@ -336,7 +336,7 @@ class GuacamoleDB:
                         self.cursor.execute("""
                             SELECT parameter_value FROM guacamole_connection_parameter
                             WHERE connection_id = %s AND parameter_name = %s
-                        """, (connection_id, param_name))
+                        """, (resolved_connection_id, param_name))
                         
                         if self.cursor.fetchone():
                             # Update existing parameter
@@ -344,20 +344,20 @@ class GuacamoleDB:
                                 UPDATE guacamole_connection_parameter
                                 SET parameter_value = 'true'
                                 WHERE connection_id = %s AND parameter_name = %s
-                            """, (connection_id, param_name))
+                            """, (resolved_connection_id, param_name))
                         else:
                             # Insert new parameter
                             self.cursor.execute("""
                                 INSERT INTO guacamole_connection_parameter
                                 (connection_id, parameter_name, parameter_value)
                                 VALUES (%s, %s, 'true')
-                            """, (connection_id, param_name))
+                            """, (resolved_connection_id, param_name))
                     else:  # param_value.lower() == 'false'
                         # Remove the parameter if it exists
                         self.cursor.execute("""
                             DELETE FROM guacamole_connection_parameter
                             WHERE connection_id = %s AND parameter_name = %s
-                        """, (connection_id, param_name))
+                        """, (resolved_connection_id, param_name))
                 else:
                     # Special handling for color-depth
                     if param_name == 'color-depth':
@@ -369,7 +369,7 @@ class GuacamoleDB:
                     self.cursor.execute("""
                         SELECT parameter_value FROM guacamole_connection_parameter
                         WHERE connection_id = %s AND parameter_name = %s
-                    """, (connection_id, param_name))
+                    """, (resolved_connection_id, param_name))
                 
                     if self.cursor.fetchone():
                         # Update existing parameter
@@ -377,14 +377,14 @@ class GuacamoleDB:
                             UPDATE guacamole_connection_parameter
                             SET parameter_value = %s
                             WHERE connection_id = %s AND parameter_name = %s
-                        """, (param_value, connection_id, param_name))
+                        """, (param_value, resolved_connection_id, param_name))
                     else:
                         # Insert new parameter
                         self.cursor.execute("""
                             INSERT INTO guacamole_connection_parameter
                             (connection_id, parameter_name, parameter_value)
                             VALUES (%s, %s, %s)
-                        """, (connection_id, param_name, param_value))
+                        """, (resolved_connection_id, param_name, param_value))
             
             if self.cursor.rowcount == 0:
                 raise ValueError(f"Failed to update connection parameter: {param_name}")
@@ -573,49 +573,45 @@ class GuacamoleDB:
             print(f"Error deleting existing usergroup: {e}")
             raise
 
-    def delete_existing_connection(self, connection_name):
+    def delete_existing_connection(self, connection_name=None, connection_id=None):
         """Delete a connection and all its associated data"""
         try:
-            self.debug_print(f"Attempting to delete connection: {connection_name}")
+            # Use resolver to get connection_id and validate inputs
+            resolved_connection_id = self.resolve_connection_id(connection_name, connection_id)
             
-            # Get connection_id first
-            self.cursor.execute("""
-                SELECT connection_id FROM guacamole_connection
-                WHERE connection_name = %s
-            """, (connection_name,))
-            result = self.cursor.fetchone()
-            if not result:
-                raise ValueError(f"Connection '{connection_name}' doesn't exist")
-            connection_id = result[0]
-            self.debug_print(f"Found connection_id: {connection_id}")
+            # Get connection name for logging if we only have ID
+            if connection_name is None:
+                connection_name = self.get_connection_name_by_id(resolved_connection_id)
+            
+            self.debug_print(f"Attempting to delete connection: {connection_name} (ID: {resolved_connection_id})")
 
             # Delete connection history
             self.debug_print("Deleting connection history...")
             self.cursor.execute("""
                 DELETE FROM guacamole_connection_history
                 WHERE connection_id = %s
-            """, (connection_id,))
+            """, (resolved_connection_id,))
 
             # Delete connection parameters
             self.debug_print("Deleting connection parameters...")
             self.cursor.execute("""
                 DELETE FROM guacamole_connection_parameter
                 WHERE connection_id = %s
-            """, (connection_id,))
+            """, (resolved_connection_id,))
 
             # Delete connection permissions
             self.debug_print("Deleting connection permissions...")
             self.cursor.execute("""
                 DELETE FROM guacamole_connection_permission
                 WHERE connection_id = %s
-            """, (connection_id,))
+            """, (resolved_connection_id,))
 
             # Finally delete the connection
             self.debug_print("Deleting connection...")
             self.cursor.execute("""
                 DELETE FROM guacamole_connection
                 WHERE connection_id = %s
-            """, (connection_id,))
+            """, (resolved_connection_id,))
 
             # Commit the transaction
             self.debug_print("Committing transaction...")
@@ -626,22 +622,17 @@ class GuacamoleDB:
             print(f"Error deleting existing connection: {e}")
             raise
 
-    def delete_connection_group(self, group_name):
+    def delete_connection_group(self, group_name=None, group_id=None):
         """Delete a connection group and update references to it"""
         try:
-            self.debug_print(f"Attempting to delete connection group: {group_name}")
+            # Use resolver to get group_id and validate inputs
+            resolved_group_id = self.resolve_conngroup_id(group_name, group_id)
             
-            # Get the group_id first
-            self.cursor.execute("""
-                SELECT connection_group_id 
-                FROM guacamole_connection_group
-                WHERE connection_group_name = %s
-            """, (group_name,))
-            result = self.cursor.fetchone()
-            if not result:
-                raise ValueError(f"Connection group '{group_name}' doesn't exist")
-            group_id = result[0]
-            self.debug_print(f"Found connection_group_id: {group_id}")
+            # Get group name for logging if we only have ID
+            if group_name is None:
+                group_name = self.get_connection_group_name_by_id(resolved_group_id)
+            
+            self.debug_print(f"Attempting to delete connection group: {group_name} (ID: {resolved_group_id})")
 
             # Update any child groups to have NULL parent
             self.debug_print("Updating child groups to have NULL parent...")
@@ -649,7 +640,7 @@ class GuacamoleDB:
                 UPDATE guacamole_connection_group
                 SET parent_id = NULL
                 WHERE parent_id = %s
-            """, (group_id,))
+            """, (resolved_group_id,))
 
             # Update any connections to have NULL parent
             self.debug_print("Updating connections to have NULL parent...")
@@ -657,14 +648,14 @@ class GuacamoleDB:
                 UPDATE guacamole_connection
                 SET parent_id = NULL
                 WHERE parent_id = %s
-            """, (group_id,))
+            """, (resolved_group_id,))
 
             # Delete the group
             self.debug_print("Deleting connection group...")
             self.cursor.execute("""
                 DELETE FROM guacamole_connection_group
                 WHERE connection_group_id = %s
-            """, (group_id,))
+            """, (resolved_group_id,))
 
             # Commit the transaction
             self.debug_print("Committing transaction...")
@@ -862,26 +853,30 @@ class GuacamoleDB:
             print(f"Error resolving group path: {e}")
             raise
 
-    def connection_exists(self, connection_name):
-        """Check if a connection with the given name exists"""
+    def connection_exists(self, connection_name=None, connection_id=None):
+        """Check if a connection with the given name or ID exists"""
         try:
-            self.cursor.execute("""
-                SELECT COUNT(*) FROM guacamole_connection
-                WHERE connection_name = %s
-            """, (connection_name,))
-            return self.cursor.fetchone()[0] > 0
+            # Use resolver to validate inputs and get connection_id
+            resolved_connection_id = self.resolve_connection_id(connection_name, connection_id)
+            # If resolver succeeds, connection exists
+            return True
+        except ValueError:
+            # If resolver fails with "not found", connection doesn't exist
+            return False
         except mysql.connector.Error as e:
             print(f"Error checking connection existence: {e}")
             raise
 
-    def connection_group_exists(self, group_name):
-        """Check if a connection group with the given name exists"""
+    def connection_group_exists(self, group_name=None, group_id=None):
+        """Check if a connection group with the given name or ID exists"""
         try:
-            self.cursor.execute("""
-                SELECT COUNT(*) FROM guacamole_connection_group
-                WHERE connection_group_name = %s
-            """, (group_name,))
-            return self.cursor.fetchone()[0] > 0
+            # Use resolver to validate inputs and get group_id
+            resolved_group_id = self.resolve_conngroup_id(group_name, group_id)
+            # If resolver succeeds, connection group exists
+            return True
+        except ValueError:
+            # If resolver fails with "not found", connection group doesn't exist
+            return False
         except mysql.connector.Error as e:
             print(f"Error checking connection group existence: {e}")
             raise
@@ -1280,19 +1275,15 @@ class GuacamoleDB:
             print(f"Error revoking connection permission: {e}")
             raise
 
-    def modify_connection_group_parent(self, group_name, new_parent_name):
+    def modify_connection_group_parent(self, group_name=None, group_id=None, new_parent_name=None):
         """Set parent connection group for a connection group with cycle detection"""
         try:
-            # Get the group ID we're modifying
-            self.cursor.execute("""
-                SELECT connection_group_id 
-                FROM guacamole_connection_group
-                WHERE connection_group_name = %s
-            """, (group_name,))
-            result = self.cursor.fetchone()
-            if not result:
-                raise ValueError(f"Connection group '{group_name}' not found")
-            group_id = result[0]
+            # Use resolver to get group_id and validate inputs
+            resolved_group_id = self.resolve_conngroup_id(group_name, group_id)
+            
+            # Get group name for error messages if we only have ID
+            if group_name is None:
+                group_name = self.get_connection_group_name_by_id(resolved_group_id)
 
             # Handle NULL parent (empty string)
             new_parent_id = None
@@ -1309,7 +1300,7 @@ class GuacamoleDB:
                 new_parent_id = result[0]
 
                 # Check for cycles using helper method
-                if self._check_connection_group_cycle(group_id, new_parent_id):
+                if self._check_connection_group_cycle(resolved_group_id, new_parent_id):
                     raise ValueError(f"Setting parent would create a cycle in connection groups")
 
             # Update the parent
@@ -1317,7 +1308,7 @@ class GuacamoleDB:
                 UPDATE guacamole_connection_group
                 SET parent_id = %s
                 WHERE connection_group_id = %s
-            """, (new_parent_id, group_id))
+            """, (new_parent_id, resolved_group_id))
 
             if self.cursor.rowcount == 0:
                 raise ValueError(f"Failed to update parent group for '{group_name}'")
@@ -1434,6 +1425,82 @@ class GuacamoleDB:
         if id_value is not None and id_value <= 0:
             raise ValueError(f"{entity_type} ID must be a positive integer greater than 0")
         return id_value
+
+    def resolve_connection_id(self, connection_name=None, connection_id=None):
+        """Validate inputs and resolve to connection_id with centralized validation"""
+        # Validate exactly one parameter provided
+        if (connection_name is None) == (connection_id is None):
+            raise ValueError("Exactly one of connection_name or connection_id must be provided")
+        
+        # If ID provided, validate and return it
+        if connection_id is not None:
+            if connection_id <= 0:
+                raise ValueError("Connection ID must be a positive integer greater than 0")
+            
+            # Verify the connection exists
+            try:
+                self.cursor.execute("""
+                    SELECT connection_id FROM guacamole_connection
+                    WHERE connection_id = %s
+                """, (connection_id,))
+                result = self.cursor.fetchone()
+                if not result:
+                    raise ValueError(f"Connection with ID {connection_id} not found")
+                return connection_id
+            except mysql.connector.Error as e:
+                raise ValueError(f"Database error while resolving connection ID: {e}")
+        
+        # If name provided, resolve to ID
+        if connection_name is not None:
+            try:
+                self.cursor.execute("""
+                    SELECT connection_id FROM guacamole_connection
+                    WHERE connection_name = %s
+                """, (connection_name,))
+                result = self.cursor.fetchone()
+                if not result:
+                    raise ValueError(f"Connection '{connection_name}' doesn't exist")
+                return result[0]
+            except mysql.connector.Error as e:
+                raise ValueError(f"Database error while resolving connection name: {e}")
+
+    def resolve_conngroup_id(self, group_name=None, group_id=None):
+        """Validate inputs and resolve to connection_group_id with centralized validation"""
+        # Validate exactly one parameter provided
+        if (group_name is None) == (group_id is None):
+            raise ValueError("Exactly one of group_name or group_id must be provided")
+        
+        # If ID provided, validate and return it
+        if group_id is not None:
+            if group_id <= 0:
+                raise ValueError("Connection group ID must be a positive integer greater than 0")
+            
+            # Verify the connection group exists
+            try:
+                self.cursor.execute("""
+                    SELECT connection_group_id FROM guacamole_connection_group
+                    WHERE connection_group_id = %s
+                """, (group_id,))
+                result = self.cursor.fetchone()
+                if not result:
+                    raise ValueError(f"Connection group with ID {group_id} not found")
+                return group_id
+            except mysql.connector.Error as e:
+                raise ValueError(f"Database error while resolving connection group ID: {e}")
+        
+        # If name provided, resolve to ID
+        if group_name is not None:
+            try:
+                self.cursor.execute("""
+                    SELECT connection_group_id FROM guacamole_connection_group
+                    WHERE connection_group_name = %s
+                """, (group_name,))
+                result = self.cursor.fetchone()
+                if not result:
+                    raise ValueError(f"Connection group '{group_name}' not found")
+                return result[0]
+            except mysql.connector.Error as e:
+                raise ValueError(f"Database error while resolving connection group name: {e}")
 
     def list_groups_with_users(self):
         query = """
