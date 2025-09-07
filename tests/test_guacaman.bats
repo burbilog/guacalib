@@ -1,5 +1,16 @@
 #!/usr/bin/env bats
 
+# Helper function to get usergroup ID by name from list output
+get_usergroup_id() {
+    local group_name="$1"
+    guacaman --config "$TEST_CONFIG" usergroup list | \
+        awk -v name="$group_name" '
+            $0 ~ "^  " name ":" { in_group = 1; next }
+            in_group && /^    id: / { print $2; exit }
+            in_group && /^  [^[:space:]]/ { exit }  # next group
+        '
+}
+
 setup() {
     # Check if TEST_CONFIG is set and points to a valid file
     if [ -z "$TEST_CONFIG" ] || [ ! -f "$TEST_CONFIG" ]; then
