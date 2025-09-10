@@ -169,6 +169,53 @@ get_usergroup_id() {
 }
 
 # =============================================================================
+# STAGE UG-T: Delete by ID tests
+# =============================================================================
+
+@test "usergroup del: del --id with valid ID succeeds (exit 0)" {
+    # Create a temporary user group for testing
+    temp_group="temp_delete_test_group"
+
+    # Create the temporary group
+    run guacaman --config "$TEST_CONFIG" usergroup new --name "$temp_group"
+    [ "$status" -eq 0 ]
+
+    # Get its ID
+    gid=$(get_usergroup_id "$temp_group")
+
+    # Delete by ID should succeed
+    run guacaman --config "$TEST_CONFIG" usergroup del --id "$gid"
+    [ "$status" -eq 0 ]
+}
+
+@test "usergroup del: subsequent exists --name returns 1 after delete by ID" {
+    # Create a temporary user group for testing
+    temp_group="temp_delete_exists_test"
+
+    # Create the temporary group
+    run guacaman --config "$TEST_CONFIG" usergroup new --name "$temp_group"
+    [ "$status" -eq 0 ]
+
+    # Get its ID and delete by ID
+    gid=$(get_usergroup_id "$temp_group")
+    run guacaman --config "$TEST_CONFIG" usergroup del --id "$gid"
+
+    # Subsequent exists check by name should return 1 (not found)
+    run guacaman --config "$TEST_CONFIG" usergroup exists --name "$temp_group"
+    [ "$status" -eq 1 ]
+}
+
+@test "usergroup del: del --id with nonexistent ID fails with error message" {
+    # Test deletion with nonexistent ID
+    nonexistent_id=99998
+
+    # Should return non-zero and show "not found" error
+    run guacaman --config "$TEST_CONFIG" usergroup del --id "$nonexistent_id"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"not found"* ]] || [[ "$output" == *"does not exist"* ]] || [[ "$output" == *"error"* ]]
+}
+
+# =============================================================================
 # STAGE UG-T: User Group ID Support - Parser and Selector Validation Tests
 # (moved from tests/test_guacaman.bats)
 # =============================================================================

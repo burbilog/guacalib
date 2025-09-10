@@ -65,10 +65,10 @@ Existence by ID tests
 - [x] exists --id with invalid ID (0, -1) prints validation error and non-zero exit
 
 Delete by ID tests
-- [ ] Create a temporary user group
-- [ ] del --id <valid_id> succeeds (exit 0)
-- [ ] Subsequent exists --name <group_name> returns 1
-- [ ] del --id <nonexistent_id> returns non-zero with “not found”/“does not exist” style message
+- [x] Create a temporary user group
+- [x] del --id <valid_id> succeeds (exit 0)
+- [x] Subsequent exists --name <group_name> returns 1
+- [x] del --id <nonexistent_id> returns non-zero with "not found"/"does not exist" style message
 
 Modify by ID tests
 - [ ] Prepare: ensure an existing user userA and a group G
