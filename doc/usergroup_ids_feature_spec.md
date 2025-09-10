@@ -59,10 +59,10 @@ List output tests (IDs visible)
 - [x] Optional: list by specific --id (if we introduce it) prints only that group (match connection/conngroup behavior)
 
 Existence by ID tests
-- [ ] Create test groups in setup
-- [ ] exists --id <valid_id> returns 0
-- [ ] exists --id <nonexistent_id> returns 1
-- [ ] exists --id with invalid ID (0, -1) prints validation error and non-zero exit
+- [x] Create test groups in setup
+- [x] exists --id <valid_id> returns 0
+- [x] exists --id <nonexistent_id> returns 1
+- [x] exists --id with invalid ID (0, -1) prints validation error and non-zero exit
 
 Delete by ID tests
 - [ ] Create a temporary user group

@@ -147,6 +147,28 @@ get_usergroup_id() {
 }
 
 # =============================================================================
+# STAGE UG-T: Existence by ID tests
+# =============================================================================
+
+@test "usergroup exists: exists --id with valid ID returns 0" {
+    # Get the ID of an existing test group
+    gid=$(get_usergroup_id "testgroup1")
+
+    # Test existence with valid ID should return success (0)
+    run guacaman --config "$TEST_CONFIG" usergroup exists --id "$gid"
+    [ "$status" -eq 0 ]
+}
+
+@test "usergroup exists: exists --id with nonexistent ID returns 1" {
+    # Test existence with nonexistent ID (e.g., very high number)
+    nonexistent_id=99999
+
+    # Should return failure (1) for nonexistent ID
+    run guacaman --config "$TEST_CONFIG" usergroup exists --id "$nonexistent_id"
+    [ "$status" -eq 1 ]
+}
+
+# =============================================================================
 # STAGE UG-T: User Group ID Support - Parser and Selector Validation Tests
 # (moved from tests/test_guacaman.bats)
 # =============================================================================
