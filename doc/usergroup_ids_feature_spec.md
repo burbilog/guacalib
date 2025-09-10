@@ -79,15 +79,6 @@ Modify by ID tests
 - [x] add/rm with nonexistent user should fail with "does not exist" message
 - [x] add/rm against nonexistent group ID should fail with "not found/does not exist"
 
-Backward compatibility tests
-- [ ] All existing name-based operations continue to work as before (exists/del/modify/list)
-- [ ] Mixed validation: providing both name and ID is rejected
-- [ ] Existing test suites continue to pass (no changes required to previous name-based tests)
-
-Error message parity tests
-- [ ] Resolver “not found” messages for usergroups by ID match connection/conngroup style
-- [ ] Validation messages for invalid IDs match connection/conngroup style
-
 Stage UG-I: Implement After Tests Are Red
 
 Database layer (guacalib/db.py)
