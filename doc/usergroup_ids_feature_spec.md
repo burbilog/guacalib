@@ -71,13 +71,13 @@ Delete by ID tests
 - [x] del --id <nonexistent_id> returns non-zero with "not found"/"does not exist" style message
 
 Modify by ID tests
-- [ ] Prepare: ensure an existing user userA and a group G
-- [ ] modify --id <G_id> --adduser userA succeeds and shows success message consistent with name-based flow
-- [ ] usergroup list shows userA under users for group G
-- [ ] modify --id <G_id> --rmuser userA succeeds and shows success message
-- [ ] Removing non-member should fail with “is not in group” message
-- [ ] add/rm with nonexistent user should fail with “does not exist” message
-- [ ] add/rm against nonexistent group ID should fail with “not found/does not exist”
+- [x] Prepare: ensure an existing user userA and a group G
+- [x] modify --id <G_id> --adduser userA succeeds and shows success message consistent with name-based flow
+- [x] usergroup list shows userA under users for group G
+- [x] modify --id <G_id> --rmuser userA succeeds and shows success message
+- [x] Removing non-member should fail with "is not in group" message
+- [x] add/rm with nonexistent user should fail with "does not exist" message
+- [x] add/rm against nonexistent group ID should fail with "not found/does not exist"
 
 Backward compatibility tests
 - [ ] All existing name-based operations continue to work as before (exists/del/modify/list)

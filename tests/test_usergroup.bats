@@ -216,6 +216,72 @@ get_usergroup_id() {
 }
 
 # =============================================================================
+# STAGE UG-T: Modify by ID tests
+# =============================================================================
+
+@test "usergroup modify: adduser succeeds with --id and shows success message" {
+    # Use existing testuser1 and testgroup2
+    gid=$(get_usergroup_id "testgroup2")
+
+    # Add user by ID and verify success
+    run guacaman --config "$TEST_CONFIG" usergroup modify --id "$gid" --adduser testuser1
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully added user 'testuser1' to usergroup 'testgroup2'"* ]]
+}
+
+@test "usergroup modify: list shows user added to group after --id modify" {
+    gid=$(get_usergroup_id "testgroup2")
+
+    # Add user by ID
+    run guacaman --config "$TEST_CONFIG" usergroup modify --id "$gid" --adduser testuser1
+
+    # Verify user appears in group listing
+    run guacaman --config "$TEST_CONFIG" usergroup list
+    [[ "$output" == *"testgroup2:"* ]]
+    [[ "$output" == *"users:"* ]]
+    [[ "$output" == *"- testuser1"* ]]
+}
+
+@test "usergroup modify: rmuser succeeds with --id and shows success message" {
+    gid=$(get_usergroup_id "testgroup2")
+
+    # First ensure user is in group
+    run guacaman --config "$TEST_CONFIG" usergroup modify --id "$gid" --adduser testuser1
+
+    # Remove user by ID and verify success
+    run guacaman --config "$TEST_CONFIG" usergroup modify --id "$gid" --rmuser testuser1
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Successfully removed user 'testuser1' from usergroup 'testgroup2'"* ]]
+}
+
+@test "usergroup modify: remove non-member fails with --id" {
+    gid=$(get_usergroup_id "testgroup2")
+
+    # Try to remove a user that's not in the group
+    run guacaman --config "$TEST_CONFIG" usergroup modify --id "$gid" --rmuser testuser2
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"is not in group"* ]]
+}
+
+@test "usergroup modify: add nonexistent user fails with --id" {
+    gid=$(get_usergroup_id "testgroup2")
+
+    # Try to add a user that doesn't exist
+    run guacaman --config "$TEST_CONFIG" usergroup modify --id "$gid" --adduser nonexistentuser
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"does not exist"* ]]
+}
+
+@test "usergroup modify: adduser against nonexistent group ID fails" {
+    nonexistent_id=99997
+
+    # Try to add user to a group that doesn't exist
+    run guacaman --config "$TEST_CONFIG" usergroup modify --id "$nonexistent_id" --adduser testuser1
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"not found"* ]] || [[ "$output" == *"does not exist"* ]] || [[ "$output" == *"error"* ]]
+}
+
+# =============================================================================
 # STAGE UG-T: User Group ID Support - Parser and Selector Validation Tests
 # (moved from tests/test_guacaman.bats)
 # =============================================================================
