@@ -130,6 +130,22 @@ get_usergroup_id() {
     [[ "$output" == *"connections:"* ]]
 }
 
+@test "usergroup list: filter by specific --id" {
+    # Get the ID of a test group
+    gid=$(get_usergroup_id "testgroup1")
+
+    # List only that group
+    run guacaman --config "$TEST_CONFIG" usergroup list --id "$gid"
+    [ "$status" -eq 0 ]
+
+    # Should only contain that specific group, not others
+    [[ "$output" == *"testgroup1"* ]]
+    [[ "$output" != *"testgroup2"* ]]
+
+    # Verify it includes the ID field
+    [[ "$output" == *"id: $gid"* ]]
+}
+
 # =============================================================================
 # STAGE UG-T: User Group ID Support - Parser and Selector Validation Tests
 # (moved from tests/test_guacaman.bats)
