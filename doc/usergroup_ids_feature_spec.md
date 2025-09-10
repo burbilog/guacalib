@@ -25,7 +25,7 @@ Out of Scope
 
 Progress Checklist (High-Level)
 
-- [ ] Write tests (fail first)
+- [x] Write tests (fail first)
 - [ ] Implement minimal code to pass tests
 - [ ] Refactor and cleanup
 - [ ] Documentation updates complete
