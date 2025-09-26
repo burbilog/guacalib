@@ -7,24 +7,35 @@
     - [ ] `conngroup permissions grant --name GROUP --group GROUPNAME` inserts permission rows.
     - [ ] `conngroup permissions revoke --name GROUP --user USERNAME` deletes permission rows.
     - [ ] `conngroup permissions revoke --name GROUP --group GROUPNAME` deletes permission rows.
-  - [ ] Add CLI tests covering `conngroup modify --permit-user/--deny-user/--permit-group/--deny-group`.
-  - [ ] Add DB-layer tests covering helpers that list/grant/revoke connection-group permissions.
-  - [ ] Add tests ensuring `conngroup list` includes granted users/groups in its output.
+  - [ ] Add CLI tests covering `conngroup modify --permit-user/--deny-user/--permit-group/--deny-group` (ensuring they delegate to shared helpers).
+  - [ ] Add DB-layer tests covering helpers that list/grant/revoke connection-group permissions:
+    - [ ] `GuacamoleDB.list_connection_group_permissions(group_name: str) -> dict`
+    - [ ] `GuacamoleDB.grant_connection_group_permission(entity_name: str, entity_type: str, group_name: str) -> None`
+    - [ ] `GuacamoleDB.revoke_connection_group_permission(entity_name: str, entity_type: str, group_name: str) -> None`
+  - [ ] Add tests ensuring `conngroup list` includes granted users/groups in its output (e.g., `permissions: [users, groups]`).
 
 - [ ] **Stage 2: Library Enhancements**
-  - [ ] Implement `GuacamoleDB` helpers to grant, revoke, and list connection-group permissions for users and user groups.
-  - [ ] Ensure helpers validate entity existence and avoid duplicate inserts.
-  - [ ] Update connection-group listing logic to include user and group permissions.
+  - [ ] Implement `GuacamoleDB.list_connection_group_permissions(group_name: str)` returning `{"users": [...], "groups": [...]}` with READ permissions.
+  - [ ] Implement `GuacamoleDB.grant_connection_group_permission(entity_name: str, entity_type: Literal['USER', 'USER_GROUP'], group_name: str)` to insert `READ` permission (idempotent).
+  - [ ] Implement `GuacamoleDB.revoke_connection_group_permission(entity_name: str, entity_type: Literal['USER', 'USER_GROUP'], group_name: str)` to delete `READ` permission.
+  - [ ] Add private helper `_get_connection_group_entity_id(group_name: str) -> int` and reuse existing entity lookups for validation/error messaging.
+  - [ ] Update existing connection-group listing routines to fetch permissions via `list_connection_group_permissions`.
 
 - [ ] **Stage 3: CLI Updates**
-  - [ ] Extend parser to include new `conngroup permissions` subcommands:
-    - `list` (read-only view)
-    - `grant` with `--user`/`--group`
-    - `revoke` with `--user`/`--group`
-  - [ ] Extend `conngroup modify` to accept `--permit-user`, `--deny-user`, `--permit-group`, `--deny-group`.
-  - [ ] Validate entity existence in CLI handlers and surface clear error messages.
-  - [ ] Update `conngroup list` output to display current user and group permissions.
+  - [ ] Extend parser with nested subparsers under `conngroup permissions`:
+    - `list` requires `--name`, optional `--format json|yaml` (default human-readable list).
+    - `grant` requires `--name` plus exactly one of `--user` or `--group`.
+    - `revoke` requires `--name` plus exactly one of `--user` or `--group`.
+  - [ ] Implement `handle_conngroup_permissions_list(args, guacdb)` to call `list_connection_group_permissions` and print results.
+  - [ ] Implement `handle_conngroup_permissions_grant(args, guacdb)` and `handle_conngroup_permissions_revoke(args, guacdb)` to dispatch to `GuacamoleDB` helpers with inferred `entity_type`.
+  - [ ] Modify `handle_conngroup_command` to route `permissions` subcommands via a dedicated dispatcher (e.g., `handle_conngroup_permissions_command`).
+  - [ ] Extend `conngroup modify` parsing logic to accept `--permit-user`, `--deny-user`, `--permit-group`, `--deny-group`, invoking the same helper functions and reusing validation.
+  - [ ] Enhance `conngroup list` output to show `permissions:` section with `users:` / `groups:` lists.
 
 - [ ] **Stage 4: Documentation & UX**
-  - [ ] Update README/usage docs with instructions on using `conngroup permissions` subcommands and modify flags.
-  - [ ] Provide CLI help text updates that describe the new options and expected behaviors.
+  - [ ] Update README/usage docs with examples for:
+    - Listing connection-group permissions.
+    - Granting/revoking permissions for both users and groups.
+    - Using `conngroup modify` shortcuts.
+  - [ ] Add CLI help text describing new options and constraints (e.g., mutually-exclusive flags).
+  - [ ] Mention TDD approach in contributing guidelines (optional) or note expected failing tests before implementation.
