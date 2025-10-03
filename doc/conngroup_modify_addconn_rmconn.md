@@ -154,7 +154,6 @@ guacaman conngroup modify --id 456 --rmconn-by-name conn3 --rmconn-by-id 789 --r
 - [ ] Update `handle_conngroup_command()` modify branch to handle new parameters
 - [ ] Add validation for parameter combinations and business rules
 - [ ] Implement batch processing for multiple connections (mixed names and IDs)
-- [ ] Add progress feedback for operations with multiple connections
 - [ ] Ensure proper error handling and user-friendly messages
 - [ ] Run all tests - they should PASS (Green)
 - [ ] Refactor code for clarity
@@ -205,7 +204,7 @@ guacaman conngroup modify --id 456 --rmconn-by-name conn3 --rmconn-by-id 789 --r
 - `Added connection '<CONNECTION_NAME_OR_ID>' to group '<GROUP_NAME>'`
 - `Added N connections to group '<GROUP_NAME>': conn1, conn2, ...`
 - `Removed connection '<CONNECTION_NAME_OR_ID>' from group '<GROUP_NAME>'`
-- `Removed N connections to group '<GROUP_NAME>': conn1, conn2, ...`
+- `Removed N connections from group '<GROUP_NAME>': conn1, conn2, ...`
 
 ## Implementation Benefits
 
@@ -216,7 +215,6 @@ guacaman conngroup modify --id 456 --rmconn-by-name conn3 --rmconn-by-id 789 --r
 - ✅ Backward compatibility maintained
 - ✅ Consistent with existing CLI patterns
 - ✅ Full test coverage ensures reliability
-- ✅ Consolidated test structure reduces file proliferation
 
 ## Out of Scope
 
