@@ -99,6 +99,8 @@ guacaman conngroup modify --id 456 --rmconn-by-name conn3 --rmconn-by-id 789 --r
 # Validation and Error Tests
 @test "reject both --addconn-by-name and --rmconn-by-name in same command - should fail initially"
 @test "reject both --addconn-by-id and --rmconn-by-id in same command - should fail initially"
+@test "reject --addconn-by-name and --rmconn-by-id in same command - should fail initially"
+@test "reject --addconn-by-id and --rmconn-by-name in same command - should fail initially"
 @test "reject mixed add/remove operations - should fail initially"
 @test "reject non-existent target group - should fail initially"
 @test "reject non-existent connection - should fail initially"
@@ -203,7 +205,7 @@ guacaman conngroup modify --id 456 --rmconn-by-name conn3 --rmconn-by-id 789 --r
 - `Added connection '<CONNECTION_NAME_OR_ID>' to group '<GROUP_NAME>'`
 - `Added N connections to group '<GROUP_NAME>': conn1, conn2, ...`
 - `Removed connection '<CONNECTION_NAME_OR_ID>' from group '<GROUP_NAME>'`
-- `Removed N connections from group '<GROUP_NAME>': conn1, conn2, ...`
+- `Removed N connections to group '<GROUP_NAME>': conn1, conn2, ...`
 
 ## Implementation Benefits
 
