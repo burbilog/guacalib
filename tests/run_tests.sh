@@ -16,6 +16,9 @@ setup
 echo "Running usergroup tests..."
 bats tests/test_usergroup.bats
 
+echo "Running usergroup ID tests..."
+bats tests/test_usergroup_ids.bats
+
 echo "Running user tests..."
 bats tests/test_user.bats
 

@@ -573,6 +573,52 @@ class GuacamoleDB:
             print(f"Error deleting existing usergroup: {e}")
             raise
 
+    def delete_existing_usergroup_by_id(self, group_id):
+        """Delete a usergroup by ID and all its associated data"""
+        try:
+            # Validate and resolve the group ID
+            resolved_group_id = self.resolve_usergroup_id(group_id=group_id)
+            group_name = self.get_usergroup_name_by_id(resolved_group_id)
+            
+            self.debug_print(f"Attempting to delete usergroup: {group_name} (ID: {resolved_group_id})")
+            
+            # Delete group memberships
+            self.cursor.execute("""
+                DELETE FROM guacamole_user_group_member 
+                WHERE user_group_id = %s
+            """, (resolved_group_id,))
+
+            # Delete group permissions
+            self.cursor.execute("""
+                DELETE FROM guacamole_connection_permission 
+                WHERE entity_id IN (
+                    SELECT entity_id FROM guacamole_user_group 
+                    WHERE user_group_id = %s
+                )
+            """, (resolved_group_id,))
+
+            # Delete user group
+            self.cursor.execute("""
+                DELETE FROM guacamole_user_group 
+                WHERE user_group_id = %s
+            """, (resolved_group_id,))
+
+            # Delete entity
+            self.cursor.execute("""
+                DELETE FROM guacamole_entity 
+                WHERE entity_id IN (
+                    SELECT entity_id FROM guacamole_user_group 
+                    WHERE user_group_id = %s
+                )
+            """, (resolved_group_id,))
+            
+        except mysql.connector.Error as e:
+            print(f"Error deleting existing usergroup: {e}")
+            raise
+        except ValueError as e:
+            print(f"Error: {e}")
+            raise
+
     def delete_existing_connection(self, connection_name=None, connection_id=None):
         """Delete a connection and all its associated data"""
         try:
@@ -1085,39 +1131,44 @@ class GuacamoleDB:
     def list_usergroups_with_users_and_connections(self):
         """List all groups with their users and connections"""
         try:
-            # Get users per group
+            # Get users per group with IDs
             self.cursor.execute("""
                 SELECT 
                     e.name as groupname,
+                    ug.user_group_id,
                     GROUP_CONCAT(DISTINCT ue.name) as users
                 FROM guacamole_entity e
                 LEFT JOIN guacamole_user_group ug ON e.entity_id = ug.entity_id
                 LEFT JOIN guacamole_user_group_member ugm ON ug.user_group_id = ugm.user_group_id
                 LEFT JOIN guacamole_entity ue ON ugm.member_entity_id = ue.entity_id AND ue.type = 'USER'
                 WHERE e.type = 'USER_GROUP'
-                GROUP BY e.name
+                GROUP BY e.name, ug.user_group_id
             """)
-            groups_users = {row[0]: row[1].split(',') if row[1] else [] for row in self.cursor.fetchall()}
+            groups_users = {(row[0], row[1]): row[2].split(',') if row[2] else [] for row in self.cursor.fetchall()}
 
-            # Get connections per group
+            # Get connections per group with IDs
             self.cursor.execute("""
                 SELECT 
                     e.name as groupname,
+                    ug.user_group_id,
                     GROUP_CONCAT(DISTINCT c.connection_name) as connections
                 FROM guacamole_entity e
+                LEFT JOIN guacamole_user_group ug ON e.entity_id = ug.entity_id
                 LEFT JOIN guacamole_connection_permission cp ON e.entity_id = cp.entity_id
                 LEFT JOIN guacamole_connection c ON cp.connection_id = c.connection_id
                 WHERE e.type = 'USER_GROUP'
-                GROUP BY e.name
+                GROUP BY e.name, ug.user_group_id
             """)
-            groups_connections = {row[0]: row[1].split(',') if row[1] else [] for row in self.cursor.fetchall()}
+            groups_connections = {(row[0], row[1]): row[2].split(',') if row[2] else [] for row in self.cursor.fetchall()}
 
             # Combine results
             result = {}
-            for group in set(groups_users.keys()).union(groups_connections.keys()):
-                result[group] = {
-                    'users': groups_users.get(group, []),
-                    'connections': groups_connections.get(group, [])
+            for group_key in set(groups_users.keys()).union(groups_connections.keys()):
+                group_name, group_id = group_key
+                result[group_name] = {
+                    'id': group_id,
+                    'users': groups_users.get(group_key, []),
+                    'connections': groups_connections.get(group_key, [])
                 }
             return result
         except mysql.connector.Error as e:
@@ -1501,6 +1552,71 @@ class GuacamoleDB:
                 return result[0]
             except mysql.connector.Error as e:
                 raise ValueError(f"Database error while resolving connection group name: {e}")
+
+    def resolve_usergroup_id(self, group_name=None, group_id=None):
+        """Validate inputs and resolve to user_group_id with centralized validation"""
+        # Validate exactly one parameter provided
+        if (group_name is None) == (group_id is None):
+            raise ValueError("Exactly one of group_name or group_id must be provided")
+        
+        # If ID provided, validate and return it
+        if group_id is not None:
+            if group_id <= 0:
+                raise ValueError("Usergroup ID must be a positive integer greater than 0")
+            
+            # Verify the usergroup exists
+            try:
+                self.cursor.execute("""
+                    SELECT user_group_id FROM guacamole_user_group
+                    WHERE user_group_id = %s
+                """, (group_id,))
+                result = self.cursor.fetchone()
+                if not result:
+                    raise ValueError(f"Usergroup with ID {group_id} not found")
+                return group_id
+            except mysql.connector.Error as e:
+                raise ValueError(f"Database error while resolving usergroup ID: {e}")
+        
+        # If name provided, resolve to ID
+        if group_name is not None:
+            try:
+                self.cursor.execute("""
+                    SELECT user_group_id FROM guacamole_user_group g
+                    JOIN guacamole_entity e ON g.entity_id = e.entity_id
+                    WHERE e.name = %s
+                """, (group_name,))
+                result = self.cursor.fetchone()
+                if not result:
+                    raise ValueError(f"Usergroup '{group_name}' not found")
+                return result[0]
+            except mysql.connector.Error as e:
+                raise ValueError(f"Database error while resolving usergroup name: {e}")
+
+    def usergroup_exists_by_id(self, group_id):
+        """Check if a usergroup exists by ID"""
+        try:
+            self.cursor.execute("""
+                SELECT user_group_id FROM guacamole_user_group
+                WHERE user_group_id = %s
+            """, (group_id,))
+            return self.cursor.fetchone() is not None
+        except mysql.connector.Error as e:
+            raise ValueError(f"Database error while checking usergroup existence: {e}")
+
+    def get_usergroup_name_by_id(self, group_id):
+        """Get usergroup name by ID"""
+        try:
+            self.cursor.execute("""
+                SELECT e.name FROM guacamole_entity e
+                JOIN guacamole_user_group g ON e.entity_id = g.entity_id
+                WHERE g.user_group_id = %s
+            """, (group_id,))
+            result = self.cursor.fetchone()
+            if not result:
+                raise ValueError(f"Usergroup with ID {group_id} not found")
+            return result[0]
+        except mysql.connector.Error as e:
+            raise ValueError(f"Database error while getting usergroup name: {e}")
 
     def list_groups_with_users(self):
         query = """

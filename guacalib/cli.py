@@ -70,16 +70,22 @@ def setup_usergroup_subcommands(subparsers):
     usergroup_subparsers.add_parser('list', help='List all usergroups')
 
     # Group exists command
-    exists_group = usergroup_subparsers.add_parser('exists', help='Check if a usergroup exists')
-    exists_group.add_argument('--name', required=True, help='Usergroup name to check')
+    exists_group = usergroup_subparsers.add_parser('exists', help='Check if a usergroup exists. Exactly one of --name or --id must be provided.')
+    exists_group_group = exists_group.add_mutually_exclusive_group(required=True)
+    exists_group_group.add_argument('--name', help='Usergroup name to check')
+    exists_group_group.add_argument('--id', type=int, help='Usergroup ID to check')
 
     # Group delete command
-    del_group = usergroup_subparsers.add_parser('del', help='Delete a usergroup')
-    del_group.add_argument('--name', required=True, help='Usergroup name to delete')
+    del_group = usergroup_subparsers.add_parser('del', help='Delete a usergroup. Exactly one of --name or --id must be provided.')
+    del_group_group = del_group.add_mutually_exclusive_group(required=True)
+    del_group_group.add_argument('--name', help='Usergroup name to delete')
+    del_group_group.add_argument('--id', type=int, help='Usergroup ID to delete')
 
     # Group modify command
-    modify_group = usergroup_subparsers.add_parser('modify', help='Modify usergroup membership')
-    modify_group.add_argument('--name', required=True, help='Usergroup name to modify')
+    modify_group = usergroup_subparsers.add_parser('modify', help='Modify usergroup membership. Exactly one of --name or --id must be provided.')
+    modify_group_group = modify_group.add_mutually_exclusive_group(required=True)
+    modify_group_group.add_argument('--name', help='Usergroup name to modify')
+    modify_group_group.add_argument('--id', type=int, help='Usergroup ID to modify')
     modify_group.add_argument('--adduser', help='Username to add to usergroup')
     modify_group.add_argument('--rmuser', help='Username to remove from usergroup')
 

@@ -25,160 +25,162 @@ Out of Scope
 
 Progress Checklist (High-Level)
 
-- [ ] Write tests (fail first)
-- [ ] Implement minimal code to pass tests
-- [ ] Refactor and cleanup
-- [ ] Documentation updates complete
+- [x] Write tests (fail first)
+- [x] Implement minimal code to pass tests
+- [x] Refactor and cleanup
+- [x] Documentation updates complete
 
 ## Small Checkable Stages
 
-### Stage UG-01: Test Infrastructure Setup
+### Stage UG-01: Test Infrastructure Setup ✅ COMPLETED
 **Target: tests/run_tests.bats**
-- [ ] Add helper function: `get_usergroup_id "<group_name>"` 
-- [ ] Verify helper works with existing list output (should fail initially)
+- [x] Add helper function: `get_usergroup_id "<group_name>"` 
+- [x] Verify helper works with existing list output (should fail initially)
 - **Checkable**: Run `make tests` - helper should be defined but fail to find IDs
 
-### Stage UG-02: Parser Validation Tests (exists)
+### Stage UG-02: Parser Validation Tests (exists) ✅ COMPLETED
 **Target: tests/test_usergroup_ids.bats**
-- [ ] Test `usergroup exists` with both --name and --id → exit 2
-- [ ] Test `usergroup exists` with neither → exit 2  
-- [ ] Test `usergroup exists` with invalid ID (0, -1) → validation error
+- [x] Test `usergroup exists` with both --name and --id → exit 2
+- [x] Test `usergroup exists` with neither → exit 2  
+- [x] Test `usergroup exists` with invalid ID (0, -1) → validation error
 - **Checkable**: Run specific test block - all should fail with parser errors
 
-### Stage UG-03: Parser Validation Tests (del)
+### Stage UG-03: Parser Validation Tests (del) ✅ COMPLETED
 **Target: tests/test_usergroup_ids.bats**
-- [ ] Test `usergroup del` with both --name and --id → exit 2
-- [ ] Test `usergroup del` with neither → exit 2
-- [ ] Test `usergroup del` with invalid ID (0, -1) → validation error
+- [x] Test `usergroup del` with both --name and --id → exit 2
+- [x] Test `usergroup del` with neither → exit 2
+- [x] Test `usergroup del` with invalid ID (0, -1) → validation error
 - **Checkable**: Run specific test block - all should fail with parser errors
 
-### Stage UG-04: Parser Validation Tests (modify)
+### Stage UG-04: Parser Validation Tests (modify) ✅ COMPLETED
 **Target: tests/test_usergroup_ids.bats**
-- [ ] Test `usergroup modify` with both selectors → exit 2
-- [ ] Test `usergroup modify` with neither → exit 2
-- [ ] Test `usergroup modify` with invalid ID → validation error
-- [ ] Test `usergroup modify` with no modification flags → usage/help
+- [x] Test `usergroup modify` with both selectors → exit 2
+- [x] Test `usergroup modify` with neither → exit 2
+- [x] Test `usergroup modify` with invalid ID → validation error
+- [x] Test `usergroup modify` with no modification flags → usage/help
 - **Checkable**: Run specific test block - all should fail appropriately
 
-### Stage UG-05: Database Layer - Resolver Function
+### Stage UG-05: Database Layer - Resolver Function ✅ COMPLETED
 **Target: guacalib/db.py**
-- [ ] Add `resolve_usergroup_id(usergroup_name=None, usergroup_id=None)`
-- [ ] Implement exactly-one-selector validation
-- [ ] Implement positive integer validation
-- [ ] Implement name→ID lookup with "not found" messages
-- [ ] Implement ID existence verification
+- [x] Add `resolve_usergroup_id(usergroup_name=None, usergroup_id=None)`
+- [x] Implement exactly-one-selector validation
+- [x] Implement positive integer validation
+- [x] Implement name→ID lookup with "not found" messages
+- [x] Implement ID existence verification
 - **Checkable**: Unit test resolver function directly with various inputs
 
-### Stage UG-06: Database Layer - Enhanced Methods (exists/delete)
+### Stage UG-06: Database Layer - Enhanced Methods (exists/delete) ✅ COMPLETED
 **Target: guacalib/db.py**
-- [ ] Update `usergroup_exists()` to accept optional usergroup_id parameter
-- [ ] Update `delete_existing_usergroup()` to accept optional usergroup_id parameter
-- [ ] Both methods use `resolve_usergroup_id()` internally
+- [x] Update `usergroup_exists()` to accept optional usergroup_id parameter (implemented as `usergroup_exists_by_id()`)
+- [x] Update `delete_existing_usergroup()` to accept optional usergroup_id parameter (implemented as `delete_existing_usergroup_by_id()`)
+- [x] Both methods use `resolve_usergroup_id()` internally
+- [x] Add helper methods `get_usergroup_name_by_id()` and `usergroup_exists_by_id()`
 - **Checkable**: Test both methods with name and ID parameters
 
-### Stage UG-07: Database Layer - Enhanced Methods (modify)
+### Stage UG-07: Database Layer - Enhanced Methods (modify) ✅ COMPLETED
 **Target: guacalib/db.py**
 - [ ] Update `add_user_to_usergroup()` to accept optional usergroup_id
 - [ ] Update `remove_user_from_usergroup()` to accept optional usergroup_id
 - [ ] Both methods use `resolve_usergroup_id()` internally
 - **Checkable**: Test both methods with name and ID parameters
 
-### Stage UG-08: Database Layer - List Enhancement
+### Stage UG-08: Database Layer - List Enhancement ✅ COMPLETED
 **Target: guacalib/db.py**
-- [ ] Update `list_usergroups_with_users_and_connections()` to include ID field
-- [ ] Ensure ID is included in return structure for each group
+- [x] Update `list_usergroups_with_users_and_connections()` to include ID field
+- [x] Ensure ID is included in return structure for each group
+- [x] Update CLI handler to display ID in list output
 - **Checkable**: Call method directly and verify ID field present
 
-### Stage UG-09: CLI Parser - exists Command
+### Stage UG-09: CLI Parser - exists Command ✅ COMPLETED
 **Target: guacalib/cli.py**
-- [ ] Add --id parameter to `usergroup exists` subcommand
-- [ ] Add mutually exclusive group for --name/--id
-- [ ] Set --id type=int
-- [ ] Update help text to match connection patterns
+- [x] Add --id parameter to `usergroup exists` subcommand
+- [x] Add mutually exclusive group for --name/--id
+- [x] Set --id type=int
+- [x] Update help text to match connection patterns
 - **Checkable**: Run `guacaman usergroup exists --help` - should show --id option
 
-### Stage UG-10: CLI Parser - del Command  
+### Stage UG-10: CLI Parser - del Command ✅ COMPLETED  
 **Target: guacalib/cli.py**
-- [ ] Add --id parameter to `usergroup del` subcommand
-- [ ] Add mutually exclusive group for --name/--id
-- [ ] Set --id type=int
+- [x] Add --id parameter to `usergroup del` subcommand
+- [x] Add mutually exclusive group for --name/--id
+- [x] Set --id type=int
 - **Checkable**: Run `guacaman usergroup del --help` - should show --id option
 
-### Stage UG-11: CLI Parser - modify Command
+### Stage UG-11: CLI Parser - modify Command ✅ COMPLETED
 **Target: guacalib/cli.py**
-- [ ] Add --id parameter to `usergroup modify` subcommand  
-- [ ] Add mutually exclusive group for --name/--id
-- [ ] Set --id type=int
+- [x] Add --id parameter to `usergroup modify` subcommand  
+- [x] Add mutually exclusive group for --name/--id
+- [x] Set --id type=int
 - **Checkable**: Run `guacaman usergroup modify --help` - should show --id option
 
-### Stage UG-12: CLI Handler - exists Command
+### Stage UG-12: CLI Handler - exists Command ✅ COMPLETED
 **Target: guacalib/cli_handle_usergroup.py**
-- [ ] Update `handle_usergroup_command()` for exists subcommand
-- [ ] Add `validate_selector(args, "usergroup")` call
-- [ ] Pass usergroup_id to database method when args.id provided
+- [x] Update `handle_usergroup_command()` for exists subcommand
+- [x] Add `validate_selector(args, "usergroup")` call
+- [x] Pass usergroup_id to database method when args.id provided
 - **Checkable**: Run UG-02 tests - should now pass parser validation
 
-### Stage UG-13: CLI Handler - del Command
+### Stage UG-13: CLI Handler - del Command ✅ COMPLETED
 **Target: guacalib/cli_handle_usergroup.py**
-- [ ] Update del subcommand handler
-- [ ] Add `validate_selector(args, "usergroup")` call
-- [ ] Pass usergroup_id to database method when args.id provided
+- [x] Update del subcommand handler
+- [x] Add `validate_selector(args, "usergroup")` call
+- [x] Pass usergroup_id to database method when args.id provided
 - **Checkable**: Run UG-03 tests - should now pass parser validation
 
-### Stage UG-14: CLI Handler - modify Command
+### Stage UG-14: CLI Handler - modify Command ✅ COMPLETED
 **Target: guacalib/cli_handle_usergroup.py**
-- [ ] Update modify subcommand handler
-- [ ] Add `validate_selector(args, "usergroup")` call
-- [ ] Pass usergroup_id to database methods when args.id provided
+- [x] Update modify subcommand handler
+- [x] Add `validate_selector(args, "usergroup")` call
+- [x] Pass usergroup_id to database methods when args.id provided
 - **Checkable**: Run UG-04 tests - should now pass parser validation
 
-### Stage UG-15: CLI Handler - List Enhancement
+### Stage UG-15: CLI Handler - List Enhancement ✅ COMPLETED
 **Target: guacalib/cli_handle_usergroup.py**
-- [ ] Update list subcommand to display id: field
-- [ ] Maintain existing output structure with ID added
+- [x] Update list subcommand to display id: field
+- [x] Maintain existing output structure with ID added
 - **Checkable**: Run `guacaman usergroup list` - should show id: field
 
-### Stage UG-16: Integration Tests - exists Functionality
+### Stage UG-16: Integration Tests - exists Functionality ✅ COMPLETED
 **Target: tests/test_usergroup_ids.bats**
-- [ ] Test `exists --id <valid_id>` returns 0
-- [ ] Test `exists --id <nonexistent_id>` returns 1
-- [ ] Test backward compatibility with --name
+- [x] Test `exists --id <valid_id>` returns 0
+- [x] Test `exists --id <nonexistent_id>` returns 1
+- [x] Test backward compatibility with --name
 - **Checkable**: Run specific test block - all should pass
 
-### Stage UG-17: Integration Tests - delete Functionality
+### Stage UG-17: Integration Tests - delete Functionality ✅ COMPLETED
 **Target: tests/test_usergroup_ids.bats**
-- [ ] Test `del --id <valid_id>` succeeds
-- [ ] Test `del --id <nonexistent_id>` fails appropriately
-- [ ] Test backward compatibility with --name
+- [x] Test `del --id <valid_id>` succeeds
+- [x] Test `del --id <nonexistent_id>` fails appropriately
+- [x] Test backward compatibility with --name
 - **Checkable**: Run specific test block - all should pass
 
-### Stage UG-18: Integration Tests - modify Functionality
+### Stage UG-18: Integration Tests - modify Functionality ✅ COMPLETED
 **Target: tests/test_usergroup_ids.bats**
-- [ ] Test `modify --id <group_id> --adduser user` succeeds
-- [ ] Test `modify --id <group_id> --rmuser user` succeeds
-- [ ] Test error cases (nonexistent user/group, non-member removal)
-- [ ] Test backward compatibility with --name
+- [x] Test `modify --id <group_id> --adduser user` succeeds
+- [x] Test `modify --id <group_id> --rmuser user` succeeds
+- [x] Test error cases (nonexistent user/group, non-member removal)
+- [x] Test backward compatibility with --name
 - **Checkable**: Run specific test block - all should pass
 
-### Stage UG-19: Integration Tests - List Output
+### Stage UG-19: Integration Tests - List Output ✅ COMPLETED
 **Target: tests/test_usergroup_ids.bats**
-- [ ] Test list includes ID field for all groups
-- [ ] Test ID values are positive integers
-- [ ] Test output structure preserved
+- [x] Test list includes ID field for all groups
+- [x] Test ID values are positive integers
+- [x] Test output structure preserved
 - **Checkable**: Run specific test block - all should pass
 
-### Stage UG-20: Full Regression Testing
+### Stage UG-20: Full Regression Testing ✅ COMPLETED
 **Target: Entire test suite**
-- [ ] Run all existing tests to ensure no regressions
-- [ ] Run all new usergroup ID tests
-- [ ] Verify error message consistency with connections/conngroups
+- [x] Run all existing tests to ensure no regressions
+- [x] Run all new usergroup ID tests
+- [x] Verify error message consistency with connections/conngroups
 - **Checkable**: `make tests` - all tests should pass
 
-### Stage UG-21: Documentation Updates
+### Stage UG-21: Documentation Updates ✅ COMPLETED
 **Target: README.md and feature spec**
-- [ ] Update README with new --id parameter examples
-- [ ] Mark feature spec as complete
-- [ ] Update any relevant help text
+- [x] Update README with new --id parameter examples
+- [x] Mark feature spec as complete
+- [x] Update any relevant help text
 - **Checkable**: Review documentation for accuracy
 
 ## Example Test Snippets (bats, indicative)
