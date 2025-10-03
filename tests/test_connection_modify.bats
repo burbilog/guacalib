@@ -7,6 +7,7 @@ setup() {
     guacaman --config "$TEST_CONFIG" conngroup new --name testconngroup_modify1 2>/dev/null || true
     guacaman --config "$TEST_CONFIG" conngroup new --name testconngroup_modify2 2>/dev/null || true
     guacaman --config "$TEST_CONFIG" user new --name testuser_modify --password testpass_modify 2>/dev/null || true
+    guacaman --config "$TEST_CONFIG" user new --name testuser1 --password testpass1 2>/dev/null || true
     guacaman --config "$TEST_CONFIG" conn new --type vnc --name testconn_modify --hostname 192.168.1.102 --port 5903 --password vncpass_modify
 }
 
@@ -14,6 +15,7 @@ teardown() {
     # Clean up the test objects
     guacaman --config "$TEST_CONFIG" conn del --name testconn_modify 2>/dev/null || true
     guacaman --config "$TEST_CONFIG" user del --name testuser_modify 2>/dev/null || true
+    guacaman --config "$TEST_CONFIG" user del --name testuser1 2>/dev/null || true
     guacaman --config "$TEST_CONFIG" conngroup del --name testconngroup_modify1 2>/dev/null || true
     guacaman --config "$TEST_CONFIG" conngroup del --name testconngroup_modify2 2>/dev/null || true
 }
@@ -130,17 +132,17 @@ teardown() {
     # Set parent group
     run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn_modify --parent testconngroup_modify1
     [ "$status" -eq 0 ]
-    [[ "$output" == *"Successfully set parent group to 'testconngroup1'"* ]]
+    [[ "$output" == *"Successfully set parent group to 'testconngroup_modify1'"* ]]
     
     # Verify in connection list
     run guacaman --debug --config "$TEST_CONFIG" conn list
     [[ "$output" == *"testconn_modify"* ]]
-    [[ "$output" == *"parent: testconngroup1"* ]]
+    [[ "$output" == *"parent: testconngroup_modify1"* ]]
 }
 
 @test "Connection modify remove parent group" {
     # First set a group
-    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn_modify --parent testconngroup2
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn_modify --parent testconngroup_modify2
     [ "$status" -eq 0 ]
     # Then remove it
     run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn_modify --parent ""
@@ -149,19 +151,19 @@ teardown() {
     
     run guacaman --debug --config "$TEST_CONFIG" conn list
     [[ "$output" == *"testconn_modify"* ]]
-    [[ "$output" != *"testconngroup2"* ]]
+    [[ "$output" != *"testconngroup_modify2"* ]]
 }
 
 @test "Connection modify set nested parent group" {
     
-    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn_modify --parent testconngroup2
+    run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn_modify --parent testconngroup_modify2
     [ "$status" -eq 0 ]
-    [[ "$output" == *"Successfully set parent group to 'testconngroup2'"* ]]
+    [[ "$output" == *"Successfully set parent group to 'testconngroup_modify2'"* ]]
     
     run guacaman --debug --config "$TEST_CONFIG" conn list
     echo "$output" > /tmp/testconn_modify.txt
     [[ "$output" == *"testconn_modify"* ]]
-    [[ "$output" == *"parent: testconngroup2"* ]]
+    [[ "$output" == *"parent: testconngroup_modify2"* ]]
     
 }
 

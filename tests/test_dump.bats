@@ -1,5 +1,8 @@
 #!/usr/bin/env bats
 
+# Load the main test runner which includes setup/teardown and helper functions
+load run_tests.bats
+
 @test "Dump command shows test data" {
     run guacaman --config "$TEST_CONFIG" dump
     [ "$status" -eq 0 ]

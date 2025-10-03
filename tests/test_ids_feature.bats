@@ -1,18 +1,11 @@
 #!/usr/bin/env bats
 
+# Load the main test runner which includes setup/teardown and helper functions
+load run_tests.bats
+
 # ID feature tests
 
-# Helper function to extract connection ID from list output
-get_connection_id() {
-    local conn_name="$1"
-    guacaman --config "$TEST_CONFIG" conn list | grep -A 1 "^  $conn_name:" | grep "id:" | cut -d: -f2 | tr -d ' '
-}
 
-# Helper function to extract connection group ID from list output  
-get_conngroup_id() {
-    local group_name="$1"
-    guacaman --config "$TEST_CONFIG" conngroup list | grep -A 1 "^  $group_name:" | grep "id:" | cut -d: -f2 | tr -d ' '
-}
 
 @test "Stage 1: Connection exists with ID parameter" {
     # Get the ID of testconn1
