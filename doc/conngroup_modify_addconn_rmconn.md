@@ -6,8 +6,8 @@ Extend `guacaman conngroup modify` command to support adding and removing connec
 
 ## Scope
 
-- Add `--addconn <connection_name>` parameter to add connections to groups
-- Add `--rmconn <connection_name>` parameter to remove connections from groups  
+- Add `--addconn-by-name <connection_name>` and `--addconn-by-id <connection_id>` parameter to add connections to groups
+- Add `--rmconn-by-name <connection_name>` and `--rmconn-by-id <connection_id>`parameter to remove connections from groups  
 - Support both `--name` and `--id` for target connection group selection
 - Validate connection existence before add/remove operations
 - Handle duplicate add attempts and removal of non-members gracefully
@@ -62,7 +62,7 @@ guacaman conngroup modify --id 456 --rmconn-by-name conn3 --rmconn-by-id 789 --r
 - Cannot add a connection that's already a member of the target group
 - Cannot remove a connection that's not a member of the target group
 - Operations are atomic - either all succeed or all fail
-- `--addconn` and `--rmconn` cannot be used in the same command
+- `--addconn-*` and `--rmconn-*` cannot be used in the same command
 
 ## TDD Implementation Stages
 
@@ -87,7 +87,7 @@ guacaman conngroup modify --id 456 --rmconn-by-name conn3 --rmconn-by-id 789 --r
 # Add Connection Tests (Name and ID)
 @test "add single connection to group by name - should fail initially"
 @test "add single connection to group by id - should fail initially" 
-@test "add connection by ID using --addconn-id - should fail initially"
+@test "add connection by ID using --addconn-by-id - should fail initially"
 @test "add multiple connections to group - should fail initially"
 @test "add mixed name and ID connections in same command - should fail initially"
 @test "fail to add non-existent connection - should fail initially"
@@ -97,7 +97,7 @@ guacaman conngroup modify --id 456 --rmconn-by-name conn3 --rmconn-by-id 789 --r
 # Remove Connection Tests (Name and ID)
 @test "remove single connection from group by name - should fail initially"
 @test "remove single connection from group by id - should fail initially"
-@test "remove connection by ID using --rmconn-id - should fail initially"
+@test "remove connection by ID using --rmconn-by-id - should fail initially"
 @test "remove multiple connections from group - should fail initially" 
 @test "remove mixed name and ID connections in same command - should fail initially"
 @test "fail to remove non-existent connection - should fail initially"
@@ -150,10 +150,10 @@ guacaman conngroup modify --id 456 --rmconn-by-name conn3 --rmconn-by-id 789 --r
 **Success Criteria**: All tests pass
 
 **Implementation Tasks**:
-- [ ] Add `--addconn` parameter to conngroup modify subparser
-- [ ] Add `--rmconn` parameter to conngroup modify subparser  
-- [ ] Add `--addconn-id` parameter to conngroup modify subparser
-- [ ] Add `--rmconn-id` parameter to conngroup modify subparser
+- [ ] Add `--addconn-by-name` parameter to conngroup modify subparser
+- [ ] Add `--rmconn-by-name` parameter to conngroup modify subparser  
+- [ ] Add `--addconn-by-id` parameter to conngroup modify subparser
+- [ ] Add `--rmconn-by-id` parameter to conngroup modify subparser
 - [ ] Support multiple values for all parameters (nargs='*')
 - [ ] Add mutual exclusion group between add operations and remove operations
 - [ ] Update help text to clearly explain usage and restrictions
@@ -203,8 +203,8 @@ guacaman conngroup modify --id 456 --rmconn-by-name conn3 --rmconn-by-id 789 --r
 - `Connection '<CONNECTION_NAME_OR_ID>' is not a member of group '<GROUP_NAME>'`
 
 #### Parameter Errors
-- `Cannot use --addconn and --rmconn in the same command`
-- `At least one connection must be specified with --addconn or --rmconn`
+- `Cannot use any --addconn-* and --rmconn-* in the same command`
+- `At least one connection must be specified with --addconn-* or --rmconn-*`
 - `No connections specified for operation`
 
 #### Success Messages
