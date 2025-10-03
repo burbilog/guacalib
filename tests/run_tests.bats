@@ -20,3 +20,8 @@ get_conngroup_id() {
     local group_name="$1"
     guacaman --config "$TEST_CONFIG" conngroup list | grep -A 1 "^  $group_name:" | grep "id:" | cut -d: -f2 | tr -d ' '
 }
+
+get_usergroup_id() {
+    local group_name="$1"
+    guacaman --config "$TEST_CONFIG" usergroup list | grep -A 1 "^  $group_name:" | grep "id:" | cut -d: -f2 | tr -d ' '
+}
