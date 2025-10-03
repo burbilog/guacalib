@@ -2,12 +2,12 @@
 
 ## Overview
 
-Extend `guacaman conngroup modify` command to support adding and removing connections to/from connection groups using `--addconn-by-name`/`--addconn-by-id` and `--rmconn-by-name` and `--rmconn-by-id` parameters. The target connection group can be specified by either `--name` or `--id`.
+Extend `guacaman conngroup modify` command to support adding and removing connections to/from connection groups using `--addconn-by-name`/`--addconn-by-id` and `--rmconn-by-name`/`--rmconn-by-id` parameters. The target connection group can be specified by either `--name` or `--id`.
 
 ## Scope
 
 - Add `--addconn-by-name <connection_name>` and `--addconn-by-id <connection_id>` parameter to add connections to groups
-- Add `--rmconn-by-name <connection_name>` and `--rmconn-by-id <connection_id>`parameter to remove connections from groups  
+- Add `--rmconn-by-name <connection_name>` and `--rmconn-by-id <connection_id>` parameter to remove connections from groups  
 - Support both `--name` and `--id` for target connection group selection
 - Validate connection existence before add/remove operations
 - Handle duplicate add attempts and removal of non-members gracefully
@@ -77,36 +77,28 @@ guacaman conngroup modify --id 456 --rmconn-by-name conn3 --rmconn-by-id 789 --r
 ```bash
 # CLI Integration Tests (Full workflow)
 @test "conngroup modify help shows new parameters - should fail initially"
-@test "addconn parameter accepts multiple values - should fail initially"
-@test "rmconn parameter accepts multiple values - should fail initially"
-@test "addconn-id parameter accepts multiple values - should fail initially"
-@test "rmconn-id parameter accepts multiple values - should fail initially"
-@test "addconn and rmconn are mutually exclusive - should fail initially"
-@test "addconn-id and rmconn-id are mutually exclusive - should fail initially"
+@test "--addconn-by-name parameter accepts multiple values - should fail initially"
+@test "--rmconn-by-name parameter accepts multiple values - should fail initially"
+@test "--addconn-by-id parameter accepts multiple values - should fail initially"
+@test "--rmconn-by-id parameter accepts multiple values - should fail initially"
+@test "--addconn-by-name and --rmconn-by-name are mutually exclusive - should fail initially"
+@test "--addconn-by-id and --rmconn-by-id are mutually exclusive - should fail initially"
 
 # Add Connection Tests (Name and ID)
-@test "add single connection to group by name - should fail initially"
-@test "add single connection to group by id - should fail initially" 
-@test "add connection by ID using --addconn-by-id - should fail initially"
-@test "add multiple connections to group - should fail initially"
-@test "add mixed name and ID connections in same command - should fail initially"
+@test "add connections to group with various inputs (single, multiple, mixed name/ID) - should fail initially"
 @test "fail to add non-existent connection - should fail initially"
 @test "fail to add to non-existent group - should fail initially"
 @test "fail to add duplicate connection to group - should fail initially"
 
 # Remove Connection Tests (Name and ID)
-@test "remove single connection from group by name - should fail initially"
-@test "remove single connection from group by id - should fail initially"
-@test "remove connection by ID using --rmconn-by-id - should fail initially"
-@test "remove multiple connections from group - should fail initially" 
-@test "remove mixed name and ID connections in same command - should fail initially"
+@test "remove connections from group with various inputs (single, multiple, mixed name/ID) - should fail initially"
 @test "fail to remove non-existent connection - should fail initially"
 @test "fail to remove from non-existent group - should fail initially"
 @test "fail to remove non-member connection - should fail initially"
 
 # Validation and Error Tests
-@test "reject both addconn and rmconn in same command - should fail initially"
-@test "reject both addconn-id and rmconn-id in same command - should fail initially"
+@test "reject both --addconn-by-name and --rmconn-by-name in same command - should fail initially"
+@test "reject both --addconn-by-id and --rmconn-by-id in same command - should fail initially"
 @test "reject mixed add/remove operations - should fail initially"
 @test "reject non-existent target group - should fail initially"
 @test "reject non-existent connection - should fail initially"
