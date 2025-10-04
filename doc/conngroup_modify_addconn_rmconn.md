@@ -4,6 +4,8 @@
 
 Extend `guacaman conngroup modify` command to support adding and removing connections to/from connection groups using `--addconn-by-name`/`--addconn-by-id` and `--rmconn-by-name`/`--rmconn-by-id` parameters. The target connection group can be specified by either `--name` or `--id`.
 
+**Implementation Notes**: This feature requires creating new database layer methods from scratch (no existing connection-group membership management exists in the codebase) and implementing atomic transactions for batch operations.
+
 ## Scope
 
 - Add `--addconn-by-name <connection_name>` and `--addconn-by-id <connection_id>` parameter to add connections to groups
@@ -53,15 +55,15 @@ guacaman conngroup modify --id 456 --rmconn-by-name conn3 --rmconn-by-id 789 --r
 - Group must exist in the database
 
 2.2 Connection Validation
-- All specified connections must exist before any operation
-- Connection names are resolved to IDs for database operations
-- Connection IDs are validated to ensure they exist
+- All specified connections are validated to exist before any database operations begin
+- Connection names are resolved to IDs for database operations, ID values are validated for existence
 - Mixed usage of names and IDs is supported within the same operation
+- Validation prevents partial failures by checking all connections upfront
 
 2.3 Operation Rules
 - Cannot add a connection that's already a member of the target group
 - Cannot remove a connection that's not a member of the target group
-- Operations are atomic - either all succeed or all fail
+- Operations are atomic - either all succeed or all fail (implemented using database transactions with rollback on failure)
 - `--addconn-*` and `--rmconn-*` cannot be used in the same command
 
 ## TDD Implementation Stages
@@ -127,13 +129,16 @@ guacaman conngroup modify --id 456 --rmconn-by-name conn3 --rmconn-by-id 789 --r
 **Files**: `guacalib/db.py`
 **Success Criteria**: Database operation tests pass
 
+**Background**: No existing database methods exist for managing connection-group memberships. These core methods need to be created from scratch and will interact with the `guacamole_connection.parent_id` field to assign connections to connection groups.
+
 **Implementation Tasks**:
-- [ ] Add `add_connection_to_group(connection_name_or_id, group_name=None, group_id=None)` method
-- [ ] Add `remove_connection_from_group(connection_name_or_id, group_name=None, group_id=None)` method  
-- [ ] Add `get_group_connections(group_name=None, group_id=None)` helper method
-- [ ] Add `is_connection_in_group(connection_name_or_id, group_name=None, group_id=None)` validation method
-- [ ] Add `resolve_connection_name_or_id(connection_name_or_id)` helper to handle both names and IDs
-- [ ] Integrate with existing `resolve_connection_id()` and `resolve_conngroup_id()` resolvers
+- [ ] Verify resolver dependencies exist (`resolve_connection_id()`, `resolve_conngroup_id()`)
+- [ ] Add `add_connection_to_group(connection_name_or_id, group_name=None, group_id=None)` method - handles adding single connection to a group using parent_id field
+- [ ] Add `remove_connection_from_group(connection_name_or_id, group_name=None, group_id=None)` method - handles removing single connection from a group by setting parent_id to NULL
+- [ ] Add `get_group_connections(group_name=None, group_id=None)` helper method - list connections currently in a specific group
+- [ ] Add `is_connection_in_group(connection_name_or_id, group_name=None, group_id=None)` validation method - check if connection is already a member
+- [ ] Add `resolve_connection_name_or_id(connection_name_or_id)` helper to handle both names and IDs - integrates with existing resolvers
+- [ ] Implement transaction rollback on any operation failure to ensure atomicity
 - [ ] Run tests - database operation tests should PASS (Green)
 - [ ] Refactor database code if needed
 
