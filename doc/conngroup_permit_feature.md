@@ -37,99 +37,84 @@ Guacamole uses the same `guacamole_connection_permission` table for both individ
 
 ## TDD-Based Implementation Plan
 
-### Stage 1: Database Layer - Permission Methods
+### Stage 1: Write Failing Tests First
 
-**Objective**: Implement database methods for connection group permission management.
+**Objective**: Create comprehensive tests that will initially fail, driving the implementation.
 
-- [ ] **Stage 1.1**: Add `grant_connection_group_permission_to_user(username, connection_group_name)` method to `GuacamoleDB` class
-  - Get connection group ID from `guacamole_connection_group` table
-  - Get user entity ID from `guacamole_entity` table
-  - Check for existing permission to prevent duplicates
-  - Insert permission record with 'READ' permission type
-  - Return success/failure status
-
-- [ ] **Stage 1.2**: Add `revoke_connection_group_permission_from_user(username, connection_group_name)` method to `GuacamodeDB` class
-  - Get connection group ID from `guacamole_connection_group` table
-  - Get user entity ID from `guacamole_entity` table
-  - Check for existing permission before revoking
-  - Delete permission record
-  - Return success/failure status
-
-- [ ] **Stage 1.3**: Add ID-based variants of both methods for `--id` parameter support
-  - `grant_connection_group_permission_to_user_by_id(username, connection_group_id)`
-  - `revoke_connection_group_permission_from_user_by_id(username, connection_group_id)`
-
-### Stage 2: CLI Argument Parsing
-
-**Objective**: Add `--permit` and `--deny` arguments to conngroup modify subcommand.
-
-- [ ] **Stage 2.1**: Add `--permit USERNAME` parameter to conngroup modify subparser
-  - Use `add_argument('--permit', metavar='USERNAME', help='Grant permission to user')`
-  - Allow multiple permits by using `action='append'`
-
-- [ ] **Stage 2.2**: Add `--deny USERNAME` parameter to conngroup modify subparser
-  - Use `add_argument('--deny', metavar='USERNAME', help='Revoke permission from user')`
-  - Allow multiple denies by using `action='append'`
-
-- [ ] **Stage 2.3**: Update help text to include new parameters alongside existing ones
-
-### Stage 3: CLI Handler Implementation
-
-**Objective**: Implement the command handling logic in `cli_handle_conngroup.py`.
-
-- [ ] **Stage 3.1**: Modify `handle_conngroup_command()` modify branch to detect permission operations
-  - Check if `args.permit` or `args.deny` are provided
-  - Add permission operation to the existing modification validation logic
-
-- [ ] **Stage 3.2**: Implement permit handling logic
-  - Support both name-based (`--name`) and ID-based (`--id`) group selection
-  - Iterate through multiple permit users if provided
-  - Call appropriate database method based on selector type
-  - Provide success feedback for each user
-
-- [ ] **Stage 3.3**: Implement deny handling logic
-  - Support both name-based (`--name`) and ID-based (`--id`) group selection
-  - Iterate through multiple deny users if provided
-  - Call appropriate database method based on selector type
-  - Provide success feedback for each user
-
-- [ ] **Stage 3.4**: Add error handling and validation
-  - Validate user existence before permission operations
-  - Handle permission conflicts (already permitted/not permitted)
-  - Provide clear error messages for debugging
-
-### Stage 4: Testing Infrastructure
-
-**Objective**: Create comprehensive test suite for the new functionality.
-
-- [ ] **Stage 4.1**: Create test file `tests/test_conngroup_permit_deny.bats`
-  - Setup/teardown test users and connection groups
+- [ ] **Stage 1.1**: Create test file `tests/test_conngroup_permit_deny.bats`
+  - Setup/teardown functions for test users and connection groups
   - Test both name-based and ID-based operations
-  - Test multiple users in single command
 
-- [ ] **Stage 4.2**: Test permission granting scenarios
-  - Grant permission to single user with `--name` selector
-  - Grant permission to single user with `--id` selector
-  - Grant permission to multiple users in one command
-  - Attempt to grant permission to non-existent user (should fail)
-  - Attempt to grant permission for non-existent group (should fail)
+- [ ] **Stage 1.2**: Write permission granting test cases
+  - Test `guacaman conngroup modify --name <group> --permit <user>` should succeed
+  - Test `guacaman conngroup modify --id <group_id> --permit <user>` should succeed
+  - Single user action should be allowed only: `--permit user1 --permit user2` should fail with appropriate error
+  - Test non-existent user with `--permit` should fail with appropriate error
+  - Test non-existent group with `--permit` should fail with appropriate error
+  - Test duplicate permission grant should handle gracefully
 
-- [ ] **Stage 4.3**: Test permission revocation scenarios
-  - Revoke permission from single user with `--name` selector
-  - Revoke permission from single user with `--id` selector
-  - Revoke permission from multiple users in one command
-  - Attempt to revoke permission from non-existent user (should fail)
-  - Attempt to revoke permission not previously granted (should fail)
+- [ ] **Stage 1.3**: Write permission revocation test cases
+  - Test `guacaman conngroup modify --name <group> --deny <user>` should succeed
+  - Test `guacaman conngroup modify --id <group_id> --deny <user>` should succeed
+  - Test multiple users: `--deny user1 --deny user2` should fail with appropriate error
+  - Test non-existent user with `--deny` should fail with appropriate error
+  - Test revoking non-existent permission should fail with appropriate error
 
-- [ ] **Stage 4.4**: Test permission state verification
-  - Use permission listing/debugging to verify granted permissions
-  - Test that permissions persist after group modification
-  - Test that permissions are correctly revoked
+- [ ] **Stage 1.4**: Write permission verification test cases
+  - Test that granted permissions persist and are verifiable
+  - Test that revoked permissions are actually removed
+  - Test permission state verification methods
 
-- [ ] **Stage 4.5**: Integration tests with existing modify operations
-  - Test `--permit`/`--deny` combined with `--parent` operations
+- [ ] **Stage 1.5**: Write integration test cases
+  - Test `--permit`/`--deny` combined with existing `--parent` operations
   - Test `--permit`/`--deny` combined with connection add/remove operations
-  - Test order independence of operations
+  - Test command order independence
+  - Test help text shows new parameters correctly
+
+**TDD Principle**: Run `bats tests/test_conngroup_permit_deny.bats` - all tests should fail initially since no implementation exists yet.
+
+### Stage 2: Minimal Implementation to Make Tests Pass
+
+**Objective**: Implement just enough code to satisfy the failing tests.
+
+- [ ] **Stage 2.1**: Add CLI argument parsing (minimal implementation)
+  - Add `--permit USERNAME` parameter to conngroup modify subparser
+  - Add `--deny USERNAME` parameter to conngroup modify subparser
+
+- [ ] **Stage 2.2**: Implement basic database methods (just enough to pass tests)
+  - Add `grant_connection_group_permission_to_user()` to `GuacamoleDB`
+  - Add `revoke_connection_group_permission_from_user()` to `GuacamoleDB`
+  - Add ID-based variants to support `--id` selector
+
+- [ ] **Stage 2.3**: Implement CLI handler logic
+  - Modify `handle_conngroup_command()` to detect permission operations
+  - Add basic permit/deny handling with name and ID selector support
+  - Add minimal error handling for test scenarios
+
+- [ ] **Stage 2.4**: Run tests again - they should now pass
+  - Fix any remaining test failures
+  - Ensure error messages match test expectations
+
+### Stage 3: Refinement and Enhancement
+
+**Objective**: Improve implementation quality while maintaining passing tests.
+
+- [ ] **Stage 3.1**: Add comprehensive error handling
+  - Validate user existence before operations
+  - Handle permission conflicts gracefully
+  - Improve error message clarity and usefulness
+
+- [ ] **Stage 3.2**: Add input validation and edge case handling
+  - Validate argument combinations
+  - Handle database connection errors
+  - Add logging for debugging
+
+- [ ] **Stage 3.3**: Performance and reliability improvements
+  - Add transaction support for atomic operations
+  - Optimize database queries
+  - Add connection cleanup and resource management
+
+**TDD Cycle**: After each enhancement, run the full test suite to ensure existing functionality remains intact and new features still work correctly.
 
 ### Stage 5: Documentation and Examples
 
@@ -158,7 +143,6 @@ Guacamole uses the same `guacamole_connection_permission` table for both individ
 - Follow existing patterns from connection permission management
 - Support both `--name` and `--id` selection methods
 - Use the same color coding and output formatting as other commands
-- Support multiple users per command for consistency with other operations
 
 ### Error Handling
 - Validate user existence before permission operations
