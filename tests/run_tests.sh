@@ -31,6 +31,9 @@ bats tests/test_connection_modify.bats
 echo "Running connection group tests..."
 bats tests/test_conngroup.bats
 
+echo "Running connection group add/rm connection tests..."
+bats tests/test_conngroup_addconn_rmconn.bats
+
 echo "Running ID feature tests..."
 bats tests/test_ids_feature.bats
 

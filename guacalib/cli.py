@@ -119,7 +119,19 @@ def setup_conngroup_subcommands(subparsers):
     modify_conngroup_group = modify_conngroup.add_mutually_exclusive_group(required=True)
     modify_conngroup_group.add_argument('--name', help='Connection group name to modify')
     modify_conngroup_group.add_argument('--id', type=int, help='Connection group ID to modify')
-    modify_conngroup.add_argument('--parent', 
+
+    # Add connection arguments (mutually exclusive with remove arguments)
+    conn_modify_group = modify_conngroup.add_mutually_exclusive_group()
+    conn_modify_group.add_argument('--addconn-by-name',
+                                  help='Add connection by name to the target group')
+    conn_modify_group.add_argument('--addconn-by-id', type=int,
+                                  help='Add connection by ID to the target group')
+    conn_modify_group.add_argument('--rmconn-by-name',
+                                  help='Remove connection by name from the target group')
+    conn_modify_group.add_argument('--rmconn-by-id', type=int,
+                                  help='Remove connection by ID from the target group')
+
+    modify_conngroup.add_argument('--parent',
                                help='Set parent connection group name (use empty string to unset parent group)')
 
 def setup_dump_subcommand(subparsers):

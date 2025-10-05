@@ -103,6 +103,7 @@ def handle_conngroup_command(args, guacdb):
             else:
                 group_name = args.name
                 
+            # Handle parent modification
             if args.parent is not None:
                 guacdb.debug_print(f"Setting parent connection group: {args.parent}")
                 if hasattr(args, 'id') and args.id is not None:
@@ -111,6 +112,53 @@ def handle_conngroup_command(args, guacdb):
                     guacdb.modify_connection_group_parent(group_name=args.name, new_parent_name=args.parent)
                 guacdb.conn.commit()  # Explicitly commit the transaction
                 print(f"Successfully set parent group for '{group_name}' to '{args.parent}'")
+
+            # Handle connection addition/removal
+            connection_modified = False
+
+            if hasattr(args, 'addconn_by_name') and args.addconn_by_name is not None:
+                guacdb.debug_print(f"Adding connection by name: {args.addconn_by_name}")
+                guacdb.modify_connection_parent_group(connection_name=args.addconn_by_name, group_name=group_name)
+                connection_modified = True
+                print(f"Added connection '{args.addconn_by_name}' to group '{group_name}'")
+
+            elif hasattr(args, 'addconn_by_id') and args.addconn_by_id is not None:
+                guacdb.debug_print(f"Adding connection by ID: {args.addconn_by_id}")
+                # Get connection name for display
+                conn_name = guacdb.get_connection_name_by_id(args.addconn_by_id)
+                if not conn_name:
+                    print(f"Error: Connection with ID {args.addconn_by_id} not found")
+                    sys.exit(1)
+                guacdb.modify_connection_parent_group(connection_id=args.addconn_by_id, group_name=group_name)
+                connection_modified = True
+                print(f"Added connection '{conn_name}' to group '{group_name}'")
+
+            elif hasattr(args, 'rmconn_by_name') and args.rmconn_by_name is not None:
+                guacdb.debug_print(f"Removing connection by name: {args.rmconn_by_name}")
+                guacdb.modify_connection_parent_group(connection_name=args.rmconn_by_name, group_name=None)
+                connection_modified = True
+                print(f"Removed connection '{args.rmconn_by_name}' from group '{group_name}'")
+
+            elif hasattr(args, 'rmconn_by_id') and args.rmconn_by_id is not None:
+                guacdb.debug_print(f"Removing connection by ID: {args.rmconn_by_id}")
+                # Get connection name for display
+                conn_name = guacdb.get_connection_name_by_id(args.rmconn_by_id)
+                if not conn_name:
+                    print(f"Error: Connection with ID {args.rmconn_by_id} not found")
+                    sys.exit(1)
+                guacdb.modify_connection_parent_group(connection_id=args.rmconn_by_id, group_name=None)
+                connection_modified = True
+                print(f"Removed connection '{conn_name}' from group '{group_name}'")
+
+            # Validate that either parent or connection operation was specified
+            if args.parent is None and not connection_modified:
+                print("Error: No modification specified. Use --parent, --addconn-*, or --rmconn-*")
+                sys.exit(2)
+
+            # Commit connection operations
+            if connection_modified:
+                guacdb.conn.commit()
+
             sys.exit(0)
         except ValueError as e:
             print(f"Error: {e}")
