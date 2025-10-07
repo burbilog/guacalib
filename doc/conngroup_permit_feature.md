@@ -118,27 +118,16 @@ Guacamole uses the same `guacamole_connection_permission` table for both individ
 
 ### Stage 4: Integration Testing and Final Validation
 
-**Objective**: Ensure the complete feature works correctly in production-like scenarios with comprehensive testing.
+**Objective**: Ensure the feature integrates properly with existing functionality.
 
 - [ ] **Stage 4.1**: Run full test suite against live database
   - Execute all test cases with real database interactions
   - Verify no regressions in existing functionality
-  - Performance testing with large permission sets
 
 - [ ] **Stage 4.2**: Integration testing with other features
   - Test permission operations combined with connection group hierarchy
   - Verify permission inheritance from parent groups
-  - Test with concurrent user sessions and operations
-
-- [ ] **Stage 4.3**: End-to-end workflow testing
-  - Complete user permission management workflows
-  - Test scenario: Create user → Create group → Grant permission → Verify access → Revoke permission
-  - Error recovery and rollback testing
-
-- [ ] **Stage 4.4**: Security and authorization testing
-  - Verify proper permission enforcement
-  - Test unauthorized access attempts are blocked
-  - Audit logging verification for permission changes
+  - Test with existing connection permission operations
 
 ### Stage 5: Documentation and Examples
 
