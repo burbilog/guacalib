@@ -34,6 +34,9 @@ bats tests/test_conngroup.bats
 echo "Running connection group add/rm connection tests..."
 bats tests/test_conngroup_addconn_rmconn.bats
 
+echo "Running connection group permit/deny tests..."
+bats tests/test_conngroup_permit_deny.bats
+
 echo "Running ID feature tests..."
 bats tests/test_ids_feature.bats
 
