@@ -41,35 +41,35 @@ Guacamole uses the same `guacamole_connection_permission` table for both individ
 
 **Objective**: Create comprehensive tests that will initially fail, driving the implementation.
 
-- [ ] **Stage 1.1**: Create test file `tests/test_conngroup_permit_deny.bats`
-  - Setup/teardown functions for test users and connection groups
-  - Test both name-based and ID-based operations
+- [x] **Stage 1.1**: Create test file `tests/test_conngroup_permit_deny.bats`
+  - [x] Setup/teardown functions for test users and connection groups
+  - [x] Test both name-based and ID-based operations
 
-- [ ] **Stage 1.2**: Write permission granting test cases
-  - Test `guacaman conngroup modify --name <group> --permit <user>` should succeed
-  - Test `guacaman conngroup modify --id <group_id> --permit <user>` should succeed
-  - Single user action should be allowed only: `--permit user1 --permit user2` should fail with appropriate error
-  - Test non-existent user with `--permit` should fail with appropriate error
-  - Test non-existent group with `--permit` should fail with appropriate error
-  - Test duplicate permission grant should handle gracefully
+- [x] **Stage 1.2**: Write permission granting test cases
+  - [x] Test `guacaman conngroup modify --name <group> --permit <user>` should succeed
+  - [x] Test `guacaman conngroup modify --id <group_id> --permit <user>` should succeed
+  - [ ] Single user action should be allowed only: `--permit user1 --permit user2` should fail with appropriate error
+  - [ ] Test non-existent user with `--permit` should fail with appropriate error
+  - [ ] Test non-existent group with `--permit` should fail with appropriate error
+  - [ ] Test duplicate permission grant should handle gracefully
 
-- [ ] **Stage 1.3**: Write permission revocation test cases
-  - Test `guacaman conngroup modify --name <group> --deny <user>` should succeed
-  - Test `guacaman conngroup modify --id <group_id> --deny <user>` should succeed
-  - Test multiple users: `--deny user1 --deny user2` should fail with appropriate error
-  - Test non-existent user with `--deny` should fail with appropriate error
-  - Test revoking non-existent permission should fail with appropriate error
+- [x] **Stage 1.3**: Write permission revocation test cases
+  - [x] Test `guacaman conngroup modify --name <group> --deny <user>` should succeed
+  - [x] Test `guacaman conngroup modify --id <group_id> --deny <user>` should succeed
+  - [ ] Test multiple users: `--deny user1 --deny user2` should fail with appropriate error
+  - [ ] Test non-existent user with `--deny` should fail with appropriate error
+  - [ ] Test revoking non-existent permission should fail with appropriate error
 
 - [ ] **Stage 1.4**: Write permission verification test cases
-  - Test that granted permissions persist and are verifiable
-  - Test that revoked permissions are actually removed
-  - Test permission state verification methods
+  - [ ] Test that granted permissions persist and are verifiable
+  - [ ] Test that revoked permissions are actually removed
+  - [ ] Test permission state verification methods
 
-- [ ] **Stage 1.5**: Write integration test cases
-  - Test `--permit`/`--deny` combined with existing `--parent` operations
-  - Test `--permit`/`--deny` combined with connection add/remove operations
-  - Test command order independence
-  - Test help text shows new parameters correctly
+- [x] **Stage 1.5**: Write integration test cases
+  - [x] Test `--permit`/`--deny` combined with existing `--parent` operations
+  - [ ] Test `--permit`/`--deny` combined with connection add/remove operations
+  - [ ] Test command order independence
+  - [ ] Test help text shows new parameters correctly
 
 **TDD Principle**: Run `bats tests/test_conngroup_permit_deny.bats` - all tests should fail initially since no implementation exists yet.
 
@@ -77,23 +77,23 @@ Guacamole uses the same `guacamole_connection_permission` table for both individ
 
 **Objective**: Implement just enough code to satisfy the failing tests.
 
-- [ ] **Stage 2.1**: Add CLI argument parsing (minimal implementation)
-  - Add `--permit USERNAME` parameter to conngroup modify subparser
-  - Add `--deny USERNAME` parameter to conngroup modify subparser
+- [x] **Stage 2.1**: Add CLI argument parsing (minimal implementation)
+  - [x] Add `--permit USERNAME` parameter to conngroup modify subparser
+  - [x] Add `--deny USERNAME` parameter to conngroup modify subparser
 
-- [ ] **Stage 2.2**: Implement basic database methods (just enough to pass tests)
-  - Add `grant_connection_group_permission_to_user()` to `GuacamoleDB`
-  - Add `revoke_connection_group_permission_from_user()` to `GuacamoleDB`
-  - Add ID-based variants to support `--id` selector
+- [x] **Stage 2.2**: Implement basic database methods (just enough to pass tests)
+  - [x] Add `grant_connection_group_permission_to_user()` to `GuacamoleDB`
+  - [x] Add `revoke_connection_group_permission_from_user()` to `GuacamoleDB`
+  - [x] Add ID-based variants to support `--id` selector
 
-- [ ] **Stage 2.3**: Implement CLI handler logic
-  - Modify `handle_conngroup_command()` to detect permission operations
-  - Add basic permit/deny handling with name and ID selector support
-  - Add minimal error handling for test scenarios
+- [x] **Stage 2.3**: Implement CLI handler logic
+  - [x] Modify `handle_conngroup_command()` to detect permission operations
+  - [x] Add basic permit/deny handling with name and ID selector support
+  - [x] Add minimal error handling for test scenarios
 
-- [ ] **Stage 2.4**: Run tests again - they should now pass
-  - Fix any remaining test failures
-  - Ensure error messages match test expectations
+- [x] **Stage 2.4**: Run tests again - they should now pass
+  - [x] Fix any remaining test failures
+  - [x] Ensure error messages match test expectations
 
 ### Stage 3: Refinement and Enhancement
 

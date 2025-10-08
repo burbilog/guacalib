@@ -150,13 +150,36 @@ def handle_conngroup_command(args, guacdb):
                 connection_modified = True
                 print(f"Removed connection '{conn_name}' from group '{group_name}'")
 
-            # Validate that either parent or connection operation was specified
-            if args.parent is None and not connection_modified:
-                print("Error: No modification specified. Use --parent, --addconn-*, or --rmconn-*")
+            # Handle permission grant/revoke
+            permission_modified = False
+
+            if hasattr(args, 'permit') and args.permit is not None:
+                guacdb.debug_print(f"Granting permission to user: {args.permit}")
+                if hasattr(args, 'id') and args.id is not None:
+                    guacdb.grant_connection_group_permission_to_user_by_id(args.permit, args.id)
+                    print(f"Successfully granted permission to user '{args.permit}' for connection group ID '{args.id}'")
+                else:
+                    guacdb.grant_connection_group_permission_to_user(args.permit, args.name)
+                    print(f"Successfully granted permission to user '{args.permit}' for connection group '{group_name}'")
+                permission_modified = True
+
+            elif hasattr(args, 'deny') and args.deny is not None:
+                guacdb.debug_print(f"Revoking permission from user: {args.deny}")
+                if hasattr(args, 'id') and args.id is not None:
+                    guacdb.revoke_connection_group_permission_from_user_by_id(args.deny, args.id)
+                    print(f"Successfully revoked permission from user '{args.deny}' for connection group ID '{args.id}'")
+                else:
+                    guacdb.revoke_connection_group_permission_from_user(args.deny, args.name)
+                    print(f"Successfully revoked permission from user '{args.deny}' for connection group '{group_name}'")
+                permission_modified = True
+
+            # Validate that either parent, connection, or permission operation was specified
+            if args.parent is None and not connection_modified and not permission_modified:
+                print("Error: No modification specified. Use --parent, --addconn-*, --rmconn-*, --permit, or --deny")
                 sys.exit(2)
 
-            # Commit connection operations
-            if connection_modified:
+            # Commit connection and permission operations
+            if connection_modified or permission_modified:
                 guacdb.conn.commit()
 
             sys.exit(0)

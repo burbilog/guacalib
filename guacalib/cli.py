@@ -133,6 +133,10 @@ def setup_conngroup_subcommands(subparsers):
 
     modify_conngroup.add_argument('--parent',
                                help='Set parent connection group name (use empty string to unset parent group)')
+    modify_conngroup.add_argument('--permit',
+                               help='Grant permission to use connection group to specified user')
+    modify_conngroup.add_argument('--deny',
+                               help='Revoke permission to use connection group from specified user')
 
 def setup_dump_subcommand(subparsers):
     subparsers.add_parser('dump', help='Dump all groups, users and connections in YAML format')
