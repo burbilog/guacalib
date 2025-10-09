@@ -1699,166 +1699,271 @@ class GuacamoleDB:
 
     def grant_connection_group_permission_to_user(self, username, conngroup_name):
         """Grant connection group permission to a specific user"""
+        if not username or not isinstance(username, str):
+            raise ValueError("Username must be a non-empty string")
+        if not conngroup_name or not isinstance(conngroup_name, str):
+            raise ValueError("Connection group name must be a non-empty string")
+
         try:
             # Get connection group ID
             self.cursor.execute("""
-                SELECT connection_group_id FROM guacamole_connection_group
+                SELECT connection_group_id, connection_group_name FROM guacamole_connection_group
                 WHERE connection_group_name = %s
+                LIMIT 1
             """, (conngroup_name,))
             result = self.cursor.fetchone()
             if not result:
+                self.debug_print(f"Connection group lookup failed for: {conngroup_name}")
                 raise ValueError(f"Connection group '{conngroup_name}' not found")
-            connection_group_id = result[0]
+            connection_group_id, actual_conngroup_name = result
 
             # Get user entity ID
             self.cursor.execute("""
-                SELECT entity_id FROM guacamole_entity
+                SELECT entity_id, name FROM guacamole_entity
                 WHERE name = %s AND type = 'USER'
+                LIMIT 1
             """, (username,))
             result = self.cursor.fetchone()
             if not result:
+                self.debug_print(f"User lookup failed for: {username}")
                 raise ValueError(f"User '{username}' not found")
-            entity_id = result[0]
+            entity_id, actual_username = result
 
             # Check if permission already exists
             self.cursor.execute("""
-                SELECT 1 FROM guacamole_connection_group_permission
+                SELECT permission FROM guacamole_connection_group_permission
                 WHERE entity_id = %s AND connection_group_id = %s
+                LIMIT 1
             """, (entity_id, connection_group_id))
-            if self.cursor.fetchone():
-                raise ValueError(f"User '{username}' already has permission for connection group '{conngroup_name}'")
+            existing_permission = self.cursor.fetchone()
+            if existing_permission:
+                permission_type = existing_permission[0]
+                if permission_type == 'READ':
+                    raise ValueError(f"User '{actual_username}' already has permission for connection group '{actual_conngroup_name}'")
+                else:
+                    self.debug_print(f"Updating existing permission '{permission_type}' to 'READ' for user '{actual_username}'")
 
-            # Grant permission
-            self.cursor.execute("""
-                INSERT INTO guacamole_connection_group_permission
-                (entity_id, connection_group_id, permission)
-                VALUES (%s, %s, 'READ')
-            """, (entity_id, connection_group_id))
+            # Grant permission (INSERT or UPDATE if unexpected permission exists)
+            if existing_permission and existing_permission[0] != 'READ':
+                self.cursor.execute("""
+                    UPDATE guacamole_connection_group_permission
+                    SET permission = 'READ'
+                    WHERE entity_id = %s AND connection_group_id = %s
+                """, (entity_id, connection_group_id))
+                self.debug_print(f"Updated permission to 'READ' for user '{actual_username}' on connection group '{actual_conngroup_name}'")
+            else:
+                self.cursor.execute("""
+                    INSERT INTO guacamole_connection_group_permission
+                    (entity_id, connection_group_id, permission)
+                    VALUES (%s, %s, 'READ')
+                """, (entity_id, connection_group_id))
+                self.debug_print(f"Granted 'READ' permission to user '{actual_username}' for connection group '{actual_conngroup_name}'")
+
             return True
         except mysql.connector.Error as e:
-            print(f"Error granting connection group permission: {e}")
-            raise
+            error_msg = f"Database error granting connection group permission for user '{username}' on group '{conngroup_name}': {e}"
+            self.debug_print(error_msg)
+            raise ValueError(error_msg) from e
 
     def revoke_connection_group_permission_from_user(self, username, conngroup_name):
         """Revoke connection group permission from a specific user"""
+        if not username or not isinstance(username, str):
+            raise ValueError("Username must be a non-empty string")
+        if not conngroup_name or not isinstance(conngroup_name, str):
+            raise ValueError("Connection group name must be a non-empty string")
+
         try:
             # Get connection group ID
             self.cursor.execute("""
-                SELECT connection_group_id FROM guacamole_connection_group
+                SELECT connection_group_id, connection_group_name FROM guacamole_connection_group
                 WHERE connection_group_name = %s
+                LIMIT 1
             """, (conngroup_name,))
             result = self.cursor.fetchone()
             if not result:
+                self.debug_print(f"Connection group lookup failed for: {conngroup_name}")
                 raise ValueError(f"Connection group '{conngroup_name}' not found")
-            connection_group_id = result[0]
+            connection_group_id, actual_conngroup_name = result
 
             # Get user entity ID
             self.cursor.execute("""
-                SELECT entity_id FROM guacamole_entity
+                SELECT entity_id, name FROM guacamole_entity
                 WHERE name = %s AND type = 'USER'
+                LIMIT 1
             """, (username,))
             result = self.cursor.fetchone()
             if not result:
+                self.debug_print(f"User lookup failed for: {username}")
                 raise ValueError(f"User '{username}' not found")
-            entity_id = result[0]
+            entity_id, actual_username = result
 
-            # Check if permission exists
+            # Check if permission exists and get its type
             self.cursor.execute("""
-                SELECT 1 FROM guacamole_connection_group_permission
+                SELECT permission FROM guacamole_connection_group_permission
                 WHERE entity_id = %s AND connection_group_id = %s
+                LIMIT 1
             """, (entity_id, connection_group_id))
-            if not self.cursor.fetchone():
-                raise ValueError(f"User '{username}' has no permission for connection group '{conngroup_name}'")
+            existing_permission = self.cursor.fetchone()
+            if not existing_permission:
+                raise ValueError(f"User '{actual_username}' has no permission for connection group '{actual_conngroup_name}'")
+
+            permission_type = existing_permission[0]
+            self.debug_print(f"Revoking '{permission_type}' permission from user '{actual_username}' for connection group '{actual_conngroup_name}'")
 
             # Revoke permission
             self.cursor.execute("""
                 DELETE FROM guacamole_connection_group_permission
                 WHERE entity_id = %s AND connection_group_id = %s
+                LIMIT 1
             """, (entity_id, connection_group_id))
+
+            # Verify deletion was successful
+            if self.cursor.rowcount == 0:
+                raise ValueError(f"Failed to revoke permission - no rows affected. Permission may have been removed by another operation.")
+
+            self.debug_print(f"Successfully revoked '{permission_type}' permission from user '{actual_username}' for connection group '{actual_conngroup_name}'")
             return True
         except mysql.connector.Error as e:
-            print(f"Error revoking connection group permission: {e}")
-            raise
+            error_msg = f"Database error revoking connection group permission for user '{username}' on group '{conngroup_name}': {e}"
+            self.debug_print(error_msg)
+            raise ValueError(error_msg) from e
+
+    def _atomic_permission_operation(self, operation_func, *args, **kwargs):
+        """Execute a database operation with proper error handling and validation"""
+        try:
+            return operation_func(*args, **kwargs)
+        except mysql.connector.Error as e:
+            error_msg = f"Database error during permission operation: {e}"
+            self.debug_print(error_msg)
+            raise ValueError(error_msg) from e
 
     def grant_connection_group_permission_to_user_by_id(self, username, conngroup_id):
         """Grant connection group permission to a specific user by connection group ID"""
+        if not username or not isinstance(username, str):
+            raise ValueError("Username must be a non-empty string")
+        if conngroup_id is None or not isinstance(conngroup_id, int) or conngroup_id <= 0:
+            raise ValueError("Connection group ID must be a positive integer")
+
         try:
             # Get connection group name for error messages
             self.cursor.execute("""
-                SELECT connection_group_name FROM guacamole_connection_group
+                SELECT connection_group_id, connection_group_name FROM guacamole_connection_group
                 WHERE connection_group_id = %s
+                LIMIT 1
             """, (conngroup_id,))
             result = self.cursor.fetchone()
             if not result:
+                self.debug_print(f"Connection group ID lookup failed for: {conngroup_id}")
                 raise ValueError(f"Connection group ID '{conngroup_id}' not found")
-            conngroup_name = result[0]
+            actual_conngroup_id, conngroup_name = result
 
             # Get user entity ID
             self.cursor.execute("""
-                SELECT entity_id FROM guacamole_entity
+                SELECT entity_id, name FROM guacamole_entity
                 WHERE name = %s AND type = 'USER'
+                LIMIT 1
             """, (username,))
             result = self.cursor.fetchone()
             if not result:
+                self.debug_print(f"User lookup failed for: {username}")
                 raise ValueError(f"User '{username}' not found")
-            entity_id = result[0]
+            entity_id, actual_username = result
 
             # Check if permission already exists
             self.cursor.execute("""
-                SELECT 1 FROM guacamole_connection_group_permission
+                SELECT permission FROM guacamole_connection_group_permission
                 WHERE entity_id = %s AND connection_group_id = %s
-            """, (entity_id, conngroup_id))
-            if self.cursor.fetchone():
-                raise ValueError(f"User '{username}' already has permission for connection group ID '{conngroup_id}'")
+                LIMIT 1
+            """, (entity_id, actual_conngroup_id))
+            existing_permission = self.cursor.fetchone()
+            if existing_permission:
+                permission_type = existing_permission[0]
+                if permission_type == 'READ':
+                    raise ValueError(f"User '{actual_username}' already has permission for connection group ID '{actual_conngroup_id}'")
+                else:
+                    self.debug_print(f"Updating existing permission '{permission_type}' to 'READ' for user '{actual_username}'")
 
-            # Grant permission
-            self.cursor.execute("""
-                INSERT INTO guacamole_connection_group_permission
-                (entity_id, connection_group_id, permission)
-                VALUES (%s, %s, 'READ')
-            """, (entity_id, conngroup_id))
+            # Grant permission (INSERT or UPDATE if unexpected permission exists)
+            if existing_permission and existing_permission[0] != 'READ':
+                self.cursor.execute("""
+                    UPDATE guacamole_connection_group_permission
+                    SET permission = 'READ'
+                    WHERE entity_id = %s AND connection_group_id = %s
+                """, (entity_id, actual_conngroup_id))
+                self.debug_print(f"Updated permission to 'READ' for user '{actual_username}' on connection group ID '{actual_conngroup_id}'")
+            else:
+                self.cursor.execute("""
+                    INSERT INTO guacamole_connection_group_permission
+                    (entity_id, connection_group_id, permission)
+                    VALUES (%s, %s, 'READ')
+                """, (entity_id, actual_conngroup_id))
+                self.debug_print(f"Granted 'READ' permission to user '{actual_username}' for connection group ID '{actual_conngroup_id}'")
+
             return True
         except mysql.connector.Error as e:
-            print(f"Error granting connection group permission: {e}")
-            raise
+            error_msg = f"Database error granting connection group permission for user '{username}' on group ID '{conngroup_id}': {e}"
+            self.debug_print(error_msg)
+            raise ValueError(error_msg) from e
 
     def revoke_connection_group_permission_from_user_by_id(self, username, conngroup_id):
         """Revoke connection group permission from a specific user by connection group ID"""
+        if not username or not isinstance(username, str):
+            raise ValueError("Username must be a non-empty string")
+        if conngroup_id is None or not isinstance(conngroup_id, int) or conngroup_id <= 0:
+            raise ValueError("Connection group ID must be a positive integer")
+
         try:
             # Get connection group name for error messages
             self.cursor.execute("""
-                SELECT connection_group_name FROM guacamole_connection_group
+                SELECT connection_group_id, connection_group_name FROM guacamole_connection_group
                 WHERE connection_group_id = %s
+                LIMIT 1
             """, (conngroup_id,))
             result = self.cursor.fetchone()
             if not result:
+                self.debug_print(f"Connection group ID lookup failed for: {conngroup_id}")
                 raise ValueError(f"Connection group ID '{conngroup_id}' not found")
-            conngroup_name = result[0]
+            actual_conngroup_id, conngroup_name = result
 
             # Get user entity ID
             self.cursor.execute("""
-                SELECT entity_id FROM guacamole_entity
+                SELECT entity_id, name FROM guacamole_entity
                 WHERE name = %s AND type = 'USER'
+                LIMIT 1
             """, (username,))
             result = self.cursor.fetchone()
             if not result:
+                self.debug_print(f"User lookup failed for: {username}")
                 raise ValueError(f"User '{username}' not found")
-            entity_id = result[0]
+            entity_id, actual_username = result
 
-            # Check if permission exists
+            # Check if permission exists and get its type
             self.cursor.execute("""
-                SELECT 1 FROM guacamole_connection_group_permission
+                SELECT permission FROM guacamole_connection_group_permission
                 WHERE entity_id = %s AND connection_group_id = %s
-            """, (entity_id, conngroup_id))
-            if not self.cursor.fetchone():
-                raise ValueError(f"User '{username}' has no permission for connection group ID '{conngroup_id}'")
+                LIMIT 1
+            """, (entity_id, actual_conngroup_id))
+            existing_permission = self.cursor.fetchone()
+            if not existing_permission:
+                raise ValueError(f"User '{actual_username}' has no permission for connection group ID '{actual_conngroup_id}'")
+
+            permission_type = existing_permission[0]
+            self.debug_print(f"Revoking '{permission_type}' permission from user '{actual_username}' for connection group ID '{actual_conngroup_id}'")
 
             # Revoke permission
             self.cursor.execute("""
                 DELETE FROM guacamole_connection_group_permission
                 WHERE entity_id = %s AND connection_group_id = %s
-            """, (entity_id, conngroup_id))
+                LIMIT 1
+            """, (entity_id, actual_conngroup_id))
+
+            # Verify deletion was successful
+            if self.cursor.rowcount == 0:
+                raise ValueError(f"Failed to revoke permission - no rows affected. Permission may have been removed by another operation.")
+
+            self.debug_print(f"Successfully revoked '{permission_type}' permission from user '{actual_username}' for connection group ID '{actual_conngroup_id}'")
             return True
         except mysql.connector.Error as e:
-            print(f"Error revoking connection group permission: {e}")
-            raise
+            error_msg = f"Database error revoking connection group permission for user '{username}' on group ID '{conngroup_id}': {e}"
+            self.debug_print(error_msg)
+            raise ValueError(error_msg) from e

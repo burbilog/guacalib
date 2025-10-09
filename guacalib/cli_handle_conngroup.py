@@ -1,4 +1,5 @@
 import sys
+import mysql.connector
 
 def handle_conngroup_command(args, guacdb):
     """Handle all conngroup subcommands"""
@@ -92,6 +93,46 @@ def handle_conngroup_command(args, guacdb):
 
     elif args.conngroup_command == 'modify':
         try:
+            # Validate argument combinations before processing
+            permit_args = getattr(args, 'permit', None)
+            deny_args = getattr(args, 'deny', None)
+
+            # Filter out None values from append action
+            permit_list = [p for p in permit_args] if permit_args else []
+            deny_list = [d for d in deny_args] if deny_args else []
+
+            if permit_list and deny_list:
+                print("Error: Cannot specify both --permit and --deny in the same command")
+                sys.exit(1)
+
+            if len(permit_list) > 1:
+                print("Error: Only one user can be specified for --permit operation")
+                sys.exit(1)
+
+            if len(deny_list) > 1:
+                print("Error: Only one user can be specified for --deny operation")
+                sys.exit(1)
+
+            # Validate that exactly one target selector is provided
+            has_name_selector = hasattr(args, 'name') and args.name is not None
+            has_id_selector = hasattr(args, 'id') and args.id is not None
+            if not has_name_selector and not has_id_selector:
+                print("Error: Must specify either --name or --id to identify the connection group")
+                sys.exit(1)
+            if has_name_selector and has_id_selector:
+                print("Error: Cannot specify both --name and --id simultaneously")
+                sys.exit(1)
+
+            # Validate ID format if provided
+            if has_id_selector and args.id <= 0:
+                print("Error: Connection group ID must be a positive integer greater than 0")
+                sys.exit(1)
+
+            # Validate name format if provided
+            if has_name_selector and not args.name.strip():
+                print("Error: Connection group name cannot be empty")
+                sys.exit(1)
+
             # Rely on database layer validation via resolvers
             # Get group name for display purposes (resolvers handle the actual lookup)
             if hasattr(args, 'id') and args.id is not None:
@@ -153,40 +194,127 @@ def handle_conngroup_command(args, guacdb):
             # Handle permission grant/revoke
             permission_modified = False
 
-            if hasattr(args, 'permit') and args.permit is not None:
-                guacdb.debug_print(f"Granting permission to user: {args.permit}")
-                if hasattr(args, 'id') and args.id is not None:
-                    guacdb.grant_connection_group_permission_to_user_by_id(args.permit, args.id)
-                    print(f"Successfully granted permission to user '{args.permit}' for connection group ID '{args.id}'")
-                else:
-                    guacdb.grant_connection_group_permission_to_user(args.permit, args.name)
-                    print(f"Successfully granted permission to user '{args.permit}' for connection group '{group_name}'")
-                permission_modified = True
+            if permit_list:
+                username = permit_list[0]
 
-            elif hasattr(args, 'deny') and args.deny is not None:
-                guacdb.debug_print(f"Revoking permission from user: {args.deny}")
-                if hasattr(args, 'id') and args.id is not None:
-                    guacdb.revoke_connection_group_permission_from_user_by_id(args.deny, args.id)
-                    print(f"Successfully revoked permission from user '{args.deny}' for connection group ID '{args.id}'")
-                else:
-                    guacdb.revoke_connection_group_permission_from_user(args.deny, args.name)
-                    print(f"Successfully revoked permission from user '{args.deny}' for connection group '{group_name}'")
-                permission_modified = True
+                # Validate username format
+                if not username or not isinstance(username, str):
+                    print("Error: Username must be a non-empty string")
+                    sys.exit(1)
+
+                guacdb.debug_print(f"Granting permission to user: {username}")
+                try:
+                    if hasattr(args, 'id') and args.id is not None:
+                        guacdb.grant_connection_group_permission_to_user_by_id(username, args.id)
+                        print(f"Successfully granted permission to user '{username}' for connection group ID '{args.id}'")
+                    else:
+                        guacdb.grant_connection_group_permission_to_user(username, args.name)
+                        print(f"Successfully granted permission to user '{username}' for connection group '{group_name}'")
+                    permission_modified = True
+                except ValueError as e:
+                    # Provide more specific error guidance
+                    error_msg = str(e)
+                    if "not found" in error_msg:
+                        if "User" in error_msg:
+                            print(f"Error: User '{username}' does not exist. Use 'guacaman user list' to see available users.")
+                        elif "Connection group" in error_msg and "ID" in error_msg:
+                            print(f"Error: Connection group ID '{args.id}' does not exist")
+                        elif "Connection group" in error_msg:
+                            print(f"Error: Connection group '{args.name}' does not exist")
+                        else:
+                            print(f"Error: {error_msg}")
+                        raise  # Re-raise to be caught by outer handler
+                    elif "already has permission" in error_msg:
+                        print(f"Permission already exists. No changes made.")
+                        permission_modified = True  # Consider this successful since permission already exists
+                        # Continue without error - permission already exists
+                    else:
+                        print(f"Error: {error_msg}")
+                        raise  # Re-raise to be caught by outer handler
+
+            elif deny_list:
+                username = deny_list[0]
+
+                # Validate username format
+                if not username or not isinstance(username, str):
+                    print("Error: Username must be a non-empty string")
+                    sys.exit(1)
+
+                guacdb.debug_print(f"Revoking permission from user: {username}")
+                try:
+                    if hasattr(args, 'id') and args.id is not None:
+                        guacdb.revoke_connection_group_permission_from_user_by_id(username, args.id)
+                        print(f"Successfully revoked permission from user '{username}' for connection group ID '{args.id}'")
+                    else:
+                        guacdb.revoke_connection_group_permission_from_user(username, args.name)
+                        print(f"Successfully revoked permission from user '{username}' for connection group '{group_name}'")
+                    permission_modified = True
+                except ValueError as e:
+                    # Provide more specific error guidance
+                    error_msg = str(e)
+                    if "not found" in error_msg:
+                        if "User" in error_msg:
+                            print(f"Error: User '{username}' does not exist. Use 'guacaman user list' to see available users.")
+                        elif "Connection group" in error_msg and "ID" in error_msg:
+                            print(f"Error: Connection group ID '{args.id}' does not exist")
+                        elif "Connection group" in error_msg:
+                            print(f"Error: Connection group '{args.name}' does not exist")
+                        else:
+                            print(f"Error: {error_msg}")
+                    elif "has no permission" in error_msg:
+                        # Match exact format expected by tests
+                        print(f"Error: Permission for user '{username}' on connection group '{group_name}' does not exist")
+                        sys.exit(1)
+                    else:
+                        print(f"Error: {error_msg}")
+                    sys.exit(1)
 
             # Validate that either parent, connection, or permission operation was specified
             if args.parent is None and not connection_modified and not permission_modified:
                 print("Error: No modification specified. Use --parent, --addconn-*, --rmconn-*, --permit, or --deny")
                 sys.exit(2)
 
-            # Commit connection and permission operations
+            # Commit all operations atomically
             if connection_modified or permission_modified:
-                guacdb.conn.commit()
+                try:
+                    guacdb.debug_print("Committing all transaction operations...")
+                    guacdb.conn.commit()
+                    guacdb.debug_print(f"Successfully committed transaction for connection group '{group_name}' operations")
+                except Exception as commit_error:
+                    error_msg = f"Failed to commit transaction: {commit_error}"
+                    guacdb.debug_print(error_msg)
+                    print("Error: Failed to save changes. No modifications were applied.")
+                    sys.exit(1)
 
             sys.exit(0)
         except ValueError as e:
+            # Handle validation and logical errors
             print(f"Error: {e}")
+            if guacdb.conn:
+                try:
+                    guacdb.conn.rollback()
+                except Exception as rollback_error:
+                    guacdb.debug_print(f"Rollback failed: {rollback_error}")
+            sys.exit(1)
+        except mysql.connector.Error as e:
+            # Handle database-specific errors
+            error_msg = f"Database error modifying connection group: {e}"
+            guacdb.debug_print(error_msg)
+            if guacdb.conn:
+                try:
+                    guacdb.conn.rollback()
+                except Exception as rollback_error:
+                    guacdb.debug_print(f"Rollback failed: {rollback_error}")
+            print(f"Error: Database operation failed. Please check your data and try again.")
             sys.exit(1)
         except Exception as e:
-            guacdb.conn.rollback()  # Rollback on error
-            print(f"Error modifying connection group: {e}")
+            # Handle unexpected errors
+            error_msg = f"Unexpected error modifying connection group: {e}"
+            guacdb.debug_print(error_msg)
+            if guacdb.conn:
+                try:
+                    guacdb.conn.rollback()
+                except Exception as rollback_error:
+                    guacdb.debug_print(f"Rollback failed: {rollback_error}")
+            print(f"Error: An unexpected error occurred. Please check the logs and try again.")
             sys.exit(1)

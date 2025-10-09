@@ -48,28 +48,28 @@ Guacamole uses the same `guacamole_connection_permission` table for both individ
 - [x] **Stage 1.2**: Write permission granting test cases
   - [x] Test `guacaman conngroup modify --name <group> --permit <user>` should succeed
   - [x] Test `guacaman conngroup modify --id <group_id> --permit <user>` should succeed
-  - [ ] Single user action should be allowed only: `--permit user1 --permit user2` should fail with appropriate error
-  - [ ] Test non-existent user with `--permit` should fail with appropriate error
-  - [ ] Test non-existent group with `--permit` should fail with appropriate error
-  - [ ] Test duplicate permission grant should handle gracefully
+  - [x] Single user action should be allowed only: `--permit user1 --permit user2` should fail with appropriate error
+  - [x] Test non-existent user with `--permit` should fail with appropriate error
+  - [x] Test non-existent group with `--permit` should fail with appropriate error
+  - [x] Test duplicate permission grant should handle gracefully
 
 - [x] **Stage 1.3**: Write permission revocation test cases
   - [x] Test `guacaman conngroup modify --name <group> --deny <user>` should succeed
   - [x] Test `guacaman conngroup modify --id <group_id> --deny <user>` should succeed
-  - [ ] Test multiple users: `--deny user1 --deny user2` should fail with appropriate error
-  - [ ] Test non-existent user with `--deny` should fail with appropriate error
-  - [ ] Test revoking non-existent permission should fail with appropriate error
+  - [x] Test multiple users: `--deny user1 --deny user2` should fail with appropriate error
+  - [x] Test non-existent user with `--deny` should fail with appropriate error
+  - [x] Test revoking non-existent permission should fail with appropriate error
 
-- [ ] **Stage 1.4**: Write permission verification test cases
-  - [ ] Test that granted permissions persist and are verifiable
-  - [ ] Test that revoked permissions are actually removed
-  - [ ] Test permission state verification methods
+- [x] **Stage 1.4**: Write permission verification test cases
+  - [x] Test that granted permissions persist and are verifiable
+  - [x] Test that revoked permissions are actually removed
+  - [x] Test permission state verification methods
 
 - [x] **Stage 1.5**: Write integration test cases
   - [x] Test `--permit`/`--deny` combined with existing `--parent` operations
-  - [ ] Test `--permit`/`--deny` combined with connection add/remove operations
-  - [ ] Test command order independence
-  - [ ] Test help text shows new parameters correctly
+  - [ ] Test `--permit`/`--deny` combined with connection add/remove operations (optional - separate feature)
+  - [x] Test command order independence
+  - [x] Test help text shows new parameters correctly
 
 **TDD Principle**: Run `bats tests/test_conngroup_permit_deny.bats` - all tests should fail initially since no implementation exists yet.
 
@@ -99,20 +99,20 @@ Guacamole uses the same `guacamole_connection_permission` table for both individ
 
 **Objective**: Improve implementation quality while maintaining passing tests.
 
-- [ ] **Stage 3.1**: Add comprehensive error handling
-  - Validate user existence before operations
-  - Handle permission conflicts gracefully
-  - Improve error message clarity and usefulness
+- [x] **Stage 3.1**: Add comprehensive error handling
+  - [x] Validate user existence before operations
+  - [x] Handle permission conflicts gracefully
+  - [x] Improve error message clarity and usefulness
 
-- [ ] **Stage 3.2**: Add input validation and edge case handling
-  - Validate argument combinations
-  - Handle database connection errors
-  - Add logging for debugging
+- [x] **Stage 3.2**: Add input validation and edge case handling
+  - [x] Validate argument combinations
+  - [x] Handle database connection errors
+  - [x] Add logging for debugging
 
-- [ ] **Stage 3.3**: Performance and reliability improvements
-  - Add transaction support for atomic operations
-  - Optimize database queries
-  - Add connection cleanup and resource management
+- [x] **Stage 3.3**: Performance and reliability improvements
+  - [x] Add transaction support for atomic operations
+  - [x] Optimize database queries
+  - [x] Add connection cleanup and resource management
 
 **TDD Cycle**: After each enhancement, run the full test suite to ensure existing functionality remains intact and new features still work correctly.
 
@@ -120,14 +120,14 @@ Guacamole uses the same `guacamole_connection_permission` table for both individ
 
 **Objective**: Ensure the feature integrates properly with existing functionality.
 
-- [ ] **Stage 4.1**: Run full test suite against live database
-  - Execute all test cases with real database interactions
-  - Verify no regressions in existing functionality
+- [x] **Stage 4.1**: Run full test suite against live database
+  - [x] Execute all test cases with real database interactions
+  - [x] Verify no regressions in existing functionality
 
-- [ ] **Stage 4.2**: Integration testing with other features
-  - Test permission operations combined with connection group hierarchy
-  - Verify permission inheritance from parent groups
-  - Test with existing connection permission operations
+- [x] **Stage 4.2**: Integration testing with other features
+  - [x] Test permission operations combined with connection group hierarchy
+  - [x] Verify permission inheritance from parent groups
+  - [x] Test with existing connection permission operations
 
 ### Stage 5: Documentation and Examples
 

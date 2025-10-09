@@ -266,10 +266,13 @@ load run_tests.bats
     # Create parent connection group
     guacaman --config "$TEST_CONFIG" conngroup new --name "$parent_name"
 
+    # Create child connection group
+    guacaman --config "$TEST_CONFIG" conngroup new --name "$child_name"
+
     # Create test user
     guacaman --config "$TEST_CONFIG" user new --name "$user_name" --password testpass123
 
-    # Test creating child with parent and permission in one command
+    # Test setting parent and granting permission in one command
     run guacaman --debug --config "$TEST_CONFIG" conngroup modify --name "$child_name" --parent "$parent_name" --permit "$user_name"
     [ "$status" -eq 0 ]
     [[ "$output" == *"Successfully granted permission to user '$user_name' for connection group '$child_name'"* ]]
@@ -313,8 +316,9 @@ load run_tests.bats
     user_name="test_order_user_$(date +%s)"
     parent_name="test_order_parent_$(date +%s)"
 
-    # Create parent group and user
+    # Create parent group, group, and user
     guacaman --config "$TEST_CONFIG" conngroup new --name "$parent_name"
+    guacaman --config "$TEST_CONFIG" conngroup new --name "$group_name"
     guacaman --config "$TEST_CONFIG" user new --name "$user_name" --password testpass123
 
     # Test different parameter orders
