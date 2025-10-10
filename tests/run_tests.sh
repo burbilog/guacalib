@@ -46,4 +46,8 @@ bats tests/test_dump.bats
 # Run teardown once
 teardown
 
+# Run cleanup script to remove any remaining test entries
+echo "Running comprehensive cleanup of test entries..."
+./tests/cleanup_test_entries.sh
+
 echo "All tests completed successfully!"
