@@ -133,17 +133,17 @@ Guacamole uses the same `guacamole_connection_permission` table for both individ
 
 **Objective**: Complete documentation and usage examples.
 
-- [ ] **Stage 5.1**: Update README.md with new functionality
-  - Add usage examples for conngroup modify --permit/--deny
-  - Include both name-based and ID-based examples
+- [x] **Stage 5.1**: Update README.md with new functionality
+  - [x] Add usage examples for conngroup modify --permit/--deny
+  - [x] Include both name-based and ID-based examples
 
-- [ ] **Stage 5.2**: Update command help text and error messages
-  - Ensure clear help output when no parameters provided
-  - Add color coding for parameter descriptions (following existing pattern)
+- [x] **Stage 5.2**: Update command help text and error messages
+  - [x] Ensure clear help output when no parameters provided
+  - [x] Add color coding for parameter descriptions (following existing pattern)
 
-- [ ] **Stage 5.3**: Add debugging and permission verification capabilities
-  - Extend debug_permissions.py to show connection group permissions
-  - Add permission display to conngroup list command
+- [x] **Stage 5.3**: Add debugging and permission verification capabilities
+  - [x] Extend debug_permissions.py to show connection group permissions
+  - [x] Add connection group details to debug output
 
 ## Implementation Notes
 

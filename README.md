@@ -310,7 +310,7 @@ guacaman conn del --name dev-server
 
 ### Managing Connection Groups
 
-Connection groups allow you to organize connections into hierarchical groups. Here's how to manage them:
+Connection groups allow you to organize connections into hierarchical groups and manage user permissions for entire groups of connections. Here's how to manage them:
 
 #### Create a new connection group
 ```bash
@@ -333,13 +333,28 @@ guacaman conngroup del --name vnc_servers
 ```
 
 #### Modify a connection group
-Change parent group or hierarchy:
+Change parent group, hierarchy, or manage user permissions:
 ```bash
 # Move group to new parent
 guacaman conngroup modify --name vnc_servers --parent "infrastructure"
 
 # Remove parent (make top-level)
 guacaman conngroup modify --name vnc_servers --parent ""
+
+# Grant permission to user for connection group using name selector
+guacaman conngroup modify --name vnc_servers --permit john.doe
+
+# Grant permission to user for connection group using ID selector
+guacaman conngroup modify --id 42 --permit jane.doe
+
+# Revoke permission from user for connection group using name selector
+guacaman conngroup modify --name vnc_servers --deny john.doe
+
+# Revoke permission from user for connection group using ID selector
+guacaman conngroup modify --id 42 --deny jane.doe
+
+# Combine parent modification with permission operations
+guacaman conngroup modify --name vnc_servers --parent "infrastructure" --permit john.doe
 ```
 
 #### Check if a connection group exists
