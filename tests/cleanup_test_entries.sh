@@ -1,53 +1,101 @@
 #!/bin/bash
 
-# Cleanup script for timestamp-based test entries
-# Usage: ./cleanup_test_entries.sh [config_file]
+# Unified cleanup script for test entries
+# Usage: ./cleanup_test_entries.sh MODE [config_file]
+#
+# MODES:
+#   timestamp - Clean only timestamp-based test entries (default)
+#   full      - Clean timestamp entries + standard test objects
+#   silent    - Like timestamp, but suppress output (for test teardown)
+#
+# Examples:
+#   ./cleanup_test_entries.sh                      # Clean timestamped entries
+#   ./cleanup_test_entries.sh full                 # Clean all test entries
+#   ./cleanup_test_entries.sh silent ~/.guacaman.ini # Silent cleanup for tests
 
-CONFIG_FILE="${1:-$HOME/.guacaman.ini}"
+MODE="${1:-timestamp}"
+CONFIG_FILE="${2:-$HOME/.guacaman.ini}"
+
+# Validate mode
+case "$MODE" in
+    timestamp|full|silent) ;;
+    *) echo "Error: Invalid mode '$MODE'. Use: timestamp, full, or silent"; exit 1 ;;
+esac
 
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "Error: Config file not found: $CONFIG_FILE"
-    echo "Usage: $0 [config_file]"
+    echo "Usage: $0 [timestamp|full|silent] [config_file]"
     exit 1
 fi
 
-echo "Cleaning up timestamp-based test entries using config: $CONFIG_FILE"
+# Output based on mode
+output_msg() {
+    if [ "$MODE" != "silent" ]; then
+        echo "$1"
+    fi
+}
+
+output_msg "Cleaning up test entries using config: $CONFIG_FILE (mode: $MODE)"
 
 # Function to clean up timestamp-based test entries
 cleanup_timestamped_entries() {
-    echo "Cleaning up connection groups..."
+    output_msg "Cleaning up connection groups..."
     guacaman --config "$CONFIG_FILE" conngroup list 2>/dev/null | grep -E "test_[a-zA-Z0-9_]+_[0-9]{10}:" | cut -d: -f1 | while read -r group; do
         if [ -n "$group" ]; then
-            echo "  Deleting connection group: $group"
+            output_msg "  Deleting connection group: $group"
             guacaman --config "$CONFIG_FILE" conngroup del --name "$group" 2>/dev/null || true
         fi
     done
 
-    echo "Cleaning up connections..."
+    output_msg "Cleaning up connections..."
     guacaman --config "$CONFIG_FILE" conn list 2>/dev/null | grep -E "  test_[a-zA-Z0-9_]+_[0-9]{10}:" | cut -d: -f1 | tr -d ' ' | while read -r conn; do
         if [ -n "$conn" ]; then
-            echo "  Deleting connection: $conn"
+            output_msg "  Deleting connection: $conn"
             guacaman --config "$CONFIG_FILE" conn del --name "$conn" 2>/dev/null || true
         fi
     done
 
-    echo "Cleaning up users..."
+    output_msg "Cleaning up users..."
     guacaman --config "$CONFIG_FILE" user list 2>/dev/null | grep -E "test_[a-zA-Z0-9_]+_[0-9]{10}:" | cut -d: -f1 | while read -r user; do
         if [ -n "$user" ]; then
-            echo "  Deleting user: $user"
+            output_msg "  Deleting user: $user"
             guacaman --config "$CONFIG_FILE" user del --name "$user" 2>/dev/null || true
         fi
     done
 
-    echo "Cleaning up user groups..."
+    output_msg "Cleaning up user groups..."
     guacaman --config "$CONFIG_FILE" usergroup list 2>/dev/null | grep -E "test_[a-zA-Z0-9_]+_[0-9]{10}:" | cut -d: -f1 | while read -r group; do
         if [ -n "$group" ]; then
-            echo "  Deleting user group: $group"
+            output_msg "  Deleting user group: $group"
             guacaman --config "$CONFIG_FILE" usergroup del --name "$group" 2>/dev/null || true
         fi
     done
 }
 
-cleanup_timestamped_entries
+# Function to clean up standard test objects
+cleanup_standard_test_objects() {
+    output_msg "Cleaning up standard test objects..."
+    guacaman --config "$CONFIG_FILE" conn del --name testconn1 >/dev/null 2>&1 || true
+    guacaman --config "$CONFIG_FILE" conn del --name testconn2 >/dev/null 2>&1 || true
+    guacaman --config "$CONFIG_FILE" user del --name testuser1 >/dev/null 2>&1 || true
+    guacaman --config "$CONFIG_FILE" user del --name testuser2 >/dev/null 2>&1 || true
+    guacaman --config "$CONFIG_FILE" usergroup del --name testgroup1 >/dev/null 2>&1 || true
+    guacaman --config "$CONFIG_FILE" usergroup del --name testgroup2 >/dev/null 2>&1 || true
+    guacaman --config "$CONFIG_FILE" usergroup del --name parentgroup1 >/dev/null 2>&1 || true
+    guacaman --config "$CONFIG_FILE" usergroup del --name nested/parentgroup2 >/dev/null 2>&1 || true
+    guacaman --config "$CONFIG_FILE" conngroup del --name testconngroup1 >/dev/null 2>&1 || true
+    guacaman --config "$CONFIG_FILE" conngroup del --name testconngroup2 >/dev/null 2>&1 || true
+}
 
-echo "Cleanup complete!"
+# Execute based on mode
+case "$MODE" in
+    timestamp)
+        cleanup_timestamped_entries
+        ;;
+    full|silent)
+        cleanup_timestamped_entries
+        cleanup_standard_test_objects
+        ;;
+esac
+
+output_msg "Cleanup complete!"

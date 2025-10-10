@@ -20,6 +20,9 @@ tests: FORCE
 testclean: FORCE
 	bats -t  --print-output-on-failure tests/teardown.bats
 
+cleanup: FORCE
+	./tests/cleanup_test_entries.sh full
+
 .PHONY: push
 push:
 	@if [ -n "$$(git status --porcelain)" ]; then \
