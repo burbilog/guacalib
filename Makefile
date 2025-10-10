@@ -15,10 +15,7 @@ FORCE:
 tests: FORCE
 	pip uninstall -y guacalib
 	pip install -e .
-	/bin/bash tests/run_tests.sh
-
-testclean: FORCE
-	bats -t  --print-output-on-failure tests/teardown.bats
+	/bin/bash tests/run_tests_with_summary.sh
 
 cleanup: FORCE
 	./tests/cleanup_test_entries.sh full
