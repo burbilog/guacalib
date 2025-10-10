@@ -458,21 +458,26 @@ Current limitations and planned improvements:
 
 - [ ] GuacamoleDB initialization without configuration file, via variables
 
-- [X] Support for other connection types
-  - RDP (Remote Desktop Protocol)
-  - SSH
+- [ ] Support for other connection types
+  - [X] RDP (Remote Desktop Protocol)
+  - [ ] SSH
 
-- [ ] User permissions management
-  - More granular permissions control
-  - Permission templates
+- [x] User permissions management ✓
+  - Grant/revoke permissions for individual connections
+  - Grant/revoke permissions for connection groups
+  - Support for both name-based and ID-based operations
+  - [ ] More granular permissions control
+  - [ ] Permission templates
 
-- [ ] Connection parameters management
-  - Custom parameters for different connection types
-  - Connection groups
+- [x] Connection parameters management ✓
+  - Full parameter modification support via `--set` option
+  - Support for all Guacamole connection parameters
+  - Connection group hierarchy management
+  - [ ] Custom parameters for different connection types (protocol-specific validation)
 
-- [ ] Implement dumping RDP connections
-  - Add RDP connection support to dump command
-  - Include RDP-specific parameters in output
+- [x] Implement dumping RDP connections ✓
+  - All connection types (VNC, RDP, SSH) are included in dump command
+  - Connection parameters are properly exported in YAML format
 
 PRs implementing any of these features are welcome!
 
