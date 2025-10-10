@@ -16,10 +16,15 @@ Guacalib is a Python library and CLI tool for managing Apache Guacamole users, g
 # Run all tests (requires TEST_CONFIG environment variable)
 make tests
 
-# The test suite uses bats (Bash Automated Testing System)
+# The test suite uses bats (Bash Automated Testing System) with multiple test files
 # Set TEST_CONFIG to point to a valid .guacaman.ini file:
 export TEST_CONFIG=/home/rm/.guacaman.ini
-bats -t --print-output-on-failure tests/test_guacaman.bats
+
+# Run individual test files:
+bats -t --print-output-on-failure tests/test_usergroup.bats
+bats -t --print-output-on-failure tests/test_user.bats
+bats -t --print-output-on-failure tests/test_connection.bats
+# ... and other test files
 ```
 
 **ATTENTION** running tests requires more than 2 minutes! Claude code will time out, if make tests is ran without working around this default time limitation.
@@ -114,20 +119,27 @@ File permissions must be 0600 (owner read/write only) for security.
 
 ### Testing Strategy
 - Uses bats (Bash Automated Testing System) for integration testing
+- Tests are split into specialized files by feature (user, connection, conngroup, etc.)
 - Tests require a live MySQL database with Guacamole schema
 - Test setup creates temporary entities and cleans up afterward
 - Environment variable `TEST_CONFIG` must point to test database config
 
 ## Current Development Focus
 
-### Active Features (feature/ids branch)
-- Adding `--id` parameter support for connections and connection groups
-- Resolving naming ambiguity in hierarchical structures
+### Active Features (feature/cgperm branch)
+- Connection group permission management enhancements
+- Fine-grained permission controls for connection groups
+- Improved permission validation and error handling
+
+### Recently Completed Features
+- `--id` parameter support for connections and connection groups
+- User group ID-based operations
 - Enhanced list commands to always show database IDs
+- Resolution of naming ambiguity in hierarchical structures
 
 ### Planned Improvements
 - GuacamoleDB initialization without configuration file
-- More granular permission management
+- More granular permission management for users and groups
 - Custom connection parameters for different protocols
 - RDP connection support in dump command
 

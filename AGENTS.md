@@ -56,3 +56,7 @@ bats -t --print-output-on-failure tests/test_guacaman.bats
 or
 make tests
 ```
+
+## Project specific details
+
+Details are in CLAUDE.md file.
