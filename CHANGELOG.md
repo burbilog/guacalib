@@ -5,6 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Connection group permission management with --permit and --deny flags
+- Connection and connection group operations by ID using --id parameter
+- User group ID support for exists, delete, and modify commands
+- Connection group connection management with --addconn-by-name/--addconn-by-id and --rmconn-by-name/--rmconn-by-id
+- Enhanced test runner with comprehensive output and statistics
+- Unified cleanup system with suppressible error messages
+- Extended debug_permissions.py for connection group analysis
+
+### Fixed
+- ValidationError and parameter parsing improvements
+- Enhanced cleanup and error handling in test workflows
+- ID format validation for connections and connection groups
+
+## [v0.18] - 2025-05-20
+
+### Fixed
+- License configuration in packaging metadata
+
+## [v0.17] - 2025-05-20
+
+### Fixed
+- License configuration in project files
+
+## [v0.15] - 2025-05-06
+
+### Fixed
+- Connection parameter discrepancies and descriptions
+- Parameter validation fixes for various connection protocols
+- Minor fixes in Guacamole parameter definitions
+
+## [v0.14] - 2025-04-28
+
+### Fixed
+- Additional connection parameter fixes
+- Enhancements to parameter handling in connection modification
+
+## [v0.13] - 2025-04-24
+
+### Added
+- Significant expansion of supported Guacamole connection parameters
+- Additional connection variables for modify command
+- Support for resize-method, disable-auth, enable-full-window-drag parameters
+- Missing sftp-host-key parameter support
+- RULES.md file with guidelines for LLMs
+
+### Fixed
+- Connection parameter definitions and descriptions
+- Parameter validation for various connection types
+
 ## [v0.12] - 2025-03-01
 
 ### Added
