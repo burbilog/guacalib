@@ -35,13 +35,17 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
                 )
                 sys.exit(1)
             # Get specific connection group by ID
-            groups = guacdb.get_connection_group_by_id(args.id)
-            if not groups:
+            groups_result = guacdb.get_connection_group_by_id(args.id)
+            if groups_result is None:
                 print(f"Connection group with ID {args.id} not found")
                 sys.exit(1)
         else:
             # Get all connection groups
             groups = guacdb.list_connection_groups()
+
+        # Use the appropriate groups variable
+        if hasattr(args, "id") and args.id is not None:
+            groups = groups_result  # type: ignore  # We know it's not None here
 
         print("conngroups:")
         for group_name, data in groups.items():
@@ -49,8 +53,16 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
             print(f"    id: {data['id']}")
             print(f"    parent: {data['parent']}")
             print("    connections:")
-            for conn in data["connections"]:
-                print(f"      - {conn}")
+            connections = data["connections"]
+            # Ensure connections is iterable (it should be a list of strings)
+            if isinstance(connections, list):
+                for conn in connections:
+                    if conn:  # Skip empty strings
+                        print(f"      - {conn}")
+            else:
+                # If it's not a list (unlikely but for type safety), convert to string
+                if connections:
+                    print(f"      - {connections}")
         sys.exit(0)
 
     elif args.conngroup_command == "exists":
@@ -151,10 +163,11 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
             # Get group name for display purposes (resolvers handle the actual lookup)
             if hasattr(args, "id") and args.id is not None:
                 # For ID-based operations, get name for display
-                group_name = guacdb.get_connection_group_name_by_id(args.id)
-                if not group_name:
+                group_name_result = guacdb.get_connection_group_name_by_id(args.id)
+                if group_name_result is None:
                     print(f"Error: Connection group with ID {args.id} not found")
                     sys.exit(1)
+                group_name = group_name_result
             else:
                 group_name = args.name
 

@@ -3,7 +3,7 @@
 import argparse
 import os
 import sys
-from typing import Any
+from typing import Any, Callable
 
 from guacalib import GuacamoleDB
 from guacalib.cli_handle_usergroup import handle_usergroup_command
@@ -11,6 +11,10 @@ from guacalib.cli_handle_dump import handle_dump_command
 from guacalib.cli_handle_user import handle_user_command
 from guacalib.cli_handle_conn import handle_conn_command
 from guacalib.cli_handle_conngroup import handle_conngroup_command
+
+# Type aliases for CLI functions
+ArgsType = Any  # from argparse.Namespace
+CommandHandler = Callable[[ArgsType, GuacamoleDB], None]
 
 
 def positive_int(value: str) -> int:
@@ -40,7 +44,7 @@ def validate_selector(args: Any, entity_type: str = "connection") -> None:
         sys.exit(1)
 
 
-def setup_user_subcommands(subparsers):
+def setup_user_subcommands(subparsers: Any) -> None:
     user_parser = subparsers.add_parser("user", help="Manage Guacamole users")
     user_subparsers = user_parser.add_subparsers(
         dest="user_command", help="User commands"
@@ -74,7 +78,7 @@ def setup_user_subcommands(subparsers):
     modify_user.add_argument("--password", help="New password for the user")
 
 
-def setup_usergroup_subcommands(subparsers):
+def setup_usergroup_subcommands(subparsers: Any) -> None:
     group_parser = subparsers.add_parser(
         "usergroup", help="Manage Guacamole usergroups"
     )
@@ -119,7 +123,7 @@ def setup_usergroup_subcommands(subparsers):
     modify_group.add_argument("--rmuser", help="Username to remove from usergroup")
 
 
-def setup_conngroup_subcommands(subparsers):
+def setup_conngroup_subcommands(subparsers: Any) -> None:
     conngroup_parser = subparsers.add_parser(
         "conngroup", help="Manage connection groups"
     )
@@ -218,17 +222,17 @@ def setup_conngroup_subcommands(subparsers):
     )
 
 
-def setup_dump_subcommand(subparsers):
+def setup_dump_subcommand(subparsers: Any) -> None:
     subparsers.add_parser(
         "dump", help="Dump all groups, users and connections in YAML format"
     )
 
 
-def setup_version_subcommand(subparsers):
+def setup_version_subcommand(subparsers: Any) -> None:
     subparsers.add_parser("version", help="Show version information")
 
 
-def setup_conn_subcommands(subparsers):
+def setup_conn_subcommands(subparsers: Any) -> None:
     conn_parser = subparsers.add_parser("conn", help="Manage connections")
     conn_subparsers = conn_parser.add_subparsers(
         dest="conn_command", help="Connection commands"
@@ -320,7 +324,7 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    def check_config_permissions(config_path):
+    def check_config_permissions(config_path: str) -> None:
         """Check config file has secure permissions"""
         if not os.path.exists(config_path):
             return  # Will be handled later by GuacamoleDB
