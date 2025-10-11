@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21] - 2025-10-11
+
+### Fixed
+- Fixed cleanup script regex pattern to properly remove orphaned temp_del_* usergroups
+- Corrected test cleanup to handle both test_* and temp_del_* timestamp patterns
+- Resolved issue where usergroups with id: None were not being cleaned up
+
 ## [0.20] - 2025-10-11
 
 ### Fixed

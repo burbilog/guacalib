@@ -63,8 +63,9 @@ cleanup_timestamped_entries() {
         fi
     done
 
-    output_msg "Cleaning up user groups..."
-    guacaman --config "$CONFIG_FILE" usergroup list 2>/dev/null | grep -E "test_[a-zA-Z0-9_]+_[0-9]{10}:" | cut -d: -f1 | while read -r group; do
+  output_msg "Cleaning up user groups..."
+    # Clean timestamp-based user groups (test_*, temp_del_*, etc.)
+    guacaman --config "$CONFIG_FILE" usergroup list 2>/dev/null | grep -E "(test_|temp_del_)[0-9]{10}:" | cut -d: -f1 | while read -r group; do
         if [ -n "$group" ]; then
             output_msg "  Deleting user group: $group"
             guacaman --config "$CONFIG_FILE" usergroup del --name "$group" 2>/dev/null || true

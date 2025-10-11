@@ -1133,7 +1133,7 @@ class GuacamoleDB:
         try:
             # Get users per group with IDs
             self.cursor.execute("""
-                SELECT 
+                SELECT
                     e.name as groupname,
                     ug.user_group_id,
                     GROUP_CONCAT(DISTINCT ue.name) as users
@@ -1148,7 +1148,7 @@ class GuacamoleDB:
 
             # Get connections per group with IDs
             self.cursor.execute("""
-                SELECT 
+                SELECT
                     e.name as groupname,
                     ug.user_group_id,
                     GROUP_CONCAT(DISTINCT c.connection_name) as connections
