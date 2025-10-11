@@ -1,4 +1,8 @@
-USER_PARAMETERS = {
+from typing import Dict, Any
+
+UserParameters = Dict[str, Dict[str, Any]]
+
+USER_PARAMETERS: UserParameters = {
     "disabled": {
         "type": "tinyint",
         "description": "Whether the user is disabled (0=enabled, 1=disabled)",

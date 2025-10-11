@@ -1,4 +1,8 @@
-CONNECTION_PARAMETERS = {
+from typing import Dict, Any
+
+ConnectionParameters = Dict[str, Dict[str, Any]]
+
+CONNECTION_PARAMETERS: ConnectionParameters = {
     # Parameters in guacamole_connection table
     "protocol": {
         "type": "string",

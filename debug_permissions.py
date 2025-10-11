@@ -3,7 +3,9 @@
 import sys
 import configparser
 import mysql.connector
-from typing import Dict, Any
+from typing import Dict, Any, Tuple, List, Optional
+from mysql.connector.connection import MySQLConnection
+from mysql.connector.cursor import CursorBase
 
 
 def main() -> None:
@@ -17,9 +19,9 @@ def main() -> None:
         )
         sys.exit(1)
 
-    config_file = sys.argv[1]
-    target = sys.argv[2]
-    is_conngroup = len(sys.argv) >= 4 and sys.argv[3] == "--conngroup"
+    config_file: str = sys.argv[1]
+    target: str = sys.argv[2]
+    is_conngroup: bool = len(sys.argv) >= 4 and sys.argv[3] == "--conngroup"
 
     # Read config
     config = configparser.ConfigParser()
@@ -29,7 +31,7 @@ def main() -> None:
         print(f"Error: Missing [mysql] section in config file: {config_file}")
         sys.exit(1)
 
-    db_config = {
+    db_config: Dict[str, str] = {
         "host": config["mysql"]["host"],
         "user": config["mysql"]["user"],
         "password": config["mysql"]["password"],
@@ -41,8 +43,8 @@ def main() -> None:
 
     # Connect to DB
     try:
-        conn = mysql.connector.connect(**db_config)
-        cursor = conn.cursor()
+        conn: MySQLConnection = mysql.connector.connect(**db_config)
+        cursor: CursorBase = conn.cursor()
 
         if is_conngroup:
             # Handle connection group
@@ -51,12 +53,12 @@ def main() -> None:
                 "SELECT connection_group_id FROM guacamole_connection_group WHERE connection_group_name = %s",
                 (target,),
             )
-            result = cursor.fetchone()
+            result: Optional[Tuple[int]] = cursor.fetchone()
             if not result:
                 print(f"ERROR: Connection group '{target}' not found")
                 sys.exit(1)
 
-            target_id = result[0]
+            target_id: int = result[0]
             print(f"Connection Group ID for '{target}': {target_id}")
 
             # Check all permissions for connection group
@@ -100,12 +102,16 @@ def main() -> None:
 
             target_type = "connection"
 
-        permissions = cursor.fetchall()
+        permissions: List[Tuple[int, str, str, str]] = cursor.fetchall()
         if not permissions:
             print(f"No permissions found for {target_type} '{target}'")
         else:
             print(f"Found {len(permissions)} permissions:")
             for perm in permissions:
+                entity_id: int
+                name: str
+                entity_type: str
+                permission: str
                 entity_id, name, entity_type, permission = perm
                 print(
                     f"  Entity ID: {entity_id}, Name: {name}, Type: {entity_type}, Permission: {permission}"
@@ -122,7 +128,7 @@ def main() -> None:
             (target_id,),
         )
 
-        user_permissions = cursor.fetchall()
+        user_permissions: List[Tuple[str]] = cursor.fetchall()
         if not user_permissions:
             print(f"No user permissions found for {target_type} '{target}'")
         else:
@@ -141,7 +147,7 @@ def main() -> None:
             (target_id,),
         )
 
-        group_permissions = cursor.fetchall()
+        group_permissions: List[Tuple[str]] = cursor.fetchall()
         if not group_permissions:
             print(f"No user group permissions found for {target_type} '{target}'")
         else:
