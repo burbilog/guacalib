@@ -1,7 +1,10 @@
 import sys
+from typing import Any
+
+from guacalib.db import GuacamoleDB
 
 
-def handle_user_command(args, guacdb):
+def handle_user_command(args: Any, guacdb: GuacamoleDB) -> None:
     command_handlers = {
         "new": handle_user_new,
         "list": handle_user_list,
@@ -18,7 +21,7 @@ def handle_user_command(args, guacdb):
         sys.exit(1)
 
 
-def handle_user_new(args, guacdb):
+def handle_user_new(args: Any, guacdb: GuacamoleDB) -> None:
     if guacdb.user_exists(args.name):
         print(f"Error: User '{args.name}' already exists")
         sys.exit(1)
@@ -46,7 +49,7 @@ def handle_user_new(args, guacdb):
         guacdb.debug_print(f"Group memberships: {', '.join(groups)}")
 
 
-def handle_user_list(args, guacdb):
+def handle_user_list(args: Any, guacdb: GuacamoleDB) -> None:
     users_and_groups = guacdb.list_users_with_usergroups()
     print("users:")
     for user, groups in users_and_groups.items():
@@ -56,7 +59,7 @@ def handle_user_list(args, guacdb):
             print(f"      - {group}")
 
 
-def handle_user_delete(args, guacdb):
+def handle_user_delete(args: Any, guacdb: GuacamoleDB) -> None:
     try:
         guacdb.delete_existing_user(args.name)
         guacdb.debug_print(f"Successfully deleted user '{args.name}'")
@@ -68,14 +71,14 @@ def handle_user_delete(args, guacdb):
         sys.exit(1)
 
 
-def handle_user_exists(args, guacdb):
+def handle_user_exists(args: Any, guacdb: GuacamoleDB) -> None:
     if guacdb.user_exists(args.name):
         sys.exit(0)
     else:
         sys.exit(1)
 
 
-def handle_user_modify(args, guacdb):
+def handle_user_modify(args: Any, guacdb: GuacamoleDB) -> None:
     if not args.name or (not args.set and not args.password):
         print(
             "Usage: guacaman user modify --name USERNAME [--set PARAMETER=VALUE] [--password NEW_PASSWORD]"

@@ -3,9 +3,10 @@
 import sys
 import configparser
 import mysql.connector
+from typing import Dict, Any
 
 
-def main():
+def main() -> None:
     if len(sys.argv) < 3:
         print(
             "Usage: debug_permissions.py CONFIG_FILE CONNECTION_NAME [CONNECTION_GROUP_NAME]"

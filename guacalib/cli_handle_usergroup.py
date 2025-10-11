@@ -1,7 +1,10 @@
 import sys
+from typing import Any
+
+from guacalib.db import GuacamoleDB
 
 
-def handle_usergroup_command(args, guacdb):
+def handle_usergroup_command(args: Any, guacdb: GuacamoleDB) -> None:
     """Handle all usergroup subcommands"""
     if args.usergroup_command == "new":
         if guacdb.usergroup_exists(args.name):

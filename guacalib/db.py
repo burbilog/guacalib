@@ -6,30 +6,42 @@ import sys
 import hashlib
 import os
 import binascii
+from typing import Optional, Union, Dict, List, Tuple, Any, Type, Callable
+
+from mysql.connector.connection import MySQLConnection
 
 from .db_connection_parameters import CONNECTION_PARAMETERS
 from .db_user_parameters import USER_PARAMETERS
+
+# Custom type definitions
+ConnectionConfig = Dict[str, str]
+ConnectionParameters = Dict[str, Union[str, int, bool]]
+UserParameters = Dict[str, Dict[str, Union[str, str, str]]]
+UserInfo = Tuple[str, List[str]]
+ConnectionInfo = Tuple[int, str, str, str, str, str, str, List[str]]
+GroupInfo = Dict[str, Dict[str, Union[int, List[str]]]]
+PermissionInfo = Tuple[str, str, str]  # (entity_name, entity_type, permission)
 
 
 class GuacamoleDB:
     CONNECTION_PARAMETERS = CONNECTION_PARAMETERS
     USER_PARAMETERS = USER_PARAMETERS
 
-    def __init__(self, config_file="db_config.ini", debug=False):
+    def __init__(self, config_file: str = "db_config.ini", debug: bool = False) -> None:
         self.debug = debug
         self.db_config = self.read_config(config_file)
         self.conn = self.connect_db()
         self.cursor = self.conn.cursor()
 
-    def debug_print(self, *args, **kwargs):
+    def debug_print(self, *args: Any, **kwargs: Any) -> None:
         """Print debug messages if debug mode is enabled"""
         if self.debug:
             print("[DEBUG]", *args, **kwargs)
 
-    def __enter__(self):
+    def __enter__(self) -> "GuacamoleDB":
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type: Optional[Type[BaseException]], exc_value: Optional[BaseException], traceback: Optional[Any]) -> None:
         if self.cursor:
             self.cursor.close()
         if self.conn:
@@ -43,7 +55,7 @@ class GuacamoleDB:
                 self.conn.close()
 
     @staticmethod
-    def read_config(config_file):
+    def read_config(config_file: str) -> ConnectionConfig:
         config = configparser.ConfigParser()
         if not os.path.exists(config_file):
             print(f"Error: Config file not found: {config_file}")
@@ -82,7 +94,7 @@ class GuacamoleDB:
             print(f"Error reading config file {config_file}: {str(e)}")
             sys.exit(1)
 
-    def connect_db(self):
+    def connect_db(self) -> MySQLConnection:
         try:
             return mysql.connector.connect(
                 **self.db_config, charset="utf8mb4", collation="utf8mb4_general_ci"
@@ -91,7 +103,7 @@ class GuacamoleDB:
             print(f"Error connecting to database: {e}")
             sys.exit(1)
 
-    def list_users(self):
+    def list_users(self) -> List[str]:
         try:
             self.cursor.execute(
                 """
@@ -106,7 +118,7 @@ class GuacamoleDB:
             print(f"Error listing users: {e}")
             raise
 
-    def list_usergroups(self):
+    def list_usergroups(self) -> List[str]:
         try:
             self.cursor.execute(
                 """
@@ -121,7 +133,7 @@ class GuacamoleDB:
             print(f"Error listing usergroups: {e}")
             raise
 
-    def usergroup_exists(self, group_name):
+    def usergroup_exists(self, group_name: str) -> bool:
         """Check if a group with the given name exists"""
         try:
             self.cursor.execute(
@@ -136,7 +148,7 @@ class GuacamoleDB:
             print(f"Error checking usergroup existence: {e}")
             raise
 
-    def get_usergroup_id(self, group_name):
+    def get_usergroup_id(self, group_name: str) -> int:
         try:
             self.cursor.execute(
                 """
@@ -156,7 +168,7 @@ class GuacamoleDB:
             print(f"Error getting usergroup ID: {e}")
             raise
 
-    def user_exists(self, username):
+    def user_exists(self, username: str) -> bool:
         """Check if a user with the given name exists"""
         try:
             self.cursor.execute(
@@ -230,7 +242,7 @@ class GuacamoleDB:
         },
     }
 
-    def get_connection_group_id_by_name(self, group_name):
+    def get_connection_group_id_by_name(self, group_name: str) -> Optional[int]:
         """Get connection_group_id by name from guacamole_connection_group"""
         try:
             if not group_name:  # Handle empty group name as explicit NULL
@@ -253,8 +265,8 @@ class GuacamoleDB:
             raise
 
     def modify_connection_parent_group(
-        self, connection_name=None, connection_id=None, group_name=None
-    ):
+        self, connection_name: Optional[str] = None, connection_id: Optional[int] = None, group_name: Optional[str] = None
+    ) -> bool:
         """Set parent connection group for a connection"""
         try:
             # Use resolver to get connection_id and validate inputs
@@ -338,11 +350,11 @@ class GuacamoleDB:
 
     def modify_connection(
         self,
-        connection_name=None,
-        connection_id=None,
-        param_name=None,
-        param_value=None,
-    ):
+        connection_name: Optional[str] = None,
+        connection_id: Optional[int] = None,
+        param_name: Optional[str] = None,
+        param_value: Optional[Union[str, int]] = None,
+    ) -> bool:
         """Modify a connection parameter in either guacamole_connection or guacamole_connection_parameter table"""
         try:
             # Validate parameter name
@@ -473,7 +485,7 @@ class GuacamoleDB:
             print(f"Error modifying connection parameter: {e}")
             raise
 
-    def change_user_password(self, username, new_password):
+    def change_user_password(self, username: str, new_password: str) -> bool:
         """Change a user's password"""
         try:
             # Generate random 32-byte salt
@@ -519,7 +531,7 @@ class GuacamoleDB:
             print(f"Error changing password: {e}")
             raise
 
-    def modify_user(self, username, param_name, param_value):
+    def modify_user(self, username: str, param_name: str, param_value: Union[str, int]) -> bool:
         """Modify a user parameter in the guacamole_user table"""
         try:
             # Validate parameter name
@@ -565,7 +577,7 @@ class GuacamoleDB:
             print(f"Error modifying user parameter: {e}")
             raise
 
-    def delete_existing_user(self, username):
+    def delete_existing_user(self, username: str) -> None:
         try:
             if not self.user_exists(username):
                 raise ValueError(f"User '{username}' doesn't exist")
@@ -632,7 +644,7 @@ class GuacamoleDB:
             print(f"Error deleting existing user: {e}")
             raise
 
-    def delete_existing_usergroup(self, group_name):
+    def delete_existing_usergroup(self, group_name: str) -> None:
         try:
             self.debug_print(f"Deleting usergroup: {group_name}")
             # Delete group memberships
@@ -687,7 +699,7 @@ class GuacamoleDB:
             print(f"Error deleting existing usergroup: {e}")
             raise
 
-    def delete_existing_usergroup_by_id(self, group_id):
+    def delete_existing_usergroup_by_id(self, group_id: int) -> None:
         """Delete a usergroup by ID and all its associated data"""
         try:
             # Validate and resolve the group ID
@@ -747,7 +759,7 @@ class GuacamoleDB:
             print(f"Error: {e}")
             raise
 
-    def delete_existing_connection(self, connection_name=None, connection_id=None):
+    def delete_existing_connection(self, connection_name: Optional[str] = None, connection_id: Optional[int] = None) -> None:
         """Delete a connection and all its associated data"""
         try:
             # Use resolver to get connection_id and validate inputs
@@ -812,7 +824,7 @@ class GuacamoleDB:
             print(f"Error deleting existing connection: {e}")
             raise
 
-    def delete_connection_group(self, group_name=None, group_id=None):
+    def delete_connection_group(self, group_name: Optional[str] = None, group_id: Optional[int] = None) -> bool:
         """Delete a connection group and update references to it"""
         try:
             # Use resolver to get group_id and validate inputs
@@ -872,7 +884,7 @@ class GuacamoleDB:
             print(f"Error deleting existing connection: {e}")
             raise
 
-    def create_user(self, username, password):
+    def create_user(self, username: str, password: str) -> None:
         try:
             # Generate random 32-byte salt
             salt = os.urandom(32)
@@ -916,7 +928,7 @@ class GuacamoleDB:
             print(f"Error creating user: {e}")
             raise
 
-    def create_usergroup(self, group_name):
+    def create_usergroup(self, group_name: str) -> None:
         try:
             # Create entity
             self.cursor.execute(
@@ -942,7 +954,7 @@ class GuacamoleDB:
             print(f"Error creating usergroup: {e}")
             raise
 
-    def add_user_to_usergroup(self, username, group_name):
+    def add_user_to_usergroup(self, username: str, group_name: str) -> None:
         try:
             # Get the group ID
             group_id = self.get_usergroup_id(group_name)
@@ -993,7 +1005,7 @@ class GuacamoleDB:
             print(f"Error adding user to usergroup: {e}")
             raise
 
-    def remove_user_from_usergroup(self, username, group_name):
+    def remove_user_from_usergroup(self, username: str, group_name: str) -> None:
         try:
             # Get the group ID
             group_id = self.get_usergroup_id(group_name)
@@ -1047,7 +1059,7 @@ class GuacamoleDB:
             print(f"Error removing user from group: {e}")
             raise
 
-    def get_connection_group_id(self, group_path):
+    def get_connection_group_id(self, group_path: str) -> int:
         """Resolve nested connection group path to group_id"""
         try:
             groups = group_path.split("/")
@@ -1091,7 +1103,7 @@ class GuacamoleDB:
             print(f"Error resolving group path: {e}")
             raise
 
-    def connection_exists(self, connection_name=None, connection_id=None):
+    def connection_exists(self, connection_name: Optional[str] = None, connection_id: Optional[int] = None) -> bool:
         """Check if a connection with the given name or ID exists"""
         try:
             # Use resolver to validate inputs and get connection_id
@@ -1107,7 +1119,7 @@ class GuacamoleDB:
             print(f"Error checking connection existence: {e}")
             raise
 
-    def connection_group_exists(self, group_name=None, group_id=None):
+    def connection_group_exists(self, group_name: Optional[str] = None, group_id: Optional[int] = None) -> bool:
         """Check if a connection group with the given name or ID exists"""
         try:
             # Use resolver to validate inputs and get group_id
@@ -1123,13 +1135,13 @@ class GuacamoleDB:
 
     def create_connection(
         self,
-        connection_type,
-        connection_name,
-        hostname,
-        port,
-        vnc_password,
-        parent_group_id=None,
-    ):
+        connection_type: str,
+        connection_name: str,
+        hostname: str,
+        port: Union[str, int],
+        vnc_password: str,
+        parent_group_id: Optional[int] = None,
+    ) -> int:
         if not all([connection_name, hostname, port]):
             raise ValueError("Missing required connection parameters")
 
@@ -1215,7 +1227,7 @@ class GuacamoleDB:
             print(f"Error granting connection permission: {e}")
             raise
 
-    def list_users_with_usergroups(self):
+    def list_users_with_usergroups(self) -> Dict[str, List[str]]:
         query = """
             SELECT DISTINCT 
                 e1.name as username,
@@ -1242,7 +1254,7 @@ class GuacamoleDB:
 
         return users_groups
 
-    def list_connections_with_conngroups_and_parents(self):
+    def list_connections_with_conngroups_and_parents(self) -> List[ConnectionInfo]:
         """List all connections with their groups, parent group, and user permissions"""
         try:
             # Get basic connection info with groups
@@ -1317,7 +1329,7 @@ class GuacamoleDB:
             print(f"Error listing connections: {e}")
             raise
 
-    def get_connection_by_id(self, connection_id):
+    def get_connection_by_id(self, connection_id: int) -> Optional[ConnectionInfo]:
         """Get a specific connection by its ID"""
         try:
             # Get basic connection info with groups
@@ -1463,7 +1475,7 @@ class GuacamoleDB:
 
         return False
 
-    def create_connection_group(self, group_name, parent_group_name=None):
+    def create_connection_group(self, group_name: str, parent_group_name: Optional[str] = None) -> bool:
         """Create a new connection group"""
         try:
             parent_group_id = None
@@ -1635,8 +1647,8 @@ class GuacamoleDB:
             raise
 
     def modify_connection_group_parent(
-        self, group_name=None, group_id=None, new_parent_name=None
-    ):
+        self, group_name: Optional[str] = None, group_id: Optional[int] = None, new_parent_name: Optional[str] = None
+    ) -> bool:
         """Set parent connection group for a connection group with cycle detection"""
         try:
             # Use resolver to get group_id and validate inputs
@@ -1690,7 +1702,7 @@ class GuacamoleDB:
             print(f"Error modifying connection group parent: {e}")
             raise
 
-    def list_connection_groups(self):
+    def list_connection_groups(self) -> Dict[str, Dict[str, Union[int, List[str]]]]:
         """List all connection groups with their connections and parent groups"""
         try:
             self.cursor.execute(
@@ -1727,7 +1739,7 @@ class GuacamoleDB:
             print(f"Error listing groups: {e}")
             raise
 
-    def get_connection_group_by_id(self, group_id):
+    def get_connection_group_by_id(self, group_id: int) -> Optional[Dict[str, Dict[str, Union[int, List[str]]]]]:
         """Get a specific connection group by its ID"""
         try:
             self.cursor.execute(
@@ -1768,7 +1780,7 @@ class GuacamoleDB:
             print(f"Error getting connection group by ID: {e}")
             raise
 
-    def get_connection_name_by_id(self, connection_id):
+    def get_connection_name_by_id(self, connection_id: int) -> Optional[str]:
         """Get connection name by ID"""
         try:
             self.cursor.execute(
@@ -1785,7 +1797,7 @@ class GuacamoleDB:
             print(f"Error getting connection name by ID: {e}")
             raise
 
-    def get_connection_group_name_by_id(self, group_id):
+    def get_connection_group_name_by_id(self, group_id: int) -> Optional[str]:
         """Get connection group name by ID"""
         try:
             self.cursor.execute(
@@ -1802,7 +1814,7 @@ class GuacamoleDB:
             print(f"Error getting connection group name by ID: {e}")
             raise
 
-    def validate_positive_id(self, id_value, entity_type="entity"):
+    def validate_positive_id(self, id_value: Optional[int], entity_type: str = "entity") -> Optional[int]:
         """Validate that ID is a positive integer"""
         if id_value is not None and id_value <= 0:
             raise ValueError(
@@ -1810,7 +1822,7 @@ class GuacamoleDB:
             )
         return id_value
 
-    def resolve_connection_id(self, connection_name=None, connection_id=None):
+    def resolve_connection_id(self, connection_name: Optional[str] = None, connection_id: Optional[int] = None) -> int:
         """Validate inputs and resolve to connection_id with centralized validation"""
         # Validate exactly one parameter provided
         if (connection_name is None) == (connection_id is None):
@@ -1858,7 +1870,7 @@ class GuacamoleDB:
             except mysql.connector.Error as e:
                 raise ValueError(f"Database error while resolving connection name: {e}")
 
-    def resolve_conngroup_id(self, group_name=None, group_id=None):
+    def resolve_conngroup_id(self, group_name: Optional[str] = None, group_id: Optional[int] = None) -> int:
         """Validate inputs and resolve to connection_group_id with centralized validation"""
         # Validate exactly one parameter provided
         if (group_name is None) == (group_id is None):
@@ -1908,7 +1920,7 @@ class GuacamoleDB:
                     f"Database error while resolving connection group name: {e}"
                 )
 
-    def resolve_usergroup_id(self, group_name=None, group_id=None):
+    def resolve_usergroup_id(self, group_name: Optional[str] = None, group_id: Optional[int] = None) -> int:
         """Validate inputs and resolve to user_group_id with centralized validation"""
         # Validate exactly one parameter provided
         if (group_name is None) == (group_id is None):
@@ -1955,7 +1967,7 @@ class GuacamoleDB:
             except mysql.connector.Error as e:
                 raise ValueError(f"Database error while resolving usergroup name: {e}")
 
-    def usergroup_exists_by_id(self, group_id):
+    def usergroup_exists_by_id(self, group_id: int) -> bool:
         """Check if a usergroup exists by ID"""
         try:
             self.cursor.execute(
@@ -1969,7 +1981,7 @@ class GuacamoleDB:
         except mysql.connector.Error as e:
             raise ValueError(f"Database error while checking usergroup existence: {e}")
 
-    def get_usergroup_name_by_id(self, group_id):
+    def get_usergroup_name_by_id(self, group_id: int) -> str:
         """Get usergroup name by ID"""
         try:
             self.cursor.execute(

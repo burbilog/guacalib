@@ -1,8 +1,11 @@
 import sys
 import mysql.connector
+from typing import Any
+
+from guacalib.db import GuacamoleDB
 
 
-def handle_conngroup_command(args, guacdb):
+def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
     """Handle all conngroup subcommands"""
     if args.conngroup_command == "new":
         try:

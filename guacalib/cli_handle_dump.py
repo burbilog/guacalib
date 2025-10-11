@@ -1,4 +1,7 @@
-def handle_dump_command(guacdb):
+from guacalib.db import GuacamoleDB
+
+
+def handle_dump_command(guacdb: GuacamoleDB) -> None:
     """Handle dump command - fetch and format all Guacamole data in YAML format"""
     # Print user groups using existing list functionality
     from guacalib.cli_handle_usergroup import handle_usergroup_command

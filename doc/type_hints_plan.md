@@ -70,46 +70,46 @@ CommandHandler = Callable[[ArgsType, GuacamoleDB], None]
 ## Implementation Phases
 
 ### Phase 1: Core Infrastructure Setup
-- [ ] Add typing imports to all files
-- [ ] Define custom types at top of relevant modules
-- [ ] Type the `GuacamoleDB` class constructor (`__init__`)
-- [ ] Type context manager methods (`__enter__`, `__exit__`)
-- [ ] Type basic utility methods (`debug_print`, `read_config`, `connect_db`)
+- [x] Add typing imports to all files
+- [x] Define custom types at top of relevant modules
+- [x] Type the `GuacamoleDB` class constructor (`__init__`)
+- [x] Type context manager methods (`__enter__`, `__exit__`)
+- [x] Type basic utility methods (`debug_print`, `read_config`, `connect_db`)
 
 ### Phase 2: Core Database Operations
-- [ ] Type all ID resolution methods (`resolve_connection_id`, `resolve_conngroup_id`, `resolve_usergroup_id`)
-- [ ] Type existence checking methods (`*_exists`, `*_exists_by_id`)
-- [ ] Type getter methods (`get_*_by_id`, `get_*_by_name`)
-- [ ] Type validation methods (`validate_positive_id`)
+- [x] Type all ID resolution methods (`resolve_connection_id`, `resolve_conngroup_id`, `resolve_usergroup_id`)
+- [x] Type existence checking methods (`*_exists`, `*_exists_by_id`)
+- [x] Type getter methods (`get_*_by_id`, `get_*_by_name`)
+- [x] Type validation methods (`validate_positive_id`)
 
 ### Phase 3: CRUD Operations
 #### User Management
-- [ ] Type `create_user()`
-- [ ] Type `delete_existing_user()`
-- [ ] Type `modify_user()`
-- [ ] Type `change_user_password()`
-- [ ] Type user listing methods (`list_users`, `list_users_with_usergroups`)
+- [x] Type `create_user()`
+- [x] Type `delete_existing_user()`
+- [x] Type `modify_user()`
+- [x] Type `change_user_password()`
+- [x] Type user listing methods (`list_users`, `list_users_with_usergroups`)
 
 #### User Group Management
-- [ ] Type `create_usergroup()`
-- [ ] Type `delete_existing_usergroup()`
-- [ ] Type `delete_existing_usergroup_by_id()`
-- [ ] Type `add_user_to_usergroup()`
-- [ ] Type `remove_user_from_usergroup()`
-- [ ] Type user group listing methods
+- [x] Type `create_usergroup()`
+- [x] Type `delete_existing_usergroup()`
+- [x] Type `delete_existing_usergroup_by_id()`
+- [x] Type `add_user_to_usergroup()`
+- [x] Type `remove_user_from_usergroup()`
+- [x] Type user group listing methods
 
 #### Connection Management
-- [ ] Type `create_connection()`
-- [ ] Type `delete_existing_connection()`
-- [ ] Type `modify_connection()`
-- [ ] Type `modify_connection_parent_group()`
-- [ ] Type connection listing methods (`list_connections_with_conngroups_and_parents`, `get_connection_by_id`)
+- [x] Type `create_connection()`
+- [x] Type `delete_existing_connection()`
+- [x] Type `modify_connection()`
+- [x] Type `modify_connection_parent_group()`
+- [x] Type connection listing methods (`list_connections_with_conngroups_and_parents`, `get_connection_by_id`)
 
 #### Connection Group Management
-- [ ] Type `create_connection_group()`
-- [ ] Type `delete_connection_group()`
-- [ ] Type `modify_connection_group_parent()`
-- [ ] Type connection group listing methods (`list_connection_groups`, `get_connection_group_by_id`)
+- [x] Type `create_connection_group()`
+- [x] Type `delete_connection_group()`
+- [x] Type `modify_connection_group_parent()`
+- [x] Type connection group listing methods (`list_connection_groups`, `get_connection_group_by_id`)
 
 ### Phase 4: Permission Management
 - [ ] Type `grant_connection_permission_to_user()`
@@ -211,9 +211,9 @@ CommandHandler = Callable[[ArgsType, GuacamoleDB], None]
 
 ## Progress Tracking
 
-- [ ] Phase 1: Core Infrastructure (0/5 complete)
-- [ ] Phase 2: Core Database Operations (0/4 complete)
-- [ ] Phase 3: CRUD Operations (0/4 complete)
+- [x] Phase 1: Core Infrastructure (5/5 complete)
+- [x] Phase 2: Core Database Operations (4/4 complete)
+- [x] Phase 3: CRUD Operations (4/4 complete)
 - [ ] Phase 4: Permission Management (0/7 complete)
 - [ ] Phase 5: CLI Layer (0/4 complete)
 - [ ] Phase 6: Parameter Definitions & Utilities (0/3 complete)

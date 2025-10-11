@@ -1,7 +1,10 @@
 import sys
+from typing import Any
+
+from guacalib.db import GuacamoleDB
 
 
-def is_terminal():
+def is_terminal() -> bool:
     """Check if stdout is a terminal (not piped)"""
     return sys.stdout.isatty()
 
@@ -15,7 +18,7 @@ else:
     RESET = ""
 
 
-def handle_conn_command(args, guacdb):
+def handle_conn_command(args: Any, guacdb: GuacamoleDB) -> None:
     command_handlers = {
         "new": handle_conn_new,
         "list": handle_conn_list,
@@ -51,7 +54,7 @@ def handle_conn_list(args, guacdb):
 """
 
 
-def handle_conn_list(args, guacdb):
+def handle_conn_list(args: Any, guacdb: GuacamoleDB) -> None:
     # Check if specific ID is requested
     if hasattr(args, "id") and args.id:
         # Get specific connection by ID
@@ -88,7 +91,7 @@ def handle_conn_list(args, guacdb):
                 print(f"      - {user}")
 
 
-def handle_conn_new(args, guacdb):
+def handle_conn_new(args: Any, guacdb: GuacamoleDB) -> None:
     try:
         connection_id = None
 
@@ -122,7 +125,7 @@ def handle_conn_new(args, guacdb):
         sys.exit(1)
 
 
-def handle_conn_delete(args, guacdb):
+def handle_conn_delete(args: Any, guacdb: GuacamoleDB) -> None:
     # Validate exactly one selector provided
     from .cli import validate_selector
 
@@ -143,7 +146,7 @@ def handle_conn_delete(args, guacdb):
         sys.exit(1)
 
 
-def handle_conn_exists(args, guacdb):
+def handle_conn_exists(args: Any, guacdb: GuacamoleDB) -> None:
     # Validate exactly one selector provided
     from .cli import validate_selector
 
@@ -170,7 +173,7 @@ def handle_conn_exists(args, guacdb):
         sys.exit(1)
 
 
-def handle_conn_modify(args, guacdb):
+def handle_conn_modify(args: Any, guacdb: GuacamoleDB) -> None:
     """Handle the connection modify command"""
     # Check if no modification options provided - show help
     if not args.set and args.parent is None and not args.permit and not args.deny:

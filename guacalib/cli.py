@@ -3,6 +3,8 @@
 import argparse
 import os
 import sys
+from typing import Any
+
 from guacalib import GuacamoleDB
 from guacalib.cli_handle_usergroup import handle_usergroup_command
 from guacalib.cli_handle_dump import handle_dump_command
@@ -11,7 +13,7 @@ from guacalib.cli_handle_conn import handle_conn_command
 from guacalib.cli_handle_conngroup import handle_conngroup_command
 
 
-def positive_int(value):
+def positive_int(value: str) -> int:
     """Convert to integer and validate that it is positive"""
     ivalue = int(value)
     if ivalue <= 0:
@@ -19,7 +21,7 @@ def positive_int(value):
     return ivalue
 
 
-def validate_selector(args, entity_type="connection"):
+def validate_selector(args: Any, entity_type: str = "connection") -> None:
     """Validate exactly one of name or id is provided and validate ID format"""
     has_name = hasattr(args, "name") and args.name is not None
     has_id = hasattr(args, "id") and args.id is not None
@@ -297,7 +299,7 @@ def setup_conn_subcommands(subparsers):
     )
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Manage Guacamole users, groups, and connections"
     )
