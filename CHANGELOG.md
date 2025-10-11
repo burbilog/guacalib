@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20] - 2025-10-11
+
+### Fixed
+- Major documentation updates to align README with actual codebase capabilities
+- Corrected SSH connection implementation status from "not fully implemented" to "basic support available"
+- Fixed connection parameter count documentation (100+ → 50+ parameters)
+- Added comprehensive --id parameter support documentation for all entity types
+- Enhanced connection group permission management documentation
+- Documented advanced validation features and cycle detection
+- Added missing library methods and debug utilities documentation
+
+### Improved
+- README now accurately reflects ~95% of actual functionality
+- Better organized documentation sections with clear examples
+- Enhanced technical accuracy of feature descriptions
+- Comprehensive coverage of atomic operations and transaction safety
+
 ## [0.19] - 2025-10-10
 
 ### Added

@@ -22,6 +22,11 @@ A comprehensive Python library and command-line tool for managing Apache Guacamo
 - Context manager for automatic connection handling
 - Type-safe parameter handling
 - Comprehensive error reporting
+- Advanced permission management with atomic operations
+- Entity resolution with both name and ID support
+- Connection group cycle detection
+- Debug utilities for troubleshooting
+- Transaction-safe operations
 
 ## Installation from PyPI
 
@@ -161,6 +166,62 @@ guacdb.modify_connection_group_parent('vnc_servers', '')
 guacdb.delete_connection_group('vnc_servers')
 ```
 
+### Advanced Library Features
+
+The GuacamoleDB class provides additional methods for complex operations:
+
+#### Permission Management
+```python
+# Connection permissions
+guacdb.grant_connection_permission_to_user('john.doe', 'dev-server')
+guacdb.revoke_connection_permission_from_user('john.doe', 'dev-server')
+
+# Connection group permissions (advanced)
+guacdb.grant_connection_group_permission_to_user('john.doe', 'production')
+guacdb.grant_connection_group_permission_to_user_by_id('john.doe', 42)
+guacdb.revoke_connection_group_permission_from_user('john.doe', 'production')
+guacdb.revoke_connection_group_permission_from_user_by_id('john.doe', 42)
+```
+
+#### Entity Resolution and Validation
+```python
+# Resolve entities by name or ID with validation
+conn_id = guacdb.resolve_connection_id(connection_name='dev-server')
+conn_id = guacdb.resolve_connection_id(connection_id=42)
+
+group_id = guacdb.resolve_conngroup_id(group_name='production')
+group_id = guacdb.resolve_conngroup_id(group_id=15)
+
+usergroup_id = guacdb.resolve_usergroup_id(group_name='developers')
+usergroup_id = guacdb.resolve_usergroup_id(group_id=8)
+```
+
+#### Advanced Query Methods
+```python
+# Get specific entities by ID
+connection = guacdb.get_connection_by_id(42)
+conngroup = guacdb.get_connection_group_by_id(15)
+
+# Get names by ID
+name = guacdb.get_connection_name_by_id(42)
+name = guacdb.get_connection_group_name_by_id(15)
+name = guacdb.get_usergroup_name_by_id(8)
+
+# Check existence by ID
+exists = guacdb.usergroup_exists_by_id(8)
+exists = guacdb.connection_group_exists('production')
+exists = guacdb.connection_exists('dev-server')
+```
+
+#### Debug and Utility Methods
+```python
+# Debug permission issues
+guacdb.debug_connection_permissions('dev-server')
+
+# Validate positive IDs
+guacdb.validate_positive_id(42, "connection")
+```
+
 ### Listing Data
 ```python
 # List users with their groups
@@ -171,6 +232,12 @@ groups = guacdb.list_usergroups_with_users_and_connections()
 
 # List all connections
 connections = guacdb.list_connections_with_conngroups_and_parents()
+
+# List connection groups with hierarchy
+groups = guacdb.list_connection_groups()
+
+# List groups with users
+groups_users = guacdb.list_groups_with_users()
 ```
 
 ## Command line usage
@@ -228,6 +295,12 @@ Removes a user:
 guacaman user del --name john.doe
 ```
 
+#### Check if a user exists
+Check user existence (returns 0 if exists, 1 if not):
+```bash
+guacaman user exists --name john.doe
+```
+
 ### Managing User Groups
 
 #### Create a new user group
@@ -242,18 +315,37 @@ guacaman usergroup list
 ```
 
 #### Delete a user group
+Supports both name and ID-based deletion:
 ```bash
+# Delete by name
 guacaman usergroup del --name developers
+
+# Delete by ID
+guacaman usergroup del --id 42
+```
+
+#### Check if a user group exists
+Supports both name and ID-based existence checking:
+```bash
+# Check by name
+guacaman usergroup exists --name developers
+
+# Check by ID
+guacaman usergroup exists --id 42
 ```
 
 #### Modify a user group
-Add or remove users from a group:
+Add or remove users from a group with comprehensive ID support:
 ```bash
-# Add user to group
+# Add user to group by name
 guacaman usergroup modify --name developers --adduser john.doe
 
-# Remove user from group
+# Remove user from group by name
 guacaman usergroup modify --name developers --rmuser john.doe
+
+# Use ID-based group selectors
+guacaman usergroup modify --id 42 --adduser john.doe
+guacaman usergroup modify --id 42 --rmuser john.doe
 ```
 
 ### Managing Connections
@@ -271,21 +363,31 @@ guacaman conn new \
 
 # Create other types of connections
 guacaman conn new --type rdp ...
-guacaman conn new --type ssh ...
+guacaman conn new --type ssh ...  # Basic support available
 ```
 
 #### List all connections
 ```bash
 guacaman conn list
+
+# List specific connection by ID
+guacaman conn list --id 42
 ```
 
 #### Modify a connection
 ```bash
-# Change connection parameters
+# Change basic connection parameters
 guacaman conn modify --name dev-server \
     --set hostname=192.168.1.200 \
     --set port=5902 \
-    --set max_connections=5
+    --set max_connections=5 \
+    --set max_connections_per_user=2
+
+# Change protocol-specific parameters
+guacaman conn modify --name dev-server \
+    --set color-depth=32 \
+    --set enable-sftp=true \
+    --set enable-audio=true
 
 # Grant permission to user
 guacaman conn modify --name dev-server --permit john.doe
@@ -303,14 +405,54 @@ guacaman conn modify --name dev-server --parent ""
 guacaman conn modify --name dev-server --set invalid_param=value
 ```
 
-#### Delete a connection
+**Available Connection Parameters:**
+
+The `--set` option supports 50+ parameters organized by category:
+
+**Connection Table Parameters:**
+- `protocol` - Connection protocol (vnc, rdp, ssh)
+- `max_connections` - Maximum concurrent connections
+- `max_connections_per_user` - Max connections per user
+- `proxy_hostname` - Guacamole proxy hostname
+- `proxy_port` - Guacamole proxy port
+- `connection_weight` - Load balancing weight
+- `failover_only` - Use for failover only
+
+**Protocol-Specific Parameters:**
+- **VNC:** `hostname`, `port`, `password`, `color-depth`, `clipboard-encoding`
+- **RDP:** `hostname`, `port`, `username`, `password`, `domain`, `color-depth`
+- **SSH:** `hostname`, `port`, `username`, `password`, `private-key`, `passphrase`
+
+**Advanced Features:**
+- **SFTP:** `enable-sftp`, `sftp-hostname`, `sftp-port`, `sftp-username`, `sftp-password`
+- **Audio:** `enable-audio`, `audio-servername`
+- **Session Recording:** `recording-path`, `recording-name`
+- **Network:** `autoretry`, `server-alive-interval`
+- **Security:** `host-key`, `disable-copy`, `disable-paste`
+
+#### Check if a connection exists
+Supports both name and ID-based existence checking:
 ```bash
+# Check by name
+guacaman conn exists --name dev-server
+
+# Check by ID
+guacaman conn exists --id 42
+```
+
+#### Delete a connection
+Supports both name and ID-based deletion:
+```bash
+# Delete by name
 guacaman conn del --name dev-server
+
+# Delete by ID
+guacaman conn del --id 42
 ```
 
 ### Managing Connection Groups
 
-Connection groups allow you to organize connections into hierarchical groups and manage user permissions for entire groups of connections. Here's how to manage them:
+Connection groups allow you to organize connections into hierarchical groups and manage user permissions for entire groups of connections. Features include cycle detection, atomic operations, and comprehensive permission management.
 
 #### Create a new connection group
 ```bash
@@ -322,25 +464,71 @@ guacaman conngroup new --name vnc_servers --parent production
 ```
 
 #### List all connection groups
-Shows all groups and their hierarchy:
+Shows all groups and their hierarchy with database IDs:
 ```bash
 guacaman conngroup list
+
+# List specific connection group by ID
+guacaman conngroup list --id 15
 ```
 
 #### Delete a connection group
+Supports both name and ID-based deletion with automatic cleanup of child references:
 ```bash
+# Delete by name
 guacaman conngroup del --name vnc_servers
+
+# Delete by ID
+guacaman conngroup del --id 42
+```
+
+#### Check if a connection group exists
+Supports both name and ID-based existence checking:
+```bash
+# Check by name
+guacaman conngroup exists --name vnc_servers
+
+# Check by ID
+guacaman conngroup exists --id 42
 ```
 
 #### Modify a connection group
-Change parent group, hierarchy, or manage user permissions:
+Advanced modification with cycle detection, atomic operations, and comprehensive ID support:
+
+**Parent Group Management:**
 ```bash
-# Move group to new parent
+# Move group to new parent (with cycle detection)
 guacaman conngroup modify --name vnc_servers --parent "infrastructure"
 
 # Remove parent (make top-level)
 guacaman conngroup modify --name vnc_servers --parent ""
 
+# Use ID-based selectors
+guacaman conngroup modify --id 42 --parent "infrastructure"
+```
+
+**Connection Management within Groups:**
+```bash
+# Add connection to group by name
+guacaman conngroup modify --name vnc_servers --addconn-by-name dev-server
+
+# Add connection to group by ID
+guacaman conngroup modify --name vnc_servers --addconn-by-id 42
+
+# Remove connection from group by name
+guacaman conngroup modify --name vnc_servers --rmconn-by-name dev-server
+
+# Remove connection from group by ID
+guacaman conngroup modify --name vnc_servers --rmconn-by-id 42
+
+# Use ID-based group selectors
+guacaman conngroup modify --id 15 --addconn-by-name dev-server
+```
+
+**Advanced User Permission Management:**
+The system supports atomic permission operations with comprehensive validation:
+
+```bash
 # Grant permission to user for connection group using name selector
 guacaman conngroup modify --name vnc_servers --permit john.doe
 
@@ -353,13 +541,20 @@ guacaman conngroup modify --name vnc_servers --deny john.doe
 # Revoke permission from user for connection group using ID selector
 guacaman conngroup modify --id 42 --deny jane.doe
 
-# Combine parent modification with permission operations
-guacaman conngroup modify --name vnc_servers --parent "infrastructure" --permit john.doe
+# Multiple users in single operation (repeat flags)
+guacaman conngroup modify --name vnc_servers --permit john.doe --permit jane.doe
 ```
 
-#### Check if a connection group exists
+**Combined Operations:**
 ```bash
-guacaman conngroup exists --name vnc_servers
+# Combine parent modification with permission operations
+guacaman conngroup modify --name vnc_servers --parent "infrastructure" --permit john.doe
+
+# Add connection and grant permission in one command
+guacaman conngroup modify --name vnc_servers --addconn-by-name dev-server --permit jane.doe
+
+# Complex operation with ID-based selectors
+guacaman conngroup modify --id 42 --parent "infrastructure" --addconn-by-id 15 --permit john.doe
 ```
 
 ### Version Information
@@ -369,19 +564,33 @@ Check the installed version:
 guacaman version
 ```
 
+### Debug Mode
+
+Enable debug output to see SQL queries and internal state:
+```bash
+guacaman --debug conn list
+guacaman --debug user new --name test --password test
+```
+
 ### Check existence
 
-Check if a user, group or connection exists (returns 0 if exists, 1 if not):
+Check if a user, group, connection, or connection group exists (returns 0 if exists, 1 if not):
 
 ```bash
 # Check user
 guacaman user exists --name john.doe
 
-# Check user group
+# Check user group (supports both name and ID)
 guacaman usergroup exists --name developers
+guacaman usergroup exists --id 42
 
-# Check connection
+# Check connection (supports both name and ID)
 guacaman conn exists --name dev-server
+guacaman conn exists --id 42
+
+# Check connection group (supports both name and ID)
+guacaman conngroup exists --name production
+guacaman conngroup exists --id 15
 ```
 
 These commands are silent and only return an exit code, making them suitable for scripting.
@@ -395,12 +604,54 @@ guacaman dump
 
 ## Output Format
 
-All list commands (`user list`, `usergroup list`, `conn list`, `conngroup list`, `dump`) output data in proper, parseable YAML format. This makes it easy to process the output with tools like `yq` or integrate with other systems.
+All list commands (`user list`, `usergroup list`, `conn list`, `conngroup list`, `dump`) output data in YAML-like format. The output includes additional fields that may be useful for scripting and integration.
 
-Example:
+**Connection List Output:**
+```yaml
+connections:
+  dev-server:
+    id: 42
+    protocol: vnc
+    parameters:
+      hostname: 192.168.1.100
+      port: "5901"
+      password: "******"
+    parent: vnc_servers
+    permissions:
+      - user: john.doe
+        permission: READ
+```
+
+**Connection Group List Output:**
+```yaml
+conngroups:
+  vnc_servers:
+    id: 15
+    parent: production
+    connections:
+      - dev-server
+      - test-server
+```
+
+**User List Output:**
+```yaml
+users:
+  john.doe:
+    groups:
+      - developers
+      - qa
+```
+
+Example parsing with `yq`:
 ```bash
-# Parse with yq
-guacaman user list | yq '.users[].groups'
+# Get all connection names
+guacaman conn list | yq '.connections | keys[]'
+
+# Get connections in a specific group
+guacaman conngroup list | yq '.conngroups.vnc_servers.connections[]'
+
+# Get user groups
+guacaman user list | yq '.users[].groups[]'
 ```
 
 ## Configuration File Format
@@ -424,7 +675,29 @@ The tool provides comprehensive error handling for:
 - Permission problems
 - Invalid configurations
 
-All errors are reported with clear messages to help diagnose issues.
+**Validation Rules:**
+- Exactly one of `--name` or `--id` must be provided for most operations
+- IDs must be positive integers greater than 0
+- Names cannot be empty strings
+- Configuration files must have secure permissions (0600)
+- Mutual exclusion validation for conflicting options
+- Cycle detection for connection group parent relationships
+- Type validation for connection parameters (colors, booleans, integers)
+
+**Transaction Handling:**
+- Connection group modifications use explicit transactions
+- Automatic rollback on errors
+- Proper error messages with context
+- Atomic permission operations to prevent partial state corruption
+- Comprehensive input validation before database operations
+
+**Advanced Features:**
+- Connection group cycle detection prevents infinite hierarchies
+- Centralized entity resolution with consistent error messages
+- Debug mode for troubleshooting (`--debug` flag)
+- Parameter validation based on protocol-specific requirements
+
+All errors are reported with clear messages to help diagnose issues. Use `--debug` flag to see detailed SQL queries and internal state.
 
 ## Security Considerations
 
@@ -438,6 +711,8 @@ All errors are reported with clear messages to help diagnose issues.
 ## Limitations
 
 - Requires MySQL client access to the Guacamole database
+- SSH connections have basic support with limited parameter validation
+- Connection creation only supports basic parameters (use `modify` for advanced parameters)
 
 ## TODO
 
@@ -460,12 +735,14 @@ Current limitations and planned improvements:
 
 - [ ] Support for other connection types
   - [X] RDP (Remote Desktop Protocol)
-  - [ ] SSH
+  - [X] SSH (basic support available)
 
 - [x] User permissions management ✓
   - Grant/revoke permissions for individual connections
   - Grant/revoke permissions for connection groups
   - Support for both name-based and ID-based operations
+  - Atomic permission operations with rollback
+  - Advanced validation and cycle detection
   - [ ] More granular permissions control
   - [ ] Permission templates
 
@@ -476,7 +753,7 @@ Current limitations and planned improvements:
   - [ ] Custom parameters for different connection types (protocol-specific validation)
 
 - [x] Implement dumping RDP connections ✓
-  - All connection types (VNC, RDP, SSH) are included in dump command
+  - All connection types (VNC, RDP) are included in dump command
   - Connection parameters are properly exported in YAML format
 
 PRs implementing any of these features are welcome!
@@ -487,7 +764,7 @@ For all AI agents: use rules in AGENTS.md
 
 ## Version
 
-This is version 0.19
+This is version 0.20
 
 ## Contributing
 
