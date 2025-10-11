@@ -41,7 +41,12 @@ class GuacamoleDB:
     def __enter__(self) -> "GuacamoleDB":
         return self
 
-    def __exit__(self, exc_type: Optional[Type[BaseException]], exc_value: Optional[BaseException], traceback: Optional[Any]) -> None:
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
+        traceback: Optional[Any],
+    ) -> None:
         if self.cursor:
             self.cursor.close()
         if self.conn:
@@ -265,7 +270,10 @@ class GuacamoleDB:
             raise
 
     def modify_connection_parent_group(
-        self, connection_name: Optional[str] = None, connection_id: Optional[int] = None, group_name: Optional[str] = None
+        self,
+        connection_name: Optional[str] = None,
+        connection_id: Optional[int] = None,
+        group_name: Optional[str] = None,
     ) -> bool:
         """Set parent connection group for a connection"""
         try:
@@ -531,7 +539,9 @@ class GuacamoleDB:
             print(f"Error changing password: {e}")
             raise
 
-    def modify_user(self, username: str, param_name: str, param_value: Union[str, int]) -> bool:
+    def modify_user(
+        self, username: str, param_name: str, param_value: Union[str, int]
+    ) -> bool:
         """Modify a user parameter in the guacamole_user table"""
         try:
             # Validate parameter name
@@ -759,7 +769,9 @@ class GuacamoleDB:
             print(f"Error: {e}")
             raise
 
-    def delete_existing_connection(self, connection_name: Optional[str] = None, connection_id: Optional[int] = None) -> None:
+    def delete_existing_connection(
+        self, connection_name: Optional[str] = None, connection_id: Optional[int] = None
+    ) -> None:
         """Delete a connection and all its associated data"""
         try:
             # Use resolver to get connection_id and validate inputs
@@ -824,7 +836,9 @@ class GuacamoleDB:
             print(f"Error deleting existing connection: {e}")
             raise
 
-    def delete_connection_group(self, group_name: Optional[str] = None, group_id: Optional[int] = None) -> bool:
+    def delete_connection_group(
+        self, group_name: Optional[str] = None, group_id: Optional[int] = None
+    ) -> bool:
         """Delete a connection group and update references to it"""
         try:
             # Use resolver to get group_id and validate inputs
@@ -1103,7 +1117,9 @@ class GuacamoleDB:
             print(f"Error resolving group path: {e}")
             raise
 
-    def connection_exists(self, connection_name: Optional[str] = None, connection_id: Optional[int] = None) -> bool:
+    def connection_exists(
+        self, connection_name: Optional[str] = None, connection_id: Optional[int] = None
+    ) -> bool:
         """Check if a connection with the given name or ID exists"""
         try:
             # Use resolver to validate inputs and get connection_id
@@ -1119,7 +1135,9 @@ class GuacamoleDB:
             print(f"Error checking connection existence: {e}")
             raise
 
-    def connection_group_exists(self, group_name: Optional[str] = None, group_id: Optional[int] = None) -> bool:
+    def connection_group_exists(
+        self, group_name: Optional[str] = None, group_id: Optional[int] = None
+    ) -> bool:
         """Check if a connection group with the given name or ID exists"""
         try:
             # Use resolver to validate inputs and get group_id
@@ -1475,7 +1493,9 @@ class GuacamoleDB:
 
         return False
 
-    def create_connection_group(self, group_name: str, parent_group_name: Optional[str] = None) -> bool:
+    def create_connection_group(
+        self, group_name: str, parent_group_name: Optional[str] = None
+    ) -> bool:
         """Create a new connection group"""
         try:
             parent_group_id = None
@@ -1531,7 +1551,9 @@ class GuacamoleDB:
             print(f"Error creating connection group: {e}")
             raise
 
-    def grant_connection_permission_to_user(self, username: str, connection_name: str) -> bool:
+    def grant_connection_permission_to_user(
+        self, username: str, connection_name: str
+    ) -> bool:
         """Grant connection permission to a specific user"""
         try:
             # Get connection ID
@@ -1589,7 +1611,9 @@ class GuacamoleDB:
             print(f"Error granting connection permission: {e}")
             raise
 
-    def revoke_connection_permission_from_user(self, username: str, connection_name: str) -> bool:
+    def revoke_connection_permission_from_user(
+        self, username: str, connection_name: str
+    ) -> bool:
         """Revoke connection permission from a specific user"""
         try:
             # Get connection ID
@@ -1647,7 +1671,10 @@ class GuacamoleDB:
             raise
 
     def modify_connection_group_parent(
-        self, group_name: Optional[str] = None, group_id: Optional[int] = None, new_parent_name: Optional[str] = None
+        self,
+        group_name: Optional[str] = None,
+        group_id: Optional[int] = None,
+        new_parent_name: Optional[str] = None,
     ) -> bool:
         """Set parent connection group for a connection group with cycle detection"""
         try:
@@ -1739,7 +1766,9 @@ class GuacamoleDB:
             print(f"Error listing groups: {e}")
             raise
 
-    def get_connection_group_by_id(self, group_id: int) -> Optional[Dict[str, Dict[str, Union[int, List[str]]]]]:
+    def get_connection_group_by_id(
+        self, group_id: int
+    ) -> Optional[Dict[str, Dict[str, Union[int, List[str]]]]]:
         """Get a specific connection group by its ID"""
         try:
             self.cursor.execute(
@@ -1814,7 +1843,9 @@ class GuacamoleDB:
             print(f"Error getting connection group name by ID: {e}")
             raise
 
-    def validate_positive_id(self, id_value: Optional[int], entity_type: str = "entity") -> Optional[int]:
+    def validate_positive_id(
+        self, id_value: Optional[int], entity_type: str = "entity"
+    ) -> Optional[int]:
         """Validate that ID is a positive integer"""
         if id_value is not None and id_value <= 0:
             raise ValueError(
@@ -1822,7 +1853,9 @@ class GuacamoleDB:
             )
         return id_value
 
-    def resolve_connection_id(self, connection_name: Optional[str] = None, connection_id: Optional[int] = None) -> int:
+    def resolve_connection_id(
+        self, connection_name: Optional[str] = None, connection_id: Optional[int] = None
+    ) -> int:
         """Validate inputs and resolve to connection_id with centralized validation"""
         # Validate exactly one parameter provided
         if (connection_name is None) == (connection_id is None):
@@ -1870,7 +1903,9 @@ class GuacamoleDB:
             except mysql.connector.Error as e:
                 raise ValueError(f"Database error while resolving connection name: {e}")
 
-    def resolve_conngroup_id(self, group_name: Optional[str] = None, group_id: Optional[int] = None) -> int:
+    def resolve_conngroup_id(
+        self, group_name: Optional[str] = None, group_id: Optional[int] = None
+    ) -> int:
         """Validate inputs and resolve to connection_group_id with centralized validation"""
         # Validate exactly one parameter provided
         if (group_name is None) == (group_id is None):
@@ -1920,7 +1955,9 @@ class GuacamoleDB:
                     f"Database error while resolving connection group name: {e}"
                 )
 
-    def resolve_usergroup_id(self, group_name: Optional[str] = None, group_id: Optional[int] = None) -> int:
+    def resolve_usergroup_id(
+        self, group_name: Optional[str] = None, group_id: Optional[int] = None
+    ) -> int:
         """Validate inputs and resolve to user_group_id with centralized validation"""
         # Validate exactly one parameter provided
         if (group_name is None) == (group_id is None):
@@ -2093,7 +2130,9 @@ class GuacamoleDB:
         except mysql.connector.Error as e:
             print(f"[DEBUG] Error debugging permissions: {e}")
 
-    def grant_connection_group_permission_to_user(self, username: str, conngroup_name: str) -> bool:
+    def grant_connection_group_permission_to_user(
+        self, username: str, conngroup_name: str
+    ) -> bool:
         """Grant connection group permission to a specific user"""
         if not username or not isinstance(username, str):
             raise ValueError("Username must be a non-empty string")
@@ -2186,7 +2225,9 @@ class GuacamoleDB:
             self.debug_print(error_msg)
             raise ValueError(error_msg) from e
 
-    def revoke_connection_group_permission_from_user(self, username: str, conngroup_name: str) -> bool:
+    def revoke_connection_group_permission_from_user(
+        self, username: str, conngroup_name: str
+    ) -> bool:
         """Revoke connection group permission from a specific user"""
         if not username or not isinstance(username, str):
             raise ValueError("Username must be a non-empty string")
@@ -2271,7 +2312,9 @@ class GuacamoleDB:
             self.debug_print(error_msg)
             raise ValueError(error_msg) from e
 
-    def _atomic_permission_operation(self, operation_func: Callable, *args: Any, **kwargs: Any) -> Any:
+    def _atomic_permission_operation(
+        self, operation_func: Callable, *args: Any, **kwargs: Any
+    ) -> Any:
         """Execute a database operation with proper error handling and validation"""
         try:
             return operation_func(*args, **kwargs)
@@ -2280,7 +2323,9 @@ class GuacamoleDB:
             self.debug_print(error_msg)
             raise ValueError(error_msg) from e
 
-    def grant_connection_group_permission_to_user_by_id(self, username: str, conngroup_id: int) -> bool:
+    def grant_connection_group_permission_to_user_by_id(
+        self, username: str, conngroup_id: int
+    ) -> bool:
         """Grant connection group permission to a specific user by connection group ID"""
         if not username or not isinstance(username, str):
             raise ValueError("Username must be a non-empty string")
