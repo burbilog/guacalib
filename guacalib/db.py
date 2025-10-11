@@ -24,21 +24,66 @@ PermissionInfo = Tuple[str, str, str]  # (entity_name, entity_type, permission)
 
 
 class GuacamoleDB:
+    """Database interface for Apache Guacamole management.
+
+    Provides a high-level interface for managing Apache Guacamole database entities
+    including users, user groups, connections, connection groups, and permissions.
+    This class handles MySQL database connections and provides methods for CRUD
+    operations on Guacamole entities.
+
+    Attributes:
+        CONNECTION_PARAMETERS: Dictionary defining valid connection parameters by protocol.
+        USER_PARAMETERS: Dictionary defining valid user account parameters.
+
+    Example:
+        >>> with GuacamoleDB("~/.guacaman.ini") as db:
+        ...     users = db.list_users()
+        ...     print(f"Found {len(users)} users")
+
+    Note:
+        This class implements the context manager protocol for automatic
+        database connection handling and transaction management.
+    """
+
     CONNECTION_PARAMETERS = CONNECTION_PARAMETERS
     USER_PARAMETERS = USER_PARAMETERS
 
     def __init__(self, config_file: str = "db_config.ini", debug: bool = False) -> None:
+        """Initialize GuacamoleDB with configuration and database connection.
+
+        Args:
+            config_file: Path to MySQL configuration file. Defaults to "db_config.ini".
+            debug: Enable debug output for database operations. Defaults to False.
+
+        Raises:
+            SystemExit: If configuration file is not found or invalid.
+            mysql.connector.Error: If database connection fails.
+
+        Note:
+            The configuration file should contain a [mysql] section with
+            host, user, password, and database keys.
+        """
         self.debug = debug
         self.db_config = self.read_config(config_file)
         self.conn = self.connect_db()
         self.cursor = self.conn.cursor()
 
     def debug_print(self, *args: Any, **kwargs: Any) -> None:
-        """Print debug messages if debug mode is enabled"""
+        """Print debug messages if debug mode is enabled.
+
+        Args:
+            *args: Arguments to pass to print function.
+            **kwargs: Keyword arguments to pass to print function.
+        """
         if self.debug:
             print("[DEBUG]", *args, **kwargs)
 
     def __enter__(self) -> "GuacamoleDB":
+        """Enter the runtime context for the database connection.
+
+        Returns:
+            The GuacamoleDB instance for use in the with statement.
+        """
         return self
 
     def __exit__(
@@ -47,6 +92,16 @@ class GuacamoleDB:
         exc_value: Optional[BaseException],
         traceback: Optional[Any],
     ) -> None:
+        """Exit the runtime context and handle database connection cleanup.
+
+        Commits transactions if no exception occurred, rolls back if there was
+        an exception, and closes database connections.
+
+        Args:
+            exc_type: Exception type if an exception occurred, None otherwise.
+            exc_value: Exception value if an exception occurred, None otherwise.
+            traceback: Exception traceback if an exception occurred, None otherwise.
+        """
         if self.cursor:
             self.cursor.close()
         if self.conn:
@@ -61,6 +116,35 @@ class GuacamoleDB:
 
     @staticmethod
     def read_config(config_file: str) -> ConnectionConfig:
+        """Read and validate MySQL database configuration from file.
+
+        Parses a configuration file containing MySQL connection parameters.
+        The file must contain a [mysql] section with required keys.
+
+        Args:
+            config_file: Path to the configuration file.
+
+        Returns:
+            Dictionary containing MySQL connection parameters with keys:
+            'host', 'user', 'password', 'database'.
+
+        Raises:
+            SystemExit: If config file is not found, missing required sections,
+                       or contains invalid configuration.
+
+        Example:
+            >>> config = GuacamoleDB.read_config("~/.guacaman.ini")
+            >>> print(config['host'])
+            'localhost'
+
+        Note:
+            Configuration file format:
+            [mysql]
+            host = localhost
+            user = guacamole_user
+            password = secret_password
+            database = guacamole_db
+        """
         config = configparser.ConfigParser()
         if not os.path.exists(config_file):
             print(f"Error: Config file not found: {config_file}")
@@ -100,6 +184,23 @@ class GuacamoleDB:
             sys.exit(1)
 
     def connect_db(self) -> MySQLConnection:
+        """Establish MySQL database connection using loaded configuration.
+
+        Creates a MySQL connection using the configuration loaded by read_config().
+        Sets UTF8MB4 charset and collation for proper Unicode support.
+
+        Returns:
+            MySQLConnection object for database operations.
+
+        Raises:
+            SystemExit: If database connection fails.
+            mysql.connector.Error: For various MySQL connection errors.
+
+        Note:
+            Uses UTF8MB4 charset to support full Unicode including emoji and
+            special characters. Connection parameters are loaded from the
+            configuration file during initialization.
+        """
         try:
             return mysql.connector.connect(
                 **self.db_config, charset="utf8mb4", collation="utf8mb4_general_ci"
@@ -109,12 +210,28 @@ class GuacamoleDB:
             sys.exit(1)
 
     def list_users(self) -> List[str]:
+        """Retrieve all users from the Guacamole database.
+
+        Queries the guacamole_entity table to find all entities of type 'USER'
+        and returns them as an alphabetically sorted list.
+
+        Returns:
+            List of usernames sorted alphabetically.
+
+        Raises:
+            mysql.connector.Error: If database query fails.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     users = db.list_users()
+            ...     print(f"Found users: {', '.join(users)}")
+        """
         try:
             self.cursor.execute(
                 """
-                SELECT name 
-                FROM guacamole_entity 
-                WHERE type = 'USER' 
+                SELECT name
+                FROM guacamole_entity
+                WHERE type = 'USER'
                 ORDER BY name
             """
             )
@@ -124,12 +241,28 @@ class GuacamoleDB:
             raise
 
     def list_usergroups(self) -> List[str]:
+        """Retrieve all user groups from the Guacamole database.
+
+        Queries the guacamole_entity table to find all entities of type 'USER_GROUP'
+        and returns them as an alphabetically sorted list.
+
+        Returns:
+            List of user group names sorted alphabetically.
+
+        Raises:
+            mysql.connector.Error: If database query fails.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     groups = db.list_usergroups()
+            ...     print(f"Found groups: {', '.join(groups)}")
+        """
         try:
             self.cursor.execute(
                 """
-                SELECT name 
-                FROM guacamole_entity 
-                WHERE type = 'USER_GROUP' 
+                SELECT name
+                FROM guacamole_entity
+                WHERE type = 'USER_GROUP'
                 ORDER BY name
             """
             )
@@ -139,11 +272,29 @@ class GuacamoleDB:
             raise
 
     def usergroup_exists(self, group_name: str) -> bool:
-        """Check if a group with the given name exists"""
+        """Check if a user group exists in the Guacamole database.
+
+        Queries the guacamole_entity table to determine if a user group with the
+        specified name exists.
+
+        Args:
+            group_name: The user group name to check for existence.
+
+        Returns:
+            True if the user group exists, False otherwise.
+
+        Raises:
+            mysql.connector.Error: If database query fails.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     if db.usergroup_exists('admins'):
+            ...         print("Admin group exists")
+        """
         try:
             self.cursor.execute(
                 """
-                SELECT COUNT(*) FROM guacamole_entity 
+                SELECT COUNT(*) FROM guacamole_entity
                 WHERE name = %s AND type = 'USER_GROUP'
             """,
                 (group_name,),
@@ -154,10 +305,30 @@ class GuacamoleDB:
             raise
 
     def get_usergroup_id(self, group_name: str) -> int:
+        """Get the database ID for a user group by name.
+
+        Queries the guacamole_user_group and guacamole_entity tables to find
+        the internal database ID for a user group.
+
+        Args:
+            group_name: The name of the user group.
+
+        Returns:
+            The user group ID from the database.
+
+        Raises:
+            ValueError: If the user group is not found.
+            mysql.connector.Error: If database query fails.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     group_id = db.get_usergroup_id('admins')
+            ...     print(f"Admin group ID: {group_id}")
+        """
         try:
             self.cursor.execute(
                 """
-                SELECT user_group_id 
+                SELECT user_group_id
                 FROM guacamole_user_group g
                 JOIN guacamole_entity e ON g.entity_id = e.entity_id
                 WHERE e.name = %s AND e.type = 'USER_GROUP'
@@ -174,11 +345,29 @@ class GuacamoleDB:
             raise
 
     def user_exists(self, username: str) -> bool:
-        """Check if a user with the given name exists"""
+        """Check if a user exists in the Guacamole database.
+
+        Queries the guacamole_entity table to determine if a user with the
+        specified username exists.
+
+        Args:
+            username: The username to check for existence.
+
+        Returns:
+            True if the user exists, False otherwise.
+
+        Raises:
+            mysql.connector.Error: If database query fails.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     if db.user_exists('admin'):
+            ...         print("Admin user exists")
+        """
         try:
             self.cursor.execute(
                 """
-                SELECT COUNT(*) FROM guacamole_entity 
+                SELECT COUNT(*) FROM guacamole_entity
                 WHERE name = %s AND type = 'USER'
             """,
                 (username,),
@@ -494,7 +683,30 @@ class GuacamoleDB:
             raise
 
     def change_user_password(self, username: str, new_password: str) -> bool:
-        """Change a user's password"""
+        """Change the password for an existing user.
+
+        Updates a user's password with secure hashing using a new random salt.
+        Uses the same hashing method as create_user() for consistency.
+
+        Args:
+            username: The username whose password should be changed.
+            new_password: The new password to set.
+
+        Returns:
+            True if password was successfully changed.
+
+        Raises:
+            ValueError: If user is not found or password update fails.
+            mysql.connector.Error: If database operations fail.
+
+        Note:
+            Generates a new random salt for security. The password date is
+            updated to track when the password was last changed.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     db.change_user_password('user1', 'newsecurepassword')
+        """
         try:
             # Generate random 32-byte salt
             salt = os.urandom(32)
@@ -508,7 +720,7 @@ class GuacamoleDB:
             # Get user entity_id
             self.cursor.execute(
                 """
-                SELECT entity_id FROM guacamole_entity 
+                SELECT entity_id FROM guacamole_entity
                 WHERE name = %s AND type = 'USER'
             """,
                 (username,),
@@ -521,7 +733,7 @@ class GuacamoleDB:
             # Update the password
             self.cursor.execute(
                 """
-                UPDATE guacamole_user 
+                UPDATE guacamole_user
                 SET password_hash = %s,
                     password_salt = %s,
                     password_date = NOW()
@@ -542,7 +754,33 @@ class GuacamoleDB:
     def modify_user(
         self, username: str, param_name: str, param_value: Union[str, int]
     ) -> bool:
-        """Modify a user parameter in the guacamole_user table"""
+        """Modify a user parameter in the Guacamole database.
+
+        Updates user account parameters such as disabled status, expiration dates,
+        time windows, timezone, and contact information.
+
+        Args:
+            username: The username to modify.
+            param_name: The parameter name to modify.
+            param_value: The new value for the parameter.
+
+        Returns:
+            True if the parameter was successfully updated.
+
+        Raises:
+            ValueError: If parameter name is invalid, user doesn't exist,
+                       or parameter update fails.
+            mysql.connector.Error: If database operations fail.
+
+        Note:
+            Valid parameters are defined in USER_PARAMETERS. Boolean values
+            should be passed as '0' (false) or '1' (true) for tinyint fields.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     db.modify_user('user1', 'disabled', '1')
+            ...     db.modify_user('user1', 'full_name', 'John Doe')
+        """
         try:
             # Validate parameter name
             if param_name not in self.USER_PARAMETERS:
@@ -560,7 +798,7 @@ class GuacamoleDB:
             # Get user entity_id
             self.cursor.execute(
                 """
-                SELECT entity_id FROM guacamole_entity 
+                SELECT entity_id FROM guacamole_entity
                 WHERE name = %s AND type = 'USER'
             """,
                 (username,),
@@ -572,7 +810,7 @@ class GuacamoleDB:
 
             # Update the parameter
             query = f"""
-                UPDATE guacamole_user 
+                UPDATE guacamole_user
                 SET {param_name} = %s
                 WHERE entity_id = %s
             """
@@ -588,6 +826,29 @@ class GuacamoleDB:
             raise
 
     def delete_existing_user(self, username: str) -> None:
+        """Delete a user and all associated data from the Guacamole database.
+
+        Removes a user completely from the system, including their entity record,
+        user account, group memberships, and all permissions. This operation
+        cascades through all related tables to maintain database integrity.
+
+        Args:
+            username: The username to delete.
+
+        Raises:
+            ValueError: If the user doesn't exist.
+            mysql.connector.Error: If database operations fail.
+
+        Note:
+            This is a destructive operation that cannot be undone. The user and
+            all their associated permissions and memberships are permanently
+            removed. Deletions are performed in the correct order to respect
+            foreign key constraints.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     db.delete_existing_user('olduser')
+        """
         try:
             if not self.user_exists(username):
                 raise ValueError(f"User '{username}' doesn't exist")
@@ -596,9 +857,9 @@ class GuacamoleDB:
             # Delete user group permissions first
             self.cursor.execute(
                 """
-                DELETE FROM guacamole_user_group_permission 
+                DELETE FROM guacamole_user_group_permission
                 WHERE entity_id IN (
-                    SELECT entity_id FROM guacamole_entity 
+                    SELECT entity_id FROM guacamole_entity
                     WHERE name = %s AND type = 'USER'
                 )
             """,
@@ -608,9 +869,9 @@ class GuacamoleDB:
             # Delete user group memberships
             self.cursor.execute(
                 """
-                DELETE FROM guacamole_user_group_member 
+                DELETE FROM guacamole_user_group_member
                 WHERE member_entity_id IN (
-                    SELECT entity_id FROM guacamole_entity 
+                    SELECT entity_id FROM guacamole_entity
                     WHERE name = %s AND type = 'USER'
                 )
             """,
@@ -620,9 +881,9 @@ class GuacamoleDB:
             # Delete user permissions
             self.cursor.execute(
                 """
-                DELETE FROM guacamole_connection_permission 
+                DELETE FROM guacamole_connection_permission
                 WHERE entity_id IN (
-                    SELECT entity_id FROM guacamole_entity 
+                    SELECT entity_id FROM guacamole_entity
                     WHERE name = %s AND type = 'USER'
                 )
             """,
@@ -632,9 +893,9 @@ class GuacamoleDB:
             # Delete user
             self.cursor.execute(
                 """
-                DELETE FROM guacamole_user 
+                DELETE FROM guacamole_user
                 WHERE entity_id IN (
-                    SELECT entity_id FROM guacamole_entity 
+                    SELECT entity_id FROM guacamole_entity
                     WHERE name = %s AND type = 'USER'
                 )
             """,
@@ -644,7 +905,7 @@ class GuacamoleDB:
             # Delete entity
             self.cursor.execute(
                 """
-                DELETE FROM guacamole_entity 
+                DELETE FROM guacamole_entity
                 WHERE name = %s AND type = 'USER'
             """,
                 (username,),
@@ -899,6 +1160,28 @@ class GuacamoleDB:
             raise
 
     def create_user(self, username: str, password: str) -> None:
+        """Create a new user in the Guacamole database.
+
+        Creates a new user with secure password hashing using Guacamole's
+        authentication method. Generates a random salt and hashes the password
+        using SHA256.
+
+        Args:
+            username: The username for the new user.
+            password: The password for the new user.
+
+        Raises:
+            mysql.connector.Error: If database operations fail.
+
+        Note:
+            Uses Guacamole's password hashing method: SHA256(password + hex(salt)).
+            The salt is a random 32-byte value for security. This method creates
+            both the entity record and the user record with password credentials.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     db.create_user('newuser', 'securepassword')
+        """
         try:
             # Generate random 32-byte salt
             salt = os.urandom(32)
@@ -916,7 +1199,7 @@ class GuacamoleDB:
             # Create entity
             self.cursor.execute(
                 """
-                INSERT INTO guacamole_entity (name, type) 
+                INSERT INTO guacamole_entity (name, type)
                 VALUES (%s, 'USER')
             """,
                 (username,),
@@ -925,14 +1208,14 @@ class GuacamoleDB:
             # Create user with proper binary data
             self.cursor.execute(
                 """
-                INSERT INTO guacamole_user 
+                INSERT INTO guacamole_user
                     (entity_id, password_hash, password_salt, password_date)
-                SELECT 
+                SELECT
                     entity_id,
                     %s,
                     %s,
                     NOW()
-            FROM guacamole_entity 
+            FROM guacamole_entity
             WHERE name = %s AND type = 'USER'
             """,
                 (password_hash, password_salt, username),
@@ -943,11 +1226,26 @@ class GuacamoleDB:
             raise
 
     def create_usergroup(self, group_name: str) -> None:
+        """Create a new user group in the Guacamole database.
+
+        Creates both the entity record and the user group record for a new
+        user group with disabled status set to FALSE (enabled).
+
+        Args:
+            group_name: The name for the new user group.
+
+        Raises:
+            mysql.connector.Error: If database operations fail.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     db.create_usergroup('developers')
+        """
         try:
             # Create entity
             self.cursor.execute(
                 """
-                INSERT INTO guacamole_entity (name, type) 
+                INSERT INTO guacamole_entity (name, type)
                 VALUES (%s, 'USER_GROUP')
             """,
                 (group_name,),
@@ -958,7 +1256,7 @@ class GuacamoleDB:
                 """
                 INSERT INTO guacamole_user_group (entity_id, disabled)
                 SELECT entity_id, FALSE
-                FROM guacamole_entity 
+                FROM guacamole_entity
                 WHERE name = %s AND type = 'USER_GROUP'
             """,
                 (group_name,),
@@ -1120,7 +1418,30 @@ class GuacamoleDB:
     def connection_exists(
         self, connection_name: Optional[str] = None, connection_id: Optional[int] = None
     ) -> bool:
-        """Check if a connection with the given name or ID exists"""
+        """Check if a connection exists in the Guacamole database.
+
+        Uses the resolve_connection_id method to validate inputs and determine
+        if a connection with the specified name or ID exists.
+
+        Args:
+            connection_name: The connection name to check. Optional.
+            connection_id: The connection ID to check. Optional.
+
+        Returns:
+            True if the connection exists, False otherwise.
+
+        Raises:
+            ValueError: If neither or both parameters are provided.
+            mysql.connector.Error: If database query fails.
+
+        Note:
+            Exactly one of connection_name or connection_id must be provided.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     if db.connection_exists(connection_name='my-server'):
+            ...         print("Connection exists")
+        """
         try:
             # Use resolver to validate inputs and get connection_id
             resolved_connection_id = self.resolve_connection_id(
@@ -1160,6 +1481,33 @@ class GuacamoleDB:
         vnc_password: str,
         parent_group_id: Optional[int] = None,
     ) -> int:
+        """Create a new connection in the Guacamole database.
+
+        Creates a new connection with basic parameters. Currently designed
+        for VNC connections but can be extended for other protocols.
+
+        Args:
+            connection_type: The connection protocol (e.g., 'vnc', 'rdp', 'ssh').
+            connection_name: The name for the new connection.
+            hostname: The hostname or IP address of the target server.
+            port: The port number for the connection.
+            vnc_password: The password for VNC authentication.
+            parent_group_id: Optional parent connection group ID.
+
+        Returns:
+            The ID of the newly created connection.
+
+        Raises:
+            ValueError: If required parameters are missing or connection already exists.
+            mysql.connector.Error: If database operations fail.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     conn_id = db.create_connection(
+            ...         'vnc', 'server1', '192.168.1.100', 5901, 'password'
+            ...     )
+            ...     print(f"Created connection with ID: {conn_id}")
+        """
         if not all([connection_name, hostname, port]):
             raise ValueError("Missing required connection parameters")
 
@@ -1170,7 +1518,7 @@ class GuacamoleDB:
             # Create connection
             self.cursor.execute(
                 """
-                INSERT INTO guacamole_connection 
+                INSERT INTO guacamole_connection
                 (connection_name, protocol, parent_id)
                 VALUES (%s, %s, %s)
             """,
@@ -1197,7 +1545,7 @@ class GuacamoleDB:
             for param_name, param_value in params:
                 self.cursor.execute(
                     """
-                    INSERT INTO guacamole_connection_parameter 
+                    INSERT INTO guacamole_connection_parameter
                     (connection_id, parameter_name, parameter_value)
                     VALUES (%s, %s, %s)
                 """,
@@ -1856,7 +2204,34 @@ class GuacamoleDB:
     def resolve_connection_id(
         self, connection_name: Optional[str] = None, connection_id: Optional[int] = None
     ) -> int:
-        """Validate inputs and resolve to connection_id with centralized validation"""
+        """Validate inputs and resolve to connection_id with centralized validation.
+
+        This is a core utility method that handles the common pattern of accepting
+        either a connection name or ID and resolving it to a validated connection ID.
+        Provides comprehensive input validation and error handling.
+
+        Args:
+            connection_name: The connection name to resolve. Optional.
+            connection_id: The connection ID to validate. Optional.
+
+        Returns:
+            The validated connection ID.
+
+        Raises:
+            ValueError: If neither or both parameters are provided, if ID is invalid,
+                       if connection doesn't exist, or if database error occurs.
+
+        Note:
+            Exactly one of connection_name or connection_id must be provided.
+            This method is used by many other methods for consistent ID resolution.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     # Resolve by name
+            ...     conn_id = db.resolve_connection_id(connection_name='my-server')
+            ...     # Resolve by ID (validates existence)
+            ...     conn_id = db.resolve_connection_id(connection_id=123)
+        """
         # Validate exactly one parameter provided
         if (connection_name is None) == (connection_id is None):
             raise ValueError(
