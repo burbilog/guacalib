@@ -1,5 +1,17 @@
 all:
-	echo make tests or make build or make push or make testpub or make pub or make format
+	@echo "Guacalib Makefile targets:"
+	@echo ""
+	@echo "Development:"
+	@echo "  make format     - Format Python code with black"
+	@echo "  make format-check - Check code formatting without changes"
+	@echo "  make tests      - Run full test suite"
+	@echo "  make cleanup    - Clean up test database entries"
+	@echo ""
+	@echo "Build & Release:"
+	@echo "  make build      - Build package for distribution"
+	@echo "  make testpub    - Publish to PyPI test repository"
+	@echo "  make pub        - Publish to PyPI production"
+	@echo "  make push       - Create release tag and push to Git"
 
 build: FORCE
 	rm -rf build/ dist/ *.egg-info/
