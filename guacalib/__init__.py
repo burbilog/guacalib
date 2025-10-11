@@ -2,5 +2,4 @@ from .db import GuacamoleDB
 from .version import VERSION
 
 __version__ = VERSION
-__all__ = ['GuacamoleDB']
-
+__all__ = ["GuacamoleDB"]

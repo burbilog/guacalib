@@ -1,38 +1,42 @@
 import sys
 
+
 def handle_usergroup_command(args, guacdb):
     """Handle all usergroup subcommands"""
-    if args.usergroup_command == 'new':
+    if args.usergroup_command == "new":
         if guacdb.usergroup_exists(args.name):
             print(f"Error: Group '{args.name}' already exists")
             sys.exit(1)
-            
+
         guacdb.create_usergroup(args.name)
         guacdb.debug_print(f"Successfully created group '{args.name}'")
 
-    elif args.usergroup_command == 'list':
+    elif args.usergroup_command == "list":
         groups_data = guacdb.list_usergroups_with_users_and_connections()
         print("usergroups:")
         for group, data in groups_data.items():
             print(f"  {group}:")
             print(f"    id: {data['id']}")
             print("    users:")
-            for user in data['users']:
+            for user in data["users"]:
                 print(f"      - {user}")
             print("    connections:")
-            for conn in data['connections']:
+            for conn in data["connections"]:
                 print(f"      - {conn}")
 
-    elif args.usergroup_command == 'del':
+    elif args.usergroup_command == "del":
         # Validate exactly one selector provided
         from .cli import validate_selector
+
         validate_selector(args, "usergroup")
-        
-        if hasattr(args, 'id') and args.id is not None:
+
+        if hasattr(args, "id") and args.id is not None:
             # Delete by ID using resolver
             group_name = guacdb.get_usergroup_name_by_id(args.id)
             guacdb.delete_existing_usergroup_by_id(args.id)
-            guacdb.debug_print(f"Successfully deleted user group '{group_name}' (ID: {args.id})")
+            guacdb.debug_print(
+                f"Successfully deleted user group '{group_name}' (ID: {args.id})"
+            )
         else:
             # Delete by name (original behavior)
             if not guacdb.usergroup_exists(args.name):
@@ -41,12 +45,13 @@ def handle_usergroup_command(args, guacdb):
             guacdb.delete_existing_usergroup(args.name)
             guacdb.debug_print(f"Successfully deleted user group '{args.name}'")
 
-    elif args.usergroup_command == 'exists':
+    elif args.usergroup_command == "exists":
         # Validate exactly one selector provided
         from .cli import validate_selector
+
         validate_selector(args, "usergroup")
-        
-        if hasattr(args, 'id') and args.id is not None:
+
+        if hasattr(args, "id") and args.id is not None:
             # Check existence by ID using resolver
             if guacdb.usergroup_exists_by_id(args.id):
                 sys.exit(0)
@@ -59,12 +64,13 @@ def handle_usergroup_command(args, guacdb):
             else:
                 sys.exit(1)
 
-    elif args.usergroup_command == 'modify':
+    elif args.usergroup_command == "modify":
         # Validate exactly one selector provided
         from .cli import validate_selector
+
         validate_selector(args, "usergroup")
-        
-        if hasattr(args, 'id') and args.id is not None:
+
+        if hasattr(args, "id") and args.id is not None:
             # Modify by ID using resolver
             group_name = guacdb.get_usergroup_name_by_id(args.id)
             group_id = args.id

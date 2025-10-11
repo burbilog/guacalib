@@ -1,5 +1,5 @@
 all:
-	echo make tests or make build or make push or make testpub or make pub
+	echo make tests or make build or make push or make testpub or make pub or make format
 
 build: FORCE
 	rm -rf build/ dist/ *.egg-info/
@@ -19,6 +19,17 @@ tests: FORCE
 
 cleanup: FORCE
 	./tests/cleanup_test_entries.sh full
+
+format: FORCE
+	@echo "Formatting Python files with black..."
+	@command -v black >/dev/null 2>&1 || { echo "Error: black is not installed. Install with: pip install black"; exit 1; }
+	black guacalib/ *.py
+	@echo "Formatting complete!"
+
+format-check: FORCE
+	@echo "Checking Python file formatting with black..."
+	@command -v black >/dev/null 2>&1 || { echo "Error: black is not installed. Install with: pip install black"; exit 1; }
+	black --check guacalib/ *.py
 
 .PHONY: push
 push:
