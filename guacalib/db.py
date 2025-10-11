@@ -330,7 +330,7 @@ class GuacamoleDB:
             print(f"Error modifying connection parent group: {e}")
             raise
 
-    def get_connection_user_permissions(self, connection_name):
+    def get_connection_user_permissions(self, connection_name: str) -> List[str]:
         """Get list of users with direct permissions to a connection"""
         try:
             self.cursor.execute(
@@ -1531,7 +1531,7 @@ class GuacamoleDB:
             print(f"Error creating connection group: {e}")
             raise
 
-    def grant_connection_permission_to_user(self, username, connection_name):
+    def grant_connection_permission_to_user(self, username: str, connection_name: str) -> bool:
         """Grant connection permission to a specific user"""
         try:
             # Get connection ID
@@ -1589,7 +1589,7 @@ class GuacamoleDB:
             print(f"Error granting connection permission: {e}")
             raise
 
-    def revoke_connection_permission_from_user(self, username, connection_name):
+    def revoke_connection_permission_from_user(self, username: str, connection_name: str) -> bool:
         """Revoke connection permission from a specific user"""
         try:
             # Get connection ID
@@ -2093,7 +2093,7 @@ class GuacamoleDB:
         except mysql.connector.Error as e:
             print(f"[DEBUG] Error debugging permissions: {e}")
 
-    def grant_connection_group_permission_to_user(self, username, conngroup_name):
+    def grant_connection_group_permission_to_user(self, username: str, conngroup_name: str) -> bool:
         """Grant connection group permission to a specific user"""
         if not username or not isinstance(username, str):
             raise ValueError("Username must be a non-empty string")
@@ -2186,7 +2186,7 @@ class GuacamoleDB:
             self.debug_print(error_msg)
             raise ValueError(error_msg) from e
 
-    def revoke_connection_group_permission_from_user(self, username, conngroup_name):
+    def revoke_connection_group_permission_from_user(self, username: str, conngroup_name: str) -> bool:
         """Revoke connection group permission from a specific user"""
         if not username or not isinstance(username, str):
             raise ValueError("Username must be a non-empty string")
@@ -2271,7 +2271,7 @@ class GuacamoleDB:
             self.debug_print(error_msg)
             raise ValueError(error_msg) from e
 
-    def _atomic_permission_operation(self, operation_func, *args, **kwargs):
+    def _atomic_permission_operation(self, operation_func: Callable, *args: Any, **kwargs: Any) -> Any:
         """Execute a database operation with proper error handling and validation"""
         try:
             return operation_func(*args, **kwargs)
@@ -2280,7 +2280,7 @@ class GuacamoleDB:
             self.debug_print(error_msg)
             raise ValueError(error_msg) from e
 
-    def grant_connection_group_permission_to_user_by_id(self, username, conngroup_id):
+    def grant_connection_group_permission_to_user_by_id(self, username: str, conngroup_id: int) -> bool:
         """Grant connection group permission to a specific user by connection group ID"""
         if not username or not isinstance(username, str):
             raise ValueError("Username must be a non-empty string")
@@ -2378,8 +2378,8 @@ class GuacamoleDB:
             raise ValueError(error_msg) from e
 
     def revoke_connection_group_permission_from_user_by_id(
-        self, username, conngroup_id
-    ):
+        self, username: str, conngroup_id: int
+    ) -> bool:
         """Revoke connection group permission from a specific user by connection group ID"""
         if not username or not isinstance(username, str):
             raise ValueError("Username must be a non-empty string")

@@ -112,14 +112,14 @@ CommandHandler = Callable[[ArgsType, GuacamoleDB], None]
 - [x] Type connection group listing methods (`list_connection_groups`, `get_connection_group_by_id`)
 
 ### Phase 4: Permission Management
-- [ ] Type `grant_connection_permission_to_user()`
-- [ ] Type `revoke_connection_permission_from_user()`
-- [ ] Type `grant_connection_group_permission_to_user()`
-- [ ] Type `revoke_connection_group_permission_from_user()`
-- [ ] Type `grant_connection_group_permission_to_user_by_id()`
-- [ ] Type `revoke_connection_group_permission_from_user_by_id()`
-- [ ] Type `get_connection_user_permissions()`
-- [ ] Type `_atomic_permission_operation()`
+- [x] Type `grant_connection_permission_to_user()`
+- [x] Type `revoke_connection_permission_from_user()`
+- [x] Type `grant_connection_group_permission_to_user()`
+- [x] Type `revoke_connection_group_permission_from_user()`
+- [x] Type `grant_connection_group_permission_to_user_by_id()`
+- [x] Type `revoke_connection_group_permission_from_user_by_id()`
+- [x] Type `get_connection_user_permissions()`
+- [x] Type `_atomic_permission_operation()`
 
 ### Phase 5: CLI Layer
 - [ ] Type `main()` function in cli.py
@@ -214,7 +214,7 @@ CommandHandler = Callable[[ArgsType, GuacamoleDB], None]
 - [x] Phase 1: Core Infrastructure (5/5 complete)
 - [x] Phase 2: Core Database Operations (4/4 complete)
 - [x] Phase 3: CRUD Operations (4/4 complete)
-- [ ] Phase 4: Permission Management (0/7 complete)
+- [x] Phase 4: Permission Management (8/8 complete)
 - [ ] Phase 5: CLI Layer (0/4 complete)
 - [ ] Phase 6: Parameter Definitions & Utilities (0/3 complete)
 
