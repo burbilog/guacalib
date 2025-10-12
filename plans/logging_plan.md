@@ -23,17 +23,19 @@ Files with print statements requiring changes:
 
 ### 1.1 Create Logging Configuration Module
 - Create `guacalib/logging_config.py`
-- Implement `setup_logging()` function with configurable levels
+- Implement `setup_logging()` function with configurable levels and duplicate handler prevention
 - Configure formatters for different log levels
 - Set up handlers for stderr output
 - Support for existing `--debug` flag integration
+- **Important**: Add guard against duplicate handlers for library usage scenarios
+- **Important**: Remove or avoid default root handlers to prevent duplicate logs in repeated CLI invocations
 
 ### 1.2 Define Logging Strategy
-- **DEBUG**: Detailed internal operations, SQL queries (when debug enabled)
-- **INFO**: Important operational milestones
-- **WARNING**: Recoverable issues, deprecated usage
-- **ERROR**: Database errors, connection failures, validation errors
-- **CRITICAL**: System-level failures
+- **DEBUG**: Detailed internal operations, SQL queries (when debug enabled), parameter validation details
+- **INFO**: Important operational milestones, successful command completions, database connection establishment
+- **WARNING**: Recoverable issues, deprecated usage, validation warnings
+- **ERROR**: Database errors, connection failures, validation errors, rollback failures
+- **CRITICAL**: System-level failures, authentication issues
 
 ### 1.3 Logger Naming Convention
 - Root logger: `guacalib`
@@ -68,8 +70,10 @@ Files with print statements requiring changes:
 For each `cli_handle_*.py` file:
 - Add logger import and initialization
 - Replace error `print()` statements with `logger.error()`
-- Add logging for command start/completion (info level)
-- Log validation warnings and issues
+- Add `logger.info()` calls for successful command completion and key milestones
+- Add `logger.debug()` calls for detailed operation steps when debug enabled
+- Log validation warnings and issues with appropriate levels
+- **Important**: Preserve all user-facing output using `print()` - only replace internal diagnostics and error reporting
 
 ### 3.2 Modify `cli.py`
 - Add logging configuration initialization
@@ -120,20 +124,30 @@ For each `cli_handle_*.py` file:
 
 ## Implementation Details
 
+### Code Style Requirements (per AGENTS.md)
+
+All new code must adhere to the following requirements:
+- **Type hints**: Add to all function signatures and variable declarations
+- **Docstrings**: Use Google-style or NumPy-style docstrings consistently
+- **Meaningful names**: Use clear, descriptive variable and function names
+- **Error handling**: Provide descriptive error messages and handle exceptions appropriately
+- **Single responsibility**: Each function should have a single, clear purpose
+- **Security**: Never hardcode sensitive information, validate all inputs
+
 ### File Changes Required
 
 **New Files:**
-- `guacalib/logging_config.py` - Logging configuration and setup
+- `guacalib/logging_config.py` - Logging configuration and setup with proper type hints and docstrings
 
 **Modified Files:**
-- `guacalib/__init__.py` - Import logging setup
-- `guacalib/db.py` - Replace debug_print, add logging
-- `guacalib/cli.py` - Add logging initialization, replace error prints
-- `guacalib/cli_handle_user.py` - Replace error prints with logging
-- `guacalib/cli_handle_usergroup.py` - Replace error prints with logging
-- `guacalib/cli_handle_conn.py` - Replace error prints with logging
-- `guacalib/cli_handle_conngroup.py` - Replace error prints with logging
-- `guacalib/cli_handle_dump.py` - Replace error prints with logging
+- `guacalib/__init__.py` - Import logging setup (minimal change)
+- `guacalib/db.py` - Replace debug_print, add logging with type hints
+- `guacalib/cli.py` - Add logging initialization, replace error prints with proper error handling
+- `guacalib/cli_handle_user.py` - Replace error prints with logging, add success milestones
+- `guacalib/cli_handle_usergroup.py` - Replace error prints with logging, add success milestones
+- `guacalib/cli_handle_conn.py` - Replace error prints with logging, add success milestones
+- `guacalib/cli_handle_conngroup.py` - Replace error prints with logging, add success milestones
+- `guacalib/cli_handle_dump.py` - Replace error prints with logging, add success milestones
 
 ### Backward Compatibility
 
@@ -146,32 +160,102 @@ For each `cli_handle_*.py` file:
 
 ```python
 # guacalib/logging_config.py
+"""Logging configuration for guacalib package.
+
+This module provides centralized logging configuration for the guacalib
+library and CLI application, with proper handling for duplicate handlers
+to support both library usage and CLI invocation scenarios.
+"""
+
 import logging
 import sys
+from typing import Optional
 
-def setup_logging(debug: bool = False) -> None:
-    """Configure logging for guacalib package."""
+
+def setup_logging(debug: bool = False, force_reconfigure: bool = False) -> None:
+    """Configure logging for guacalib package with duplicate handler prevention.
+
+    This function sets up logging configuration for the guacalib package.
+    It includes guards against duplicate handlers to support repeated
+    invocations and library usage scenarios.
+
+    Args:
+        debug: If True, set logging level to DEBUG; otherwise use WARNING.
+        force_reconfigure: If True, remove existing handlers before configuration.
+                         Used for testing and special scenarios.
+
+    Note:
+        - Prevents duplicate handlers by checking existing handlers
+        - Removes default root handlers to avoid log duplication
+        - Configures both guacalib root logger and module-specific loggers
+        - Uses stderr for log output to preserve stdout for user-facing data
+
+    Example:
+        >>> # Basic usage
+        >>> setup_logging(debug=True)
+        >>>
+        >>> # Library usage with custom configuration
+        >>> setup_logging(debug=False)
+        >>> logger = logging.getLogger('guacalib.db')
+        >>> logger.info("Database operation completed")
+    """
     level = logging.DEBUG if debug else logging.WARNING
 
-    # Configure root logger for guacalib
+    # Get the guacalib root logger
     logger = logging.getLogger('guacalib')
+
+    # Check if already configured to avoid duplicate handlers
+    if logger.handlers and not force_reconfigure:
+        return
+
+    # Remove any existing handlers if forcing reconfiguration
+    if force_reconfigure:
+        logger.handlers.clear()
+
+    # Remove default root handlers that might cause duplication
+    root_logger = logging.getLogger()
+    for handler in root_logger.handlers[:]:
+        if isinstance(handler, logging.StreamHandler) and handler.stream is sys.stderr:
+            root_logger.removeHandler(handler)
+
     logger.setLevel(level)
 
     # Create handler for stderr
     handler = logging.StreamHandler(sys.stderr)
     handler.setLevel(level)
 
-    # Create formatter
+    # Create formatter based on debug mode
     if debug:
         formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S'
         )
     else:
         formatter = logging.Formatter('%(levelname)s: %(message)s')
 
     handler.setFormatter(formatter)
     logger.addHandler(handler)
+
+    # Prevent propagation to root logger to avoid duplication
+    logger.propagate = False
+
+
+def get_logger(name: str) -> logging.Logger:
+    """Get a logger instance for a specific guacalib module.
+
+    Args:
+        name: The module name (e.g., 'db', 'cli', 'cli_handle_user')
+
+    Returns:
+        A configured logger instance for the specified module.
+
+    Example:
+        >>> logger = get_logger('db')
+        >>> logger.debug("Executing SQL query")
+    """
+    return logging.getLogger(f'guacalib.{name}')
 ```
+
 
 ## Success Criteria
 
