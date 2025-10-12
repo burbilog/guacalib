@@ -830,7 +830,7 @@ For all AI agents: use rules in AGENTS.md
 
 ## Version
 
-This is version 0.22
+This is version 0.23
 
 ## Contributing
 
