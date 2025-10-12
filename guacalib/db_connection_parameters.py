@@ -1,8 +1,43 @@
+"""Guacamole connection parameter definitions and validation.
+
+This module defines all supported connection parameters for Apache Guacamole
+connections, including their data types, descriptions, default values, and
+validation rules. The parameters are organized into two categories:
+
+1. **Connection table parameters**: Core connection settings stored in the
+   guacamole_connection table (protocol, max_connections, etc.)
+
+2. **Parameter table settings**: Protocol-specific configuration stored in
+   the guacamole_connection_parameter table (hostname, port, authentication,
+   display settings, etc.)
+
+The module provides a comprehensive dictionary that serves as the single
+source of truth for all supported connection parameters across VNC, RDP,
+SSH, and other protocols supported by Guacamole.
+"""
+
 from typing import Dict, Any
 
 ConnectionParameters = Dict[str, Dict[str, Any]]
 
 CONNECTION_PARAMETERS: ConnectionParameters = {
+    """Dictionary defining all supported Guacamole connection parameters.
+
+    Each parameter entry contains the following keys:
+        - type: MySQL data type for storing the parameter
+        - description: Human-readable description of the parameter's purpose
+        - default: Default value when parameter is not specified
+        - ref: Optional reference to Guacamole documentation URL
+        - table: Database table where parameter is stored ("connection" or "parameter")
+
+    The dictionary is organized by functional categories:
+    - Core connection parameters (protocol, limits, proxy settings)
+    - Network and authentication parameters (hostname, port, credentials)
+    - Display and graphics settings (resolution, color depth, encoding)
+    - Audio and device redirection settings
+    - Session recording and logging parameters
+    - Protocol-specific features (SSH terminal, RDP gateway, etc.)
+    """
     # Parameters in guacamole_connection table
     "protocol": {
         "type": "string",

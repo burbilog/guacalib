@@ -1,8 +1,39 @@
+"""Guacamole user parameter definitions and validation.
+
+This module defines all supported user account parameters for Apache Guacamole
+user management, including their data types, descriptions, default values, and
+validation rules. These parameters control user account behavior, access restrictions,
+and personalization settings.
+
+The parameters are stored in the guacamole_user table and provide fine-grained
+control over user accounts including:
+- Account status (disabled/expired state)
+- Access time windows and validity periods
+- Personal information (name, email, organization)
+- Timezone and locale preferences
+
+This module serves as the authoritative source for all user parameter
+definitions used throughout the Guacamole management system.
+"""
+
 from typing import Dict, Any
 
 UserParameters = Dict[str, Dict[str, Any]]
 
 USER_PARAMETERS: UserParameters = {
+    """Dictionary defining all supported Guacamole user account parameters.
+
+    Each parameter entry contains the following keys:
+        - type: MySQL data type for storing the parameter
+        - description: Human-readable description of the parameter's purpose
+        - default: Default value when parameter is not specified
+
+    The parameters are organized by functional categories:
+    - Account status parameters (disabled, expired)
+    - Access control parameters (time windows, validity periods)
+    - Personal information parameters (name, email, organization)
+    - Localization parameters (timezone, locale settings)
+    """
     "disabled": {
         "type": "tinyint",
         "description": "Whether the user is disabled (0=enabled, 1=disabled)",
