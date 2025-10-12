@@ -1,4 +1,19 @@
 #!/usr/bin/env python3
+"""Guacamole permission debugging utility.
+
+This script provides comprehensive debugging information for Guacamole
+connection and connection group permissions. It connects to the MySQL database
+and displays detailed permission information for specified connections or
+connection groups, including:
+
+- User and user group permissions
+- Entity IDs and permission types
+- Connection/group details and relationships
+- Database schema verification
+
+The utility is designed to help troubleshoot permission issues and
+provide visibility into Guacamole's permission model.
+"""
 
 import sys
 import configparser
@@ -9,6 +24,33 @@ from mysql.connector.cursor import CursorBase
 
 
 def main() -> None:
+    """Debug Guacamole connection and connection group permissions.
+
+    This function serves as the entry point for the permission debugging utility.
+    It parses command line arguments, connects to the Guacamole database,
+    and displays comprehensive permission information for the specified
+    connection or connection group.
+
+    The function supports two modes of operation:
+    1. Connection debugging: Analyzes individual connection permissions
+    2. Connection group debugging: Analyzes connection group permissions and hierarchy
+
+    Args:
+        None (uses sys.argv for command line arguments)
+
+    Returns:
+        None (prints debugging information to stdout)
+
+    Raises:
+        SystemExit: Always exits with status 1 for errors or status 0 for success.
+
+    Example:
+        >>> # Debug connection permissions
+        >>> debug_permissions.py ~/.guacaman.ini myconnection
+
+        >>> # Debug connection group permissions
+        >>> debug_permissions.py ~/.guacaman.ini mygroup --conngroup
+    """
     if len(sys.argv) < 3:
         print(
             "Usage: debug_permissions.py CONFIG_FILE CONNECTION_NAME [CONNECTION_GROUP_NAME]"
