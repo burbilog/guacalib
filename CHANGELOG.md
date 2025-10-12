@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.22] - 2025-10-12
+
+### Added
+- Comprehensive Google-style docstrings across entire codebase with Args, Returns, and Raises sections
+- Complete API documentation generation with pdoc integration
+- Type hints throughout the library for improved code maintainability
+- Clickable IP address detection in documentation server (make docs-serve)
+- Enhanced code formatting with Black integration
+
+### Improved
+- Developer experience with automatic documentation generation
+- Code readability and IDE support with comprehensive type hints
+- Documentation accessibility with live server and clickable URLs
+- Code consistency with automated formatting tools
+
 ## [0.21] - 2025-10-11
 
 ### Fixed

@@ -16,7 +16,7 @@ in CLI help text, logging, and error messages.
 
 from typing import Final
 
-VERSION: Final[str] = "0.21"
+VERSION: Final[str] = "0.22"
 """Current version of the Guacamole management library.
 
 This string represents the current version of guacalib in the format
