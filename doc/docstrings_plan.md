@@ -126,22 +126,22 @@ def function_name(param1: Type1, param2: Type2) -> ReturnType:
   - [x] `_atomic_permission_operation()` - Atomic operation wrapper
   - [x] `debug_connection_permissions()` - Debug permission issues
 
-### Phase 2: CLI Interface Layer
+### Phase 2: CLI Interface Layer ✅ **COMPLETED**
 **File**: `guacalib/cli.py`
 
-- [ ] **Utility functions**
-  - [ ] `positive_int()` - Validate positive integers
-  - [ ] `validate_selector()` - Validate name/ID selectors
-  - [ ] `check_config_permissions()` - Validate config file permissions
+- [x] **Utility functions**
+  - [x] `positive_int()` - Validate positive integers
+  - [x] `validate_selector()` - Validate name/ID selectors
+  - [x] `check_config_permissions()` - Validate config file permissions
 
-- [ ] **CLI setup functions**
-  - [ ] `setup_user_subcommands()` - Configure user commands
-  - [ ] `setup_usergroup_subcommands()` - Configure user group commands
-  - [ ] `setup_conn_subcommands()` - Configure connection commands
-  - [ ] `setup_conngroup_subcommands()` - Configure connection group commands
-  - [ ] `setup_dump_subcommand()` - Configure dump command
-  - [ ] `setup_version_subcommand()` - Configure version command
-  - [ ] `main()` - Main CLI entry point
+- [x] **CLI setup functions**
+  - [x] `setup_user_subcommands()` - Configure user commands
+  - [x] `setup_usergroup_subcommands()` - Configure user group commands
+  - [x] `setup_conn_subcommands()` - Configure connection commands
+  - [x] `setup_conngroup_subcommands()` - Configure connection group commands
+  - [x] `setup_dump_subcommand()` - Configure dump command
+  - [x] `setup_version_subcommand()` - Configure version command
+  - [x] `main()` - Main CLI entry point
 
 ### Phase 3: Command Handler Modules
 **Files**: `cli_handle_*.py`

@@ -18,7 +18,28 @@ CommandHandler = Callable[[ArgsType, GuacamoleDB], None]
 
 
 def positive_int(value: str) -> int:
-    """Convert to integer and validate that it is positive"""
+    """Convert string to positive integer for argument validation.
+
+    This function serves as a type validator for argparse to ensure that
+    integer arguments are positive values greater than zero.
+
+    Args:
+        value: String value to convert to integer.
+
+    Returns:
+        The converted positive integer value.
+
+    Raises:
+        argparse.ArgumentTypeError: If the value is not a positive integer.
+
+    Example:
+        >>> positive_int("5")
+        5
+        >>> positive_int("-1")
+        Traceback (most recent call last):
+            ...
+        argparse.ArgumentTypeError: -1 is not a positive integer
+    """
     ivalue = int(value)
     if ivalue <= 0:
         raise argparse.ArgumentTypeError(f"{value} is not a positive integer")
@@ -26,7 +47,24 @@ def positive_int(value: str) -> int:
 
 
 def validate_selector(args: Any, entity_type: str = "connection") -> None:
-    """Validate exactly one of name or id is provided and validate ID format"""
+    """Validate that exactly one of name or ID is provided and validate ID format.
+
+    This function ensures that CLI commands that can operate on either a name
+    or ID receive exactly one selector, and that any provided ID is a positive
+    integer greater than zero. If validation fails, the program exits with an error.
+
+    Args:
+        args: Parsed command line arguments containing potential name and id attributes.
+        entity_type: Type of entity being validated (used in error messages).
+                     Defaults to "connection".
+
+    Raises:
+        SystemExit: Always exits with status 1 if validation fails.
+
+    Note:
+        This function performs XOR (^) logic to ensure exactly one of name or ID
+        is provided, but not both or neither.
+    """
     has_name = hasattr(args, "name") and args.name is not None
     has_id = hasattr(args, "id") and args.id is not None
 
@@ -45,6 +83,23 @@ def validate_selector(args: Any, entity_type: str = "connection") -> None:
 
 
 def setup_user_subcommands(subparsers: Any) -> None:
+    """Configure user management subcommands for the CLI.
+
+    Sets up the argument parser for all user-related operations including
+    creating, listing, checking existence, deleting, and modifying users.
+    Each subcommand is configured with appropriate arguments and help text.
+
+    Args:
+        subparsers: The argparse subparser object to add user commands to.
+
+    Note:
+        This function configures the following user subcommands:
+        - new: Create a new user with required name and password
+        - list: List all users (no arguments required)
+        - exists: Check if a user exists (requires --name)
+        - del: Delete a user (requires --name)
+        - modify: Modify user parameters (requires --name, optional --set and --password)
+    """
     user_parser = subparsers.add_parser("user", help="Manage Guacamole users")
     user_subparsers = user_parser.add_subparsers(
         dest="user_command", help="User commands"
@@ -79,6 +134,24 @@ def setup_user_subcommands(subparsers: Any) -> None:
 
 
 def setup_usergroup_subcommands(subparsers: Any) -> None:
+    """Configure user group management subcommands for the CLI.
+
+    Sets up the argument parser for all user group-related operations including
+    creating, listing, checking existence, deleting, and modifying user groups.
+    Most commands support both name-based and ID-based identification.
+
+    Args:
+        subparsers: The argparse subparser object to add user group commands to.
+
+    Note:
+        This function configures the following user group subcommands:
+        - new: Create a new user group (requires --name)
+        - list: List all user groups (no arguments required)
+        - exists: Check if a user group exists (requires exactly one of --name or --id)
+        - del: Delete a user group (requires exactly one of --name or --id)
+        - modify: Modify user group membership (requires exactly one of --name or --id,
+                  optional --adduser and --rmuser)
+    """
     group_parser = subparsers.add_parser(
         "usergroup", help="Manage Guacamole usergroups"
     )
@@ -124,6 +197,25 @@ def setup_usergroup_subcommands(subparsers: Any) -> None:
 
 
 def setup_conngroup_subcommands(subparsers: Any) -> None:
+    """Configure connection group management subcommands for the CLI.
+
+    Sets up the argument parser for all connection group-related operations
+    including creating, listing, checking existence, deleting, and modifying
+    connection groups. Most commands support both name-based and ID-based
+    identification and include permission management features.
+
+    Args:
+        subparsers: The argparse subparser object to add connection group commands to.
+
+    Note:
+        This function configures the following connection group subcommands:
+        - new: Create a new connection group (requires --name, optional --parent)
+        - list: List all connection groups (optional --id for specific group)
+        - exists: Check if a connection group exists (requires exactly one of --name or --id)
+        - del: Delete a connection group (requires exactly one of --name or --id)
+        - modify: Modify connection group (requires exactly one of --name or --id,
+                  optional connection management, parent, and permission arguments)
+    """
     conngroup_parser = subparsers.add_parser(
         "conngroup", help="Manage connection groups"
     )
@@ -223,16 +315,60 @@ def setup_conngroup_subcommands(subparsers: Any) -> None:
 
 
 def setup_dump_subcommand(subparsers: Any) -> None:
+    """Configure the dump subcommand for exporting data.
+
+    Sets up the argument parser for the dump command which exports all
+    groups, users, and connections from the Guacamole database in YAML format.
+
+    Args:
+        subparsers: The argparse subparser object to add the dump command to.
+
+    Note:
+        The dump command requires no arguments and outputs a comprehensive
+        YAML representation of all entities in the database.
+    """
     subparsers.add_parser(
         "dump", help="Dump all groups, users and connections in YAML format"
     )
 
 
 def setup_version_subcommand(subparsers: Any) -> None:
+    """Configure the version subcommand for displaying version information.
+
+    Sets up the argument parser for the version command which displays
+    the current version of the guacaman CLI tool.
+
+    Args:
+        subparsers: The argparse subparser object to add the version command to.
+
+    Note:
+        The version command requires no arguments and outputs the version
+        string in the format "guacaman version X.Y.Z".
+    """
     subparsers.add_parser("version", help="Show version information")
 
 
 def setup_conn_subcommands(subparsers: Any) -> None:
+    """Configure connection management subcommands for the CLI.
+
+    Sets up the argument parser for all connection-related operations including
+    creating, listing, checking existence, deleting, and modifying connections.
+    Most commands support both name-based and ID-based identification and include
+    support for VNC, RDP, and SSH protocols.
+
+    Args:
+        subparsers: The argparse subparser object to add connection commands to.
+
+    Note:
+        This function configures the following connection subcommands:
+        - new: Create a new connection (requires --name, --type, --hostname, --port,
+                optional --password and --usergroup)
+        - list: List all connections (optional --id for specific connection)
+        - exists: Check if a connection exists (requires exactly one of --name or --id)
+        - del: Delete a connection (requires exactly one of --name or --id)
+        - modify: Modify connection parameters (requires exactly one of --name or --id,
+                  optional --set, --parent, --permit, --deny)
+    """
     conn_parser = subparsers.add_parser("conn", help="Manage connections")
     conn_subparsers = conn_parser.add_subparsers(
         dest="conn_command", help="Connection commands"
@@ -304,6 +440,29 @@ def setup_conn_subcommands(subparsers: Any) -> None:
 
 
 def main() -> None:
+    """Main entry point for the guacaman CLI application.
+
+    This function sets up the argument parser, configures all subcommands,
+    validates configuration file permissions, parses command line arguments,
+    and dispatches to the appropriate command handlers.
+
+    The CLI supports management of Guacamole users, user groups, connections,
+    and connection groups through direct MySQL database access.
+
+    Raises:
+        SystemExit: Exits with status 1 for argument validation errors,
+                   status 2 for configuration permission errors, or
+                   status 1 for general execution errors.
+
+    Example:
+        Basic usage patterns:
+        >>> # List all users
+        >>> guacaman user list
+        >>> # Create a new connection
+        >>> guacaman conn new --name myserver --type ssh --hostname example.com --port 22
+        >>> # Dump all data as YAML
+        >>> guacaman dump
+    """
     parser = argparse.ArgumentParser(
         description="Manage Guacamole users, groups, and connections"
     )
@@ -325,7 +484,23 @@ def main() -> None:
     args = parser.parse_args()
 
     def check_config_permissions(config_path: str) -> None:
-        """Check config file has secure permissions"""
+        """Check that config file has secure permissions.
+
+        Validates that the configuration file has exactly 600 permissions
+        (owner read/write only) to protect sensitive database credentials.
+        If the file doesn't exist, returns normally as it will be handled
+        by GuacamoleDB initialization.
+
+        Args:
+            config_path: Path to the configuration file to check.
+
+        Raises:
+            SystemExit: Always exits with status 2 if permissions are insecure.
+
+        Note:
+            This function checks that group and others have no permissions
+            (no read, write, or execute access) on the config file.
+        """
         if not os.path.exists(config_path):
             return  # Will be handled later by GuacamoleDB
 
