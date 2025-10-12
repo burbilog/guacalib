@@ -47,21 +47,25 @@ Files with print statements requiring changes:
 ## Phase 2: Core Database Layer Logging
 
 ### 2.1 Modify GuacamoleDB Class
-- Replace `debug_print()` method with proper logging
-- Update all `debug_print()` calls to use `logger.debug()`
+- **Decision**: Keep `debug_print()` method as backwards-compatible wrapper that delegates to logging
+- Update `debug_print()` method to use `logger.debug()` internally
+- Gradually migrate direct `debug_print()` calls to use `logger.debug()` where appropriate
 - Add logging for:
   - Database connection establishment and closing
   - Transaction start/commit/rollback
   - Query execution timing (debug level)
   - Parameter validation warnings
 - **Critical**: All user-facing print() calls for data output remain unchanged
+- **Migration Path**: Existing CLI handlers using `guacdb.debug_print()` continue to work without modification
 
 ### 2.2 Database Error Logging
-- Replace error `print()` statements with `logger.error()`
+- Replace internal error `print()` statements with `logger.error()`
+- **Critical**: Preserve user-facing error messages that tests expect via `print()` statements
 - Add context information to error logs
 - **Critical**: Maintain exception propagation for CLI layer so existing tests remain unchanged
 - Log rollback operations and failures but ensure exceptions still bubble up
-- **Important**: User-facing output (lists, dumps, command results) must stay as print() calls
+- **Important**: User-facing output (lists, dumps, command results, error messages) must stay as print() calls
+- **Test Compatibility**: Maintain exact print() message formats that tests rely on for validation
 
 ### 2.3 Update `db.py`
 - Add logger import and initialization
@@ -74,12 +78,15 @@ Files with print statements requiring changes:
 ### 3.1 Update CLI Handler Files
 For each `cli_handle_*.py` file:
 - Add logger import and initialization
-- Replace error `print()` statements with `logger.error()`
+- Replace internal error `print()` statements with `logger.error()`
+- **Critical**: Preserve user-facing error messages that tests expect via `print()` statements (possibly alongside logging)
 - **Decision**: Add `logger.info()` calls for successful command completion and key milestones (e.g., "User created successfully", "Connection updated")
 - Add `logger.debug()` calls for detailed operation steps when debug enabled
 - Log validation warnings and issues with appropriate levels
-- **Critical**: Preserve all user-facing output using `print()` - only replace internal diagnostics and error reporting
+- **Critical**: Preserve all user-facing output using `print()` - only replace internal diagnostics
 - **Critical**: Ensure exceptions still propagate to CLI layer so existing tests remain unchanged
+- **Test Compatibility**: Keep exact print() message formats that tests parse for validation
+- **Dual Output Strategy**: For some errors, use both `print()` (for tests/users) AND `logger.error()` (for diagnostics)
 
 ### 3.2 Modify `cli.py`
 - **Important**: Do NOT call setup_logging() here - only import logging_config
@@ -143,6 +150,10 @@ All new code must adhere to the following requirements:
 - **Error handling**: Provide descriptive error messages and handle exceptions appropriately
 - **Single responsibility**: Each function should have a single, clear purpose
 - **Security**: Never hardcode sensitive information, validate all inputs
+- **Style Reminders**:
+  - All new helper functions (like `get_logger()`) must include proper docstrings and type hints
+  - Reiterate AGENTS.md compliance for any newly introduced functions
+  - Ensure consistency with existing codebase style
 
 ### File Changes Required
 
@@ -200,7 +211,8 @@ def setup_logging(debug: bool = False, force_reconfigure: bool = False) -> None:
     Note:
         - Function is idempotent - safe to call multiple times
         - Prevents duplicate handlers by checking existing handlers
-        - Removes default root handlers to avoid log duplication
+        - **Important**: Does NOT modify root logger handlers - respects host application configuration
+        - Only manages guacalib-specific handlers to avoid interference with embedding applications
         - Configures both guacalib root logger and module-specific loggers
         - Uses stderr for log output to preserve stdout for user-facing data
         - Must be called explicitly - never configured on import
@@ -227,11 +239,8 @@ def setup_logging(debug: bool = False, force_reconfigure: bool = False) -> None:
     if force_reconfigure:
         logger.handlers.clear()
 
-    # Remove default root handlers that might cause duplication
-    root_logger = logging.getLogger()
-    for handler in root_logger.handlers[:]:
-        if isinstance(handler, logging.StreamHandler) and handler.stream is sys.stderr:
-            root_logger.removeHandler(handler)
+    # **Important**: Do NOT remove root logger handlers - respect host application's logging configuration
+    # Only manage guacalib-specific handlers to avoid interfering with embedding applications
 
     logger.setLevel(level)
 
@@ -267,6 +276,13 @@ def get_logger(name: str) -> logging.Logger:
     Example:
         >>> logger = get_logger('db')
         >>> logger.debug("Executing SQL query")
+
+    Note:
+        This helper function must follow AGENTS.md requirements:
+        - Includes proper type hints and Google-style docstrings
+        - Uses clear, meaningful function names
+        - Handles parameters appropriately
+        - Follows single-responsibility principle
     """
     return logging.getLogger(f'guacalib.{name}')
 ```
