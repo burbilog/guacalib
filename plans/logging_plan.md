@@ -48,7 +48,7 @@ Files with print statements requiring changes:
 
 ### 2.1 Modify GuacamoleDB Class
 - **Decision**: Keep `debug_print()` method as backwards-compatible wrapper that delegates to logging
-- Update `debug_print()` method to use `logger.debug()` internally
+- Update `debug_print()` method to use `logger.debug()` internally with credential scrubbing
 - Gradually migrate direct `debug_print()` calls to use `logger.debug()` where appropriate
 - Add logging for:
   - Database connection establishment and closing
@@ -57,15 +57,25 @@ Files with print statements requiring changes:
   - Parameter validation warnings
 - **Critical**: All user-facing print() calls for data output remain unchanged
 - **Migration Path**: Existing CLI handlers using `guacdb.debug_print()` continue to work without modification
+- **SECURITY REQUIREMENT**: Log messages must NOT expose credentials or sensitive data:
+  - **Never log**: passwords, salts, database passwords, API keys, secret tokens
+  - **Safe to log**: IDs, usernames, hostnames, port numbers, parameter names
+  - **Implementation**: Replace sensitive values with `[REDACTED]` or similar placeholder
+  - **Review**: Examine existing debug_print() calls that emit parameter values and scrub them
 
 ### 2.2 Database Error Logging
-- Replace internal error `print()` statements with `logger.error()`
+- Replace internal error `print()` statements with `logger.error()` with credential scrubbing
 - **Critical**: Preserve user-facing error messages that tests expect via `print()` statements
 - Add context information to error logs
 - **Critical**: Maintain exception propagation for CLI layer so existing tests remain unchanged
 - Log rollback operations and failures but ensure exceptions still bubble up
 - **Important**: User-facing output (lists, dumps, command results, error messages) must stay as print() calls
 - **Test Compatibility**: Maintain exact print() message formats that tests rely on for validation
+- **SECURITY REQUIREMENT**: Error logs must NOT expose sensitive data:
+  - **Never log**: Database connection strings with passwords, user passwords, salt values
+  - **Safe to log**: Connection status, query execution status, transaction states
+  - **Implementation**: Scrub credentials from error messages before logging
+  - **Review**: Check create_connection() and similar functions for sensitive data in debug output
 
 ### 2.3 Update `db.py`
 - Add logger import and initialization
@@ -78,7 +88,7 @@ Files with print statements requiring changes:
 ### 3.1 Update CLI Handler Files
 For each `cli_handle_*.py` file:
 - Add logger import and initialization
-- Replace internal error `print()` statements with `logger.error()`
+- Replace internal error `print()` statements with `logger.error()` with credential scrubbing
 - **Critical**: Preserve user-facing error messages that tests expect via `print()` statements (possibly alongside logging)
 - **Decision**: Add `logger.info()` calls for successful command completion and key milestones (e.g., "User created successfully", "Connection updated")
 - Add `logger.debug()` calls for detailed operation steps when debug enabled
@@ -87,6 +97,11 @@ For each `cli_handle_*.py` file:
 - **Critical**: Ensure exceptions still propagate to CLI layer so existing tests remain unchanged
 - **Test Compatibility**: Keep exact print() message formats that tests parse for validation
 - **Dual Output Strategy**: For some errors, use both `print()` (for tests/users) AND `logger.error()` (for diagnostics)
+- **SECURITY REQUIREMENT**: CLI logs must NOT expose sensitive data:
+  - **Never log**: Command-line passwords, connection passwords, authentication tokens
+  - **Safe to log**: Usernames, connection names, hostnames, operation types, parameter names
+  - **Implementation**: Scrub sensitive arguments and config values before logging
+  - **Review**: Examine argument parsing and config handling for sensitive values
 
 ### 3.2 Modify `cli.py`
 - **Important**: Do NOT call setup_logging() here - only import logging_config
@@ -287,6 +302,18 @@ def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(f'guacalib.{name}')
 ```
 
+
+## Security Considerations for Logging
+
+**CRITICAL**: All logging implementation must follow these security requirements:
+
+- **Never log credentials**: passwords, database passwords, salts, API keys, tokens
+- **Always scrub sensitive data**: Replace with `[REDACTED]` or similar placeholders
+- **Safe logging only**: IDs, usernames, hostnames, parameter names, operation types
+- **Review existing debug output**: Examine all current debug_print() calls for sensitive values
+- **Audit new log statements**: Ensure no credentials exposed in debug, info, or error logs
+- **Connection logging**: Log connection attempts without passwords or authentication details
+- **Config logging**: Never log configuration file contents or sensitive environment variables
 
 ## Success Criteria
 
