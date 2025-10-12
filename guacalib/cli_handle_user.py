@@ -5,6 +5,19 @@ from guacalib.db import GuacamoleDB
 
 
 def handle_user_command(args: Any, guacdb: GuacamoleDB) -> None:
+    """Route user management commands to appropriate handler functions.
+
+    This function serves as the main dispatcher for all user-related CLI commands,
+    mapping command names to their corresponding handler functions and providing
+    error handling for unknown commands.
+
+    Args:
+        args: Parsed command line arguments containing user_command attribute.
+        guacdb: GuacamoleDB instance for database operations.
+
+    Raises:
+        SystemExit: Always exits with status 1 if an unknown command is provided.
+    """
     command_handlers = {
         "new": handle_user_new,
         "list": handle_user_list,
@@ -22,6 +35,25 @@ def handle_user_command(args: Any, guacdb: GuacamoleDB) -> None:
 
 
 def handle_user_new(args: Any, guacdb: GuacamoleDB) -> None:
+    """Create a new user with optional group assignments.
+
+    Creates a new Guacamole user with the specified name and password,
+    optionally assigning the user to one or more user groups. Validates
+    that the user doesn't already exist and handles group assignment errors.
+
+    Args:
+        args: Parsed command line arguments containing name, password, and optional usergroup.
+        guacdb: GuacamoleDB instance for database operations.
+
+    Raises:
+        SystemExit: Always exits with status 1 if user already exists or group assignment fails.
+        RuntimeError: Raised if user creation succeeds but group assignment partially fails.
+
+    Note:
+        If group assignment fails for some groups but succeeds for others, the user
+        will still be created but the function will raise a RuntimeError to indicate
+        partial failure.
+    """
     if guacdb.user_exists(args.name):
         print(f"Error: User '{args.name}' already exists")
         sys.exit(1)
@@ -50,6 +82,24 @@ def handle_user_new(args: Any, guacdb: GuacamoleDB) -> None:
 
 
 def handle_user_list(args: Any, guacdb: GuacamoleDB) -> None:
+    """List all users with their group memberships.
+
+    Retrieves and displays a comprehensive list of all Guacamole users
+    along with their associated user group memberships in a hierarchical
+    YAML-like format.
+
+    Args:
+        args: Parsed command line arguments (not used in this function).
+        guacdb: GuacamoleDB instance for database operations.
+
+    Note:
+        The output format is:
+        users:
+          username:
+            usergroups:
+              - group1
+              - group2
+    """
     users_and_groups = guacdb.list_users_with_usergroups()
     print("users:")
     for user, groups in users_and_groups.items():
@@ -60,6 +110,18 @@ def handle_user_list(args: Any, guacdb: GuacamoleDB) -> None:
 
 
 def handle_user_delete(args: Any, guacdb: GuacamoleDB) -> None:
+    """Delete an existing user from the Guacamole database.
+
+    Removes a user and all associated data from the Guacamole database.
+    Handles various error conditions including user not found and database errors.
+
+    Args:
+        args: Parsed command line arguments containing name of user to delete.
+        guacdb: GuacamoleDB instance for database operations.
+
+    Raises:
+        SystemExit: Always exits with status 1 if user deletion fails.
+    """
     try:
         guacdb.delete_existing_user(args.name)
         guacdb.debug_print(f"Successfully deleted user '{args.name}'")
@@ -72,6 +134,26 @@ def handle_user_delete(args: Any, guacdb: GuacamoleDB) -> None:
 
 
 def handle_user_exists(args: Any, guacdb: GuacamoleDB) -> None:
+    """Check if a user exists in the Guacamole database.
+
+    Performs an existence check for a specified username and exits with
+    appropriate status codes for use in shell scripts and automation.
+
+    Args:
+        args: Parsed command line arguments containing name of user to check.
+        guacdb: GuacamoleDB instance for database operations.
+
+    Raises:
+        SystemExit: Exits with status 0 if user exists, status 1 if user does not exist.
+
+    Example:
+        >>> # Use in shell script
+        >>> if guacaman user exists --name testuser; then
+        >>>     echo "User exists"
+        >>> else
+        >>>     echo "User does not exist"
+        >>> fi
+    """
     if guacdb.user_exists(args.name):
         sys.exit(0)
     else:
@@ -79,6 +161,24 @@ def handle_user_exists(args: Any, guacdb: GuacamoleDB) -> None:
 
 
 def handle_user_modify(args: Any, guacdb: GuacamoleDB) -> None:
+    """Modify user properties such as password or custom parameters.
+
+    Supports modifying user passwords and setting custom user parameters.
+    If no valid modification options are provided, displays help information
+    including all available parameters and their descriptions.
+
+    Args:
+        args: Parsed command line arguments containing name, optional password, and set parameters.
+        guacdb: GuacamoleDB instance for database operations.
+
+    Raises:
+        SystemExit: Always exits with status 0 for help display or status 1 for errors.
+
+    Note:
+        The --set parameter expects format "parameter=value" and supports all
+        parameters defined in guacdb.USER_PARAMETERS. If called without valid
+        modification options, displays a comprehensive help table.
+    """
     if not args.name or (not args.set and not args.password):
         print(
             "Usage: guacaman user modify --name USERNAME [--set PARAMETER=VALUE] [--password NEW_PASSWORD]"

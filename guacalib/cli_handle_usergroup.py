@@ -5,7 +5,29 @@ from guacalib.db import GuacamoleDB
 
 
 def handle_usergroup_command(args: Any, guacdb: GuacamoleDB) -> None:
-    """Handle all usergroup subcommands"""
+    """Handle all user group management subcommands.
+
+    This function processes all user group-related operations including creating,
+    listing, checking existence, deleting, and modifying user groups. Supports
+    both name-based and ID-based identification for most operations.
+
+    Args:
+        args: Parsed command line arguments containing usergroup_command and
+              relevant parameters for the specific operation.
+        guacdb: GuacamoleDB instance for database operations.
+
+    Raises:
+        SystemExit: Always exits with status 1 for errors or status 0/1 for existence checks.
+
+    Note:
+        Supported subcommands:
+        - new: Create a new user group (requires --name)
+        - list: List all user groups with members and connections
+        - exists: Check if user group exists (requires exactly one of --name or --id)
+        - del: Delete user group (requires exactly one of --name or --id)
+        - modify: Modify group membership (requires exactly one of --name or --id,
+                  optional --adduser and --rmuser)
+    """
     if args.usergroup_command == "new":
         if guacdb.usergroup_exists(args.name):
             print(f"Error: Group '{args.name}' already exists")

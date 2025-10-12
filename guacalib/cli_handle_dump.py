@@ -2,7 +2,21 @@ from guacalib.db import GuacamoleDB
 
 
 def handle_dump_command(guacdb: GuacamoleDB) -> None:
-    """Handle dump command - fetch and format all Guacamole data in YAML format"""
+    """Export all Guacamole data in YAML format.
+
+    Retrieves and displays comprehensive information about all users, user groups,
+    connections, and connection groups in the Guacamole database. Formats the output
+    as structured YAML for easy consumption by other tools or for backup purposes.
+
+    Args:
+        guacdb: GuacamoleDB instance for database operations.
+
+    Note:
+        This function serves as a unified interface that calls the respective
+        list handlers for each entity type (users, user groups, connections,
+        and connection groups) to provide a complete database dump in YAML format.
+        The output includes hierarchical relationships and permissions.
+    """
     # Print user groups using existing list functionality
     from guacalib.cli_handle_usergroup import handle_usergroup_command
     from guacalib.cli_handle_conngroup import handle_conngroup_command

@@ -5,7 +5,15 @@ from guacalib.db import GuacamoleDB
 
 
 def is_terminal() -> bool:
-    """Check if stdout is a terminal (not piped)"""
+    """Check if stdout is a terminal (not piped or redirected).
+
+    Utility function to determine if output is being displayed directly
+    to a user in a terminal or being piped/redirected. Used to decide
+    whether to use colored output or plain text.
+
+    Returns:
+        True if stdout is connected to a terminal, False if piped or redirected.
+    """
     return sys.stdout.isatty()
 
 
@@ -19,6 +27,19 @@ else:
 
 
 def handle_conn_command(args: Any, guacdb: GuacamoleDB) -> None:
+    """Route connection management commands to appropriate handler functions.
+
+    This function serves as the main dispatcher for all connection-related CLI commands,
+    mapping command names to their corresponding handler functions and providing
+    error handling for unknown commands.
+
+    Args:
+        args: Parsed command line arguments containing conn_command attribute.
+        guacdb: GuacamoleDB instance for database operations.
+
+    Raises:
+        SystemExit: Always exits with status 1 if an unknown command is provided.
+    """
     command_handlers = {
         "new": handle_conn_new,
         "list": handle_conn_list,
@@ -55,6 +76,24 @@ def handle_conn_list(args, guacdb):
 
 
 def handle_conn_list(args: Any, guacdb: GuacamoleDB) -> None:
+    """List connections with detailed information including groups and permissions.
+
+    Displays all connections or a specific connection by ID, showing protocol,
+    hostname, port, parent group, associated groups, and individual user
+    permissions in a hierarchical YAML-like format.
+
+    Args:
+        args: Parsed command line arguments containing optional ID for specific connection.
+        guacdb: GuacamoleDB instance for database operations.
+
+    Raises:
+        SystemExit: Always exits with status 1 if a specific connection ID is not found.
+
+    Note:
+        Output format includes connection ID, type, hostname, port, parent group,
+        group memberships, and individual user permissions. Supports both
+        listing all connections and displaying a specific connection by ID.
+    """
     # Check if specific ID is requested
     if hasattr(args, "id") and args.id:
         # Get specific connection by ID
@@ -92,6 +131,27 @@ def handle_conn_list(args: Any, guacdb: GuacamoleDB) -> None:
 
 
 def handle_conn_new(args: Any, guacdb: GuacamoleDB) -> None:
+    """Create a new connection with optional group permissions.
+
+    Creates a new Guacamole connection with the specified protocol, name,
+    hostname, port, and optional password. Can also grant access to specified
+    user groups during creation.
+
+    Args:
+        args: Parsed command line arguments containing type, name, hostname, port,
+              optional password, and optional usergroup list.
+        guacdb: GuacamoleDB instance for database operations.
+
+    Raises:
+        SystemExit: Always exits with status 1 if connection creation fails.
+        RuntimeError: Raised if connection creation succeeds but group permission
+                     assignment partially fails.
+
+    Note:
+        Supports VNC, RDP, and SSH protocols. If user groups are specified,
+        attempts to grant connection access to all listed groups. Partial failures
+        in group assignment will raise an exception but the connection will still be created.
+    """
     try:
         connection_id = None
 
@@ -126,6 +186,19 @@ def handle_conn_new(args: Any, guacdb: GuacamoleDB) -> None:
 
 
 def handle_conn_delete(args: Any, guacdb: GuacamoleDB) -> None:
+    """Delete an existing connection from the Guacamole database.
+
+    Removes a connection and all associated data from the Guacamole database.
+    Supports deletion by either name or ID, with validation to ensure exactly
+    one selector is provided.
+
+    Args:
+        args: Parsed command line arguments containing either name or id of connection to delete.
+        guacdb: GuacamoleDB instance for database operations.
+
+    Raises:
+        SystemExit: Always exits with status 1 if connection deletion fails or validation errors occur.
+    """
     # Validate exactly one selector provided
     from .cli import validate_selector
 
@@ -147,6 +220,27 @@ def handle_conn_delete(args: Any, guacdb: GuacamoleDB) -> None:
 
 
 def handle_conn_exists(args: Any, guacdb: GuacamoleDB) -> None:
+    """Check if a connection exists in the Guacamole database.
+
+    Performs an existence check for a specified connection by name or ID and exits
+    with appropriate status codes for use in shell scripts and automation.
+
+    Args:
+        args: Parsed command line arguments containing either name or id of connection to check.
+        guacdb: GuacamoleDB instance for database operations.
+
+    Raises:
+        SystemExit: Exits with status 0 if connection exists, status 1 if connection does not exist
+                   or if validation/database errors occur.
+
+    Example:
+        >>> # Use in shell script
+        >>> if guacaman conn exists --name myserver; then
+        >>>     echo "Connection exists"
+        >>> else
+        >>>     echo "Connection does not exist"
+        >>> fi
+    """
     # Validate exactly one selector provided
     from .cli import validate_selector
 
@@ -174,7 +268,28 @@ def handle_conn_exists(args: Any, guacdb: GuacamoleDB) -> None:
 
 
 def handle_conn_modify(args: Any, guacdb: GuacamoleDB) -> None:
-    """Handle the connection modify command"""
+    """Modify connection parameters, parent group, or user permissions.
+
+    Supports comprehensive connection modification including parameter updates,
+    parent group assignment/removal, and user permission management.
+    If no modification options are provided, displays detailed help information
+    about available parameters and usage examples.
+
+    Args:
+        args: Parsed command line arguments containing name/id, optional set parameters,
+              parent group, and permission modification options.
+        guacdb: GuacamoleDB instance for database operations.
+
+    Raises:
+        SystemExit: Always exits with status 0 for help display or status 1 for errors.
+
+    Note:
+        - Supports modification by either name or ID (exactly one required)
+        - --set parameter format: "parameter=value"
+        - --parent accepts empty string to remove parent group
+        - --permit and --deny modify individual user permissions
+        - Displays comprehensive help including all available connection parameters
+    """
     # Check if no modification options provided - show help
     if not args.set and args.parent is None and not args.permit and not args.deny:
         # Print help information about modifiable parameters

@@ -6,7 +6,34 @@ from guacalib.db import GuacamoleDB
 
 
 def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
-    """Handle all conngroup subcommands"""
+    """Handle all connection group management subcommands.
+
+    This function processes all connection group-related operations including creating,
+    listing, checking existence, deleting, and modifying connection groups. Supports
+    both name-based and ID-based identification and includes comprehensive error
+    handling with transaction management.
+
+    Args:
+        args: Parsed command line arguments containing conngroup_command and
+              relevant parameters for the specific operation.
+        guacdb: GuacamoleDB instance for database operations.
+
+    Raises:
+        SystemExit: Always exits with status 0 for success, status 1 for errors,
+                   or status 2 for validation errors.
+
+    Note:
+        Supported subcommands:
+        - new: Create a new connection group (requires --name, optional --parent)
+        - list: List all connection groups (optional --id for specific group)
+        - exists: Check if connection group exists (requires exactly one of --name or --id)
+        - del: Delete connection group (requires exactly one of --name or --id)
+        - modify: Comprehensive modification support including:
+                 * Parent group assignment (--parent)
+                 * Connection management (--addconn-*, --rmconn-*)
+                 * User permissions (--permit, --deny)
+                 * Supports both name and ID-based identification
+    """
     if args.conngroup_command == "new":
         try:
             # Check if group already exists
