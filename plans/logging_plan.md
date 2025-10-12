@@ -27,8 +27,11 @@ Files with print statements requiring changes:
 - Configure formatters for different log levels
 - Set up handlers for stderr output
 - Support for existing `--debug` flag integration
+- **Critical**: Do NOT configure logging on import - setup_logging() must be called explicitly
 - **Important**: Add guard against duplicate handlers for library usage scenarios
 - **Important**: Remove or avoid default root handlers to prevent duplicate logs in repeated CLI invocations
+- **Critical**: `setup_logging()` must be idempotent to support multiple CLI calls and library usage in tests
+- **Style Requirement**: All functions must include Google/NumPy-style docstrings and type hints per AGENTS.md
 
 ### 1.2 Define Logging Strategy
 - **DEBUG**: Detailed internal operations, SQL queries (when debug enabled), parameter validation details
@@ -51,12 +54,14 @@ Files with print statements requiring changes:
   - Transaction start/commit/rollback
   - Query execution timing (debug level)
   - Parameter validation warnings
+- **Critical**: All user-facing print() calls for data output remain unchanged
 
 ### 2.2 Database Error Logging
 - Replace error `print()` statements with `logger.error()`
 - Add context information to error logs
-- Maintain exception propagation for CLI layer
-- Log rollback operations and failures
+- **Critical**: Maintain exception propagation for CLI layer so existing tests remain unchanged
+- Log rollback operations and failures but ensure exceptions still bubble up
+- **Important**: User-facing output (lists, dumps, command results) must stay as print() calls
 
 ### 2.3 Update `db.py`
 - Add logger import and initialization
@@ -70,17 +75,19 @@ Files with print statements requiring changes:
 For each `cli_handle_*.py` file:
 - Add logger import and initialization
 - Replace error `print()` statements with `logger.error()`
-- Add `logger.info()` calls for successful command completion and key milestones
+- **Decision**: Add `logger.info()` calls for successful command completion and key milestones (e.g., "User created successfully", "Connection updated")
 - Add `logger.debug()` calls for detailed operation steps when debug enabled
 - Log validation warnings and issues with appropriate levels
-- **Important**: Preserve all user-facing output using `print()` - only replace internal diagnostics and error reporting
+- **Critical**: Preserve all user-facing output using `print()` - only replace internal diagnostics and error reporting
+- **Critical**: Ensure exceptions still propagate to CLI layer so existing tests remain unchanged
 
 ### 3.2 Modify `cli.py`
-- Add logging configuration initialization
+- **Important**: Do NOT call setup_logging() here - only import logging_config
 - Replace error handling `print()` statements with logging
 - Add logging for argument parsing issues
 - Log configuration permission checks
-- Maintain user-facing help/version prints
+- **Critical**: Maintain user-facing help/version prints exactly as-is
+- **Critical**: Ensure all exceptions continue to propagate properly for existing test behavior
 
 ### 3.3 Preserve User Output
 - Ensure all CLI results, YAML dumps, and lists still use `print()`
@@ -90,14 +97,17 @@ For each `cli_handle_*.py` file:
 ## Phase 4: Integration and Configuration
 
 ### 4.1 CLI Integration
+- **Critical**: Call `setup_logging()` explicitly from `cli.main()` ONCE per invocation
+- Call setup_logging() AFTER parsing `--debug` flag but BEFORE database operations
 - Modify `--debug` flag to set logging level to DEBUG
 - Set default logging level to WARNING/ERROR for normal operation
-- Ensure logging configuration happens early in CLI startup
+- **Important**: Do NOT configure logging in `__init__.py` - avoid import-time configuration
 
 ### 4.2 Library Integration
 - Make logging work when GuacamoleDB is used as a library
-- Allow downstream users to configure loggers
+- Allow downstream users to opt-in by calling `setup_logging()` themselves
 - Document logger usage for library consumers
+- Ensure idempotent behavior for repeated setup_logging() calls
 
 ### 4.3 Environment Variable Support (Optional Enhancement)
 - Support `GUACALIB_LOG_LEVEL` environment variable
@@ -140,21 +150,23 @@ All new code must adhere to the following requirements:
 - `guacalib/logging_config.py` - Logging configuration and setup with proper type hints and docstrings
 
 **Modified Files:**
-- `guacalib/__init__.py` - Import logging setup (minimal change)
-- `guacalib/db.py` - Replace debug_print, add logging with type hints
-- `guacalib/cli.py` - Add logging initialization, replace error prints with proper error handling
-- `guacalib/cli_handle_user.py` - Replace error prints with logging, add success milestones
-- `guacalib/cli_handle_usergroup.py` - Replace error prints with logging, add success milestones
-- `guacalib/cli_handle_conn.py` - Replace error prints with logging, add success milestones
-- `guacalib/cli_handle_conngroup.py` - Replace error prints with logging, add success milestones
-- `guacalib/cli_handle_dump.py` - Replace error prints with logging, add success milestones
+- `guacalib/__init__.py` - **DO NOT** configure logging on import - only expose helper functions
+- `guacalib/db.py` - Replace debug_print, add logging with type hints, maintain exception propagation
+- `guacalib/cli.py` - Import logging_config, call setup_logging() in main(), replace error prints, maintain user output
+- `guacalib/cli_handle_user.py` - Replace error prints with logging, add success milestones, preserve exceptions
+- `guacalib/cli_handle_usergroup.py` - Replace error prints with logging, add success milestones, preserve exceptions
+- `guacalib/cli_handle_conn.py` - Replace error prints with logging, add success milestones, preserve exceptions
+- `guacalib/cli_handle_conngroup.py` - Replace error prints with logging, add success milestones, preserve exceptions
+- `guacalib/cli_handle_dump.py` - Replace error prints with logging, add success milestones, preserve exceptions
 
 ### Backward Compatibility
 
-- All user-facing CLI output remains unchanged
+- **Critical**: All user-facing CLI output remains unchanged (print() calls preserved)
 - Existing `--debug` flag behavior preserved
 - No breaking changes to public API
+- **Critical**: Exception propagation behavior unchanged - tests parsing stdout/stderr remain unaffected
 - Tests should continue to pass without modification
+- **Critical**: Importing guacalib as a library does not reconfigure logging automatically
 
 ### Example Logging Implementation
 
@@ -177,7 +189,8 @@ def setup_logging(debug: bool = False, force_reconfigure: bool = False) -> None:
 
     This function sets up logging configuration for the guacalib package.
     It includes guards against duplicate handlers to support repeated
-    invocations and library usage scenarios.
+    invocations and library usage scenarios. This function is idempotent
+    and can be called multiple times safely.
 
     Args:
         debug: If True, set logging level to DEBUG; otherwise use WARNING.
@@ -185,13 +198,15 @@ def setup_logging(debug: bool = False, force_reconfigure: bool = False) -> None:
                          Used for testing and special scenarios.
 
     Note:
+        - Function is idempotent - safe to call multiple times
         - Prevents duplicate handlers by checking existing handlers
         - Removes default root handlers to avoid log duplication
         - Configures both guacalib root logger and module-specific loggers
         - Uses stderr for log output to preserve stdout for user-facing data
+        - Must be called explicitly - never configured on import
 
     Example:
-        >>> # Basic usage
+        >>> # CLI usage (called from cli.main after parsing --debug)
         >>> setup_logging(debug=True)
         >>>
         >>> # Library usage with custom configuration
