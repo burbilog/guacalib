@@ -76,10 +76,39 @@ Security:
     - Database credentials stored in separate configuration files
     - Comprehensive input validation and error handling
     - Transaction support for atomic operations
+
+Logging (Phase 4):
+    The library provides comprehensive logging support for downstream applications:
+
+    >>> from guacalib import setup_logging, get_logger
+    >>>
+    >>> # Configure logging (optional - defaults to WARNING level)
+    >>> setup_logging(debug=True)  # Enable debug logging
+    >>>
+    >>> # Get a module-specific logger
+    >>> logger = get_logger('myapp')
+    >>> logger.info("Application started")
+    >>>
+    >>> # Environment variables can override logging configuration:
+    >>> # export GUACALIB_LOG_LEVEL=DEBUG
+    >>> # export GUACALIB_LOG_FORMAT='%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+    >>> setup_logging()
+
+    Important: setup_logging() is never called automatically on import to respect
+    host application logging configuration. Applications must call it explicitly
+    if they want guacalib logging configured.
+
+    Logging Features:
+    - Environment variable support (GUACALIB_LOG_LEVEL, GUACALIB_LOG_FORMAT)
+    - Idempotent configuration - safe to call multiple times
+    - Uses stderr to preserve stdout for application data
+    - Module-specific loggers for clean log separation
+    - No interference with host application logging configuration
 """
 
 from .db import GuacamoleDB
 from .version import VERSION
+from .logging_config import setup_logging, get_logger
 
 __version__ = VERSION
-__all__ = ["GuacamoleDB"]
+__all__ = ["GuacamoleDB", "setup_logging", "get_logger"]

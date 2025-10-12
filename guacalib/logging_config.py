@@ -6,6 +6,7 @@ to support both library usage and CLI invocation scenarios.
 """
 
 import logging
+import os
 import sys
 from typing import Optional
 
@@ -20,6 +21,7 @@ def setup_logging(debug: bool = False, force_reconfigure: bool = False) -> None:
 
     Args:
         debug: If True, set logging level to DEBUG; otherwise use WARNING.
+               Ignored if GUACALIB_LOG_LEVEL environment variable is set.
         force_reconfigure: If True, remove existing handlers before configuration.
                          Used for testing and special scenarios.
 
@@ -31,6 +33,12 @@ def setup_logging(debug: bool = False, force_reconfigure: bool = False) -> None:
         - Configures both guacalib root logger and module-specific loggers
         - Uses stderr for log output to preserve stdout for user-facing data
         - Must be called explicitly - never configured on import
+        - **Phase 4**: Supports GUACALIB_LOG_LEVEL and GUACALIB_LOG_FORMAT environment variables
+
+    Environment Variables:
+        GUACALIB_LOG_LEVEL: Override logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+        GUACALIB_LOG_FORMAT: Override log format string
+                            Example: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 
     Example:
         >>> # CLI usage (called from cli.main after parsing --debug)
@@ -40,8 +48,37 @@ def setup_logging(debug: bool = False, force_reconfigure: bool = False) -> None:
         >>> setup_logging(debug=False)
         >>> logger = logging.getLogger('guacalib.db')
         >>> logger.info("Database operation completed")
+        >>>
+        >>> # Environment variable usage
+        >>> # export GUACALIB_LOG_LEVEL=DEBUG
+        >>> # export GUACALIB_LOG_FORMAT='%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+        >>> setup_logging()
     """
-    level = logging.DEBUG if debug else logging.WARNING
+    # Phase 4: Check for environment variable overrides
+    env_log_level = os.environ.get('GUACALIB_LOG_LEVEL', '').upper()
+    env_log_format = os.environ.get('GUACALIB_LOG_FORMAT', '')
+
+    # Determine logging level with environment variable support
+    if env_log_level:
+        # Map environment variable to logging level
+        level_mapping = {
+            'DEBUG': logging.DEBUG,
+            'INFO': logging.INFO,
+            'WARNING': logging.WARNING,
+            'ERROR': logging.ERROR,
+            'CRITICAL': logging.CRITICAL,
+        }
+
+        if env_log_level in level_mapping:
+            level = level_mapping[env_log_level]
+        else:
+            # Invalid environment variable - fallback to debug parameter
+            # and print warning to stderr (since logging isn't configured yet)
+            print(f"Warning: Invalid GUACALIB_LOG_LEVEL '{env_log_level}'. Using debug={debug} instead.", file=sys.stderr)
+            level = logging.DEBUG if debug else logging.WARNING
+    else:
+        # No environment variable override - use debug parameter
+        level = logging.DEBUG if debug else logging.WARNING
 
     # Get the guacalib root logger
     logger = logging.getLogger('guacalib')
@@ -63,14 +100,30 @@ def setup_logging(debug: bool = False, force_reconfigure: bool = False) -> None:
     handler = logging.StreamHandler(sys.stderr)
     handler.setLevel(level)
 
-    # Create formatter based on debug mode
-    if debug:
-        formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
-        )
+    # Phase 4: Create formatter based on environment variables or debug mode
+    if env_log_format:
+        # Use custom format from environment variable
+        try:
+            formatter = logging.Formatter(env_log_format)
+        except (ValueError, TypeError) as e:
+            # Invalid format string - fallback to debug mode
+            print(f"Warning: Invalid GUACALIB_LOG_FORMAT '{env_log_format}'. Using debug={debug} format instead. Error: {e}", file=sys.stderr)
+            if debug:
+                formatter = logging.Formatter(
+                    '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S'
+                )
+            else:
+                formatter = logging.Formatter('%(levelname)s: %(message)s')
     else:
-        formatter = logging.Formatter('%(levelname)s: %(message)s')
+        # Use default format based on debug mode
+        if debug:
+            formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S'
+            )
+        else:
+            formatter = logging.Formatter('%(levelname)s: %(message)s')
 
     handler.setFormatter(formatter)
     logger.addHandler(handler)
