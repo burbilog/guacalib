@@ -12,6 +12,10 @@ all:
 	@echo "  make testpub    - Publish to PyPI test repository"
 	@echo "  make pub        - Publish to PyPI production"
 	@echo "  make push       - Create release tag and push to Git"
+	@echo ""
+	@echo "Documentation:"
+	@echo "  make docs       - Generate API documentation (pdoc)"
+	@echo "  make docs-serve  - Start documentation server (http://0.0.0.0:8000)"
 
 build: FORCE
 	rm -rf build/ dist/ *.egg-info/
@@ -64,3 +68,20 @@ push:
 	git push origin main; \
 	git push origin "v$$VERSION"
 	git push
+
+# Documentation targets
+.PHONY: docs docs-serve
+
+docs:
+	@echo "Generating API documentation with pdoc..."
+	@command -v pdoc >/dev/null 2>&1 || { echo "Error: pdoc is not installed. Install with: pip install pdoc"; exit 1; }
+	pdoc guacalib --output-dir docs/ --show-source
+	@echo "Documentation generated in docs/ directory!"
+	@echo "View with: open docs/index.html"
+
+docs-serve:
+	@echo "Starting pdoc documentation server..."
+	@command -v pdoc >/dev/null 2>&1 || { echo "Error: pdoc is not installed. Install with: pip install pdoc"; exit 1; }
+	@echo "Documentation will be available at: http://0.0.0.0:8000"
+	@echo "Press Ctrl+C to stop the server"
+	pdoc guacalib --host 0.0.0.0 --port 8000
