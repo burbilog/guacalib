@@ -15,7 +15,7 @@ all:
 	@echo ""
 	@echo "Documentation:"
 	@echo "  make docs       - Generate API documentation (pdoc)"
-	@echo "  make docs-serve  - Start documentation server (http://0.0.0.0:8000)"
+	@echo "  make docs-serve  - Start documentation server (shows clickable URL)"
 
 build: FORCE
 	rm -rf build/ dist/ *.egg-info/
@@ -82,6 +82,7 @@ docs:
 docs-serve:
 	@echo "Starting pdoc documentation server..."
 	@command -v pdoc >/dev/null 2>&1 || { echo "Error: pdoc is not installed. Install with: pip install pdoc"; exit 1; }
-	@echo "Documentation will be available at: http://0.0.0.0:8000"
-	@echo "Press Ctrl+C to stop the server"
+	@IP=$$(hostname -I | awk '{print $$1}'); \
+	echo "Documentation will be available at: http://$$IP:8000"; \
+	echo "Press Ctrl+C to stop the server"; \
 	pdoc guacalib --host 0.0.0.0 --port 8000
