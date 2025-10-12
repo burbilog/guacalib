@@ -31,5 +31,8 @@ dev = [
     "pytest",
 ]
 
+[tool.setuptools]
+packages = ["guacalib"]
+
 [tool.setuptools.dynamic]
 version = {attr = "guacalib.version.VERSION"}

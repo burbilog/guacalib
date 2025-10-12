@@ -36,13 +36,30 @@ class GuacamoleDB:
         USER_PARAMETERS: Dictionary defining valid user account parameters.
 
     Example:
+        >>> # Using config file
         >>> with GuacamoleDB("~/.guacaman.ini") as db:
+        ...     users = db.list_users()
+        ...     print(f"Found {len(users)} users")
+        >>>
+        >>> # Using environment variables
+        >>> import os
+        >>> os.environ['GUACALIB_HOST'] = 'localhost'
+        >>> os.environ['GUACALIB_USER'] = 'guacamole_user'
+        >>> os.environ['GUACALIB_PASSWORD'] = 'secret_password'
+        >>> os.environ['GUACALIB_DATABASE'] = 'guacamole_db'
+        >>> with GuacamoleDB() as db:
         ...     users = db.list_users()
         ...     print(f"Found {len(users)} users")
 
     Note:
         This class implements the context manager protocol for automatic
         database connection handling and transaction management.
+
+        Database connection can be configured using:
+        1. Environment variables (GUACALIB_HOST, GUACALIB_USER, GUACALIB_PASSWORD,
+           GUACALIB_DATABASE) - takes precedence
+        2. Configuration file with [mysql] section containing host, user, password,
+           and database keys
     """
 
     CONNECTION_PARAMETERS = CONNECTION_PARAMETERS
@@ -56,12 +73,18 @@ class GuacamoleDB:
             debug: Enable debug output for database operations. Defaults to False.
 
         Raises:
-            SystemExit: If configuration file is not found or invalid.
+            SystemExit: If configuration file is not found or invalid and environment
+                       variables are not set.
             mysql.connector.Error: If database connection fails.
 
         Note:
-            The configuration file should contain a [mysql] section with
-            host, user, password, and database keys.
+            Configuration is loaded in the following priority order:
+            1. Environment variables (GUACALIB_HOST, GUACALIB_USER, GUACALIB_PASSWORD,
+               GUACALIB_DATABASE)
+            2. Configuration file containing a [mysql] section with host, user,
+               password, and database keys.
+
+            Environment variables take precedence over configuration file settings.
         """
         self.debug = debug
         self.db_config = self.read_config(config_file)
@@ -116,10 +139,12 @@ class GuacamoleDB:
 
     @staticmethod
     def read_config(config_file: str) -> ConnectionConfig:
-        """Read and validate MySQL database configuration from file.
+        """Read and validate MySQL database configuration from environment variables or file.
 
-        Parses a configuration file containing MySQL connection parameters.
-        The file must contain a [mysql] section with required keys.
+        First checks for environment variables (GUACALIB_HOST, GUACALIB_USER,
+        GUACALIB_PASSWORD, GUACALIB_DATABASE). If all required environment variables
+        are present, they are used. Otherwise, falls back to reading from configuration
+        file.
 
         Args:
             config_file: Path to the configuration file.
@@ -130,14 +155,33 @@ class GuacamoleDB:
 
         Raises:
             SystemExit: If config file is not found, missing required sections,
-                       or contains invalid configuration.
+                       contains invalid configuration, or environment variables
+                       are incomplete.
 
         Example:
+            >>> # Using environment variables
+            >>> os.environ['GUACALIB_HOST'] = 'localhost'
+            >>> os.environ['GUACALIB_USER'] = 'guacamole_user'
+            >>> os.environ['GUACALIB_PASSWORD'] = 'secret_password'
+            >>> os.environ['GUACALIB_DATABASE'] = 'guacamole_db'
+            >>> config = GuacamoleDB.read_config("~/.guacaman.ini")
+            >>> print(config['host'])
+            'localhost'
+
+            >>> # Using config file
             >>> config = GuacamoleDB.read_config("~/.guacaman.ini")
             >>> print(config['host'])
             'localhost'
 
         Note:
+            Environment variables take precedence over configuration file settings.
+
+            Environment variables:
+            - GUACALIB_HOST: MySQL server hostname
+            - GUACALIB_USER: MySQL username
+            - GUACALIB_PASSWORD: MySQL password
+            - GUACALIB_DATABASE: MySQL database name
+
             Configuration file format:
             [mysql]
             host = localhost
@@ -145,12 +189,29 @@ class GuacamoleDB:
             password = secret_password
             database = guacamole_db
         """
+        # First try to get configuration from environment variables
+        env_vars = {
+            "host": os.environ.get("GUACALIB_HOST"),
+            "user": os.environ.get("GUACALIB_USER"),
+            "password": os.environ.get("GUACALIB_PASSWORD"),
+            "database": os.environ.get("GUACALIB_DATABASE"),
+        }
+
+        # Check if all required environment variables are present
+        if all(env_vars.values()):
+            return env_vars
+
+        # If environment variables are not complete, fall back to config file
         config = configparser.ConfigParser()
         if not os.path.exists(config_file):
             print(f"Error: Config file not found: {config_file}")
-            print(
-                "Please create a config file at ~/.guacaman.ini with the following format:"
-            )
+            print("Please set environment variables or create a config file at ~/.guacaman.ini")
+            print("\nOption 1: Set environment variables:")
+            print("export GUACALIB_HOST=your_mysql_host")
+            print("export GUACALIB_USER=your_mysql_user")
+            print("export GUACALIB_PASSWORD=your_mysql_password")
+            print("export GUACALIB_DATABASE=your_mysql_database")
+            print("\nOption 2: Create a config file with the following format:")
             print("[mysql]")
             print("host = your_mysql_host")
             print("user = your_mysql_user")

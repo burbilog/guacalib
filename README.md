@@ -48,7 +48,9 @@ cd guacalib
 pip install .
 ```
 
-## Setting up configuration file
+## Setting up configuration
+
+### Option 1: Configuration File
 
 Create a database configuration file in $HOME called  `.guacaman.ini` for guacaman command line utility:
 ```ini
@@ -62,6 +64,45 @@ Ensure permissions are strict:
 ```bash
 chmod 0600 $HOME/.guacaman.ini
 ```
+
+### Option 2: Environment Variables
+
+Alternatively, you can configure the database connection using environment variables. Environment variables take precedence over the configuration file:
+
+```bash
+export GUACALIB_HOST=localhost
+export GUACALIB_USER=guacamole_user
+export GUACALIB_PASSWORD=your_password
+export GUACALIB_DATABASE=guacamole_db
+```
+
+**Priority Order:**
+1. Environment variables (if all required variables are set)
+2. Configuration file (fallback if environment variables are incomplete)
+
+**Usage in Python Library:**
+```python
+from guacalib import GuacamoleDB
+import os
+
+# Configure with environment variables
+os.environ['GUACALIB_HOST'] = 'localhost'
+os.environ['GUACALIB_USER'] = 'guacamole_user'
+os.environ['GUACALIB_PASSWORD'] = 'your_password'
+os.environ['GUACALIB_DATABASE'] = 'guacamole_db'
+
+# Will automatically use environment variables if available
+with GuacamoleDB() as db:
+    users = db.list_users()
+```
+
+**Environment Variables:**
+- `GUACALIB_HOST`: MySQL server hostname
+- `GUACALIB_USER`: MySQL username
+- `GUACALIB_PASSWORD`: MySQL password
+- `GUACALIB_DATABASE`: MySQL database name
+
+All four variables must be set for environment-based configuration to be used.
 
 ## Library Documentation
 
@@ -92,8 +133,12 @@ from guacalib import GuacamoleDB
 # Initialize with config file
 guacdb = GuacamoleDB('~/.guacaman.ini')
 
-# Use context manager for automatic cleanup
+# Initialize with environment variables (if set, will override config file)
 with GuacamoleDB('~/.guacaman.ini') as guacdb:
+    # Your code here
+
+# Initialize without specifying config file (will check environment variables first)
+with GuacamoleDB() as guacdb:
     # Your code here
 ```
 
@@ -749,7 +794,10 @@ Current limitations and planned improvements:
     guacaman conn del --name dev-server
     ```
 
-- [ ] GuacamoleDB initialization without configuration file, via variables
+- [x] GuacamoleDB initialization without configuration file, via variables ✓
+  - Environment variables: GUACALIB_HOST, GUACALIB_USER, GUACALIB_PASSWORD, GUACALIB_DATABASE
+  - Environment variables take precedence over configuration file
+  - Falls back to config file if environment variables are incomplete
 
 - [ ] Support for other connection types
   - [X] RDP (Remote Desktop Protocol)
