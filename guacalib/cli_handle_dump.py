@@ -1,4 +1,5 @@
 from guacalib.db import GuacamoleDB
+from .logging_config import get_logger
 
 
 def handle_dump_command(guacdb: GuacamoleDB) -> None:
@@ -17,6 +18,10 @@ def handle_dump_command(guacdb: GuacamoleDB) -> None:
         and connection groups) to provide a complete database dump in YAML format.
         The output includes hierarchical relationships and permissions.
     """
+    logger = get_logger('cli_handle_dump')
+
+    logger.debug("Starting database dump operation")
+
     # Print user groups using existing list functionality
     from guacalib.cli_handle_usergroup import handle_usergroup_command
     from guacalib.cli_handle_conngroup import handle_conngroup_command
@@ -29,18 +34,28 @@ def handle_dump_command(guacdb: GuacamoleDB) -> None:
 
     args = Args()
 
-    # Print users using existing list handler
-    from guacalib.cli_handle_user import handle_user_list
+    try:
+        logger.debug("Collecting users for dump")
+        # Print users using existing list handler
+        from guacalib.cli_handle_user import handle_user_list
+        handle_user_list(args, guacdb)
 
-    handle_user_list(args, guacdb)
+        logger.debug("Collecting user groups for dump")
+        # Print user groups
+        handle_usergroup_command(args, guacdb)
 
-    # Print user groups
-    handle_usergroup_command(args, guacdb)
+        logger.debug("Collecting connections for dump")
+        # Print connections using conn list handler
+        from guacalib.cli_handle_conn import handle_conn_list
+        handle_conn_list(args, guacdb)
 
-    # Print connections using conn list handler
-    from guacalib.cli_handle_conn import handle_conn_list
+        logger.debug("Collecting connection groups for dump")
+        # Print connection groups
+        handle_conngroup_command(args, guacdb)
 
-    handle_conn_list(args, guacdb)
+        logger.info("Database dump completed successfully")
 
-    # Print connection groups
-    handle_conngroup_command(args, guacdb)
+    except Exception as e:
+        logger.error(f"Database dump failed: {e}")
+        # Re-raise the exception to maintain existing error handling behavior
+        raise

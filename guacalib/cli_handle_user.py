@@ -2,6 +2,7 @@ import sys
 from typing import Any
 
 from guacalib.db import GuacamoleDB
+from .logging_config import get_logger
 
 
 def handle_user_command(args: Any, guacdb: GuacamoleDB) -> None:
@@ -18,6 +19,8 @@ def handle_user_command(args: Any, guacdb: GuacamoleDB) -> None:
     Raises:
         SystemExit: Always exits with status 1 if an unknown command is provided.
     """
+    logger = get_logger('cli_handle_user')
+
     command_handlers = {
         "new": handle_user_new,
         "list": handle_user_list,
@@ -28,9 +31,11 @@ def handle_user_command(args: Any, guacdb: GuacamoleDB) -> None:
 
     handler = command_handlers.get(args.user_command)
     if handler:
+        logger.debug(f"Dispatching user command: {args.user_command}")
         handler(args, guacdb)
     else:
-        print(f"Unknown user command: {args.user_command}")
+        logger.error(f"Unknown user command: {args.user_command}")
+        print(f"Error: Unknown user command: {args.user_command}")
         sys.exit(1)
 
 
@@ -54,27 +59,38 @@ def handle_user_new(args: Any, guacdb: GuacamoleDB) -> None:
         will still be created but the function will raise a RuntimeError to indicate
         partial failure.
     """
+    logger = get_logger('cli_handle_user')
+
+    logger.debug(f"Creating new user: {args.name}")
     if guacdb.user_exists(args.name):
+        logger.error(f"User creation failed - user already exists: {args.name}")
         print(f"Error: User '{args.name}' already exists")
         sys.exit(1)
 
     guacdb.create_user(args.name, args.password)
+    logger.info(f"User '{args.name}' created successfully")
     groups = []
 
     if args.usergroup:
         groups = [g.strip() for g in args.usergroup.split(",")]
+        logger.debug(f"Assigning user to groups: {', '.join(groups)}")
         success = True
 
         for group in groups:
             try:
                 guacdb.add_user_to_usergroup(args.name, group)
+                logger.debug(f"Added user '{args.name}' to usergroup '{group}'")
                 guacdb.debug_print(f"Added user '{args.name}' to usergroup '{group}'")
             except Exception as e:
+                logger.error(f"Failed to add user '{args.name}' to group '{group}': {e}")
                 print(f"[-] Failed to add to group '{group}': {e}")
                 success = False
 
         if not success:
+            logger.warning(f"User '{args.name}' created but some group assignments failed")
             raise RuntimeError("Failed to add to one or more groups")
+
+        logger.info(f"User '{args.name}' assigned to groups: {', '.join(groups)}")
 
     guacdb.debug_print(f"Successfully created user '{args.name}'")
     if groups:
@@ -122,13 +138,19 @@ def handle_user_delete(args: Any, guacdb: GuacamoleDB) -> None:
     Raises:
         SystemExit: Always exits with status 1 if user deletion fails.
     """
+    logger = get_logger('cli_handle_user')
+
+    logger.debug(f"Deleting user: {args.name}")
     try:
         guacdb.delete_existing_user(args.name)
+        logger.info(f"User '{args.name}' deleted successfully")
         guacdb.debug_print(f"Successfully deleted user '{args.name}'")
     except ValueError as e:
+        logger.error(f"Failed to delete user '{args.name}': {e}")
         print(f"Error: {e}")
         sys.exit(1)
     except Exception as e:
+        logger.error(f"Unexpected error deleting user '{args.name}': {e}")
         print(f"Error deleting user: {e}")
         sys.exit(1)
 
@@ -179,7 +201,10 @@ def handle_user_modify(args: Any, guacdb: GuacamoleDB) -> None:
         parameters defined in guacdb.USER_PARAMETERS. If called without valid
         modification options, displays a comprehensive help table.
     """
+    logger = get_logger('cli_handle_user')
+
     if not args.name or (not args.set and not args.password):
+        logger.debug("Displaying user modify help (no valid options provided)")
         print(
             "Usage: guacaman user modify --name USERNAME [--set PARAMETER=VALUE] [--password NEW_PASSWORD]"
         )
@@ -207,17 +232,25 @@ def handle_user_modify(args: Any, guacdb: GuacamoleDB) -> None:
         )
         sys.exit(0)
 
+    logger.debug(f"Modifying user: {args.name}")
     try:
         if not guacdb.user_exists(args.name):
+            logger.error(f"User modification failed - user does not exist: {args.name}")
             print(f"Error: User '{args.name}' does not exist")
             sys.exit(1)
 
+        modified_operations = []
+
         if args.password:
+            logger.debug(f"Changing password for user: {args.name}")
             guacdb.change_user_password(args.name, args.password)
+            logger.info(f"Password changed for user '{args.name}'")
+            modified_operations.append("password")
             guacdb.debug_print(f"Successfully changed password for user '{args.name}'")
 
         if args.set:
             if "=" not in args.set:
+                logger.error(f"Invalid --set format: {args.set}")
                 print("Error: --set must be in format 'parameter=value'")
                 sys.exit(1)
 
@@ -225,14 +258,22 @@ def handle_user_modify(args: Any, guacdb: GuacamoleDB) -> None:
             param_name = param_name.strip()
             param_value = param_value.strip()
 
+            logger.debug(f"Setting parameter '{param_name}' for user '{args.name}'")
             guacdb.modify_user(args.name, param_name, param_value)
+            logger.info(f"Parameter '{param_name}' set to '{param_value}' for user '{args.name}'")
+            modified_operations.append(f"{param_name}={param_value}")
             guacdb.debug_print(
                 f"Successfully modified user '{args.name}': {param_name}={param_value}"
             )
 
+        if modified_operations:
+            logger.info(f"User '{args.name}' modified successfully: {', '.join(modified_operations)}")
+
     except ValueError as e:
+        logger.error(f"Failed to modify user '{args.name}': {e}")
         print(f"Error: {e}")
         sys.exit(1)
     except Exception as e:
+        logger.error(f"Unexpected error modifying user '{args.name}': {e}")
         print(f"Error modifying user: {e}")
         sys.exit(1)

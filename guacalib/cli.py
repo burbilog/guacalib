@@ -11,6 +11,8 @@ from guacalib.cli_handle_dump import handle_dump_command
 from guacalib.cli_handle_user import handle_user_command
 from guacalib.cli_handle_conn import handle_conn_command
 from guacalib.cli_handle_conngroup import handle_conngroup_command
+# Import logging_config for Phase 4 (setup_logging() will be called in main)
+from guacalib.logging_config import setup_logging
 
 # Type aliases for CLI functions
 ArgsType = Any  # from argparse.Namespace
@@ -517,6 +519,9 @@ def main() -> None:
     if not args.command:
         parser.print_help()
         sys.exit(1)
+
+    # Phase 4: Setup logging after parsing --debug flag but before database operations
+    setup_logging(debug=args.debug)
 
     if args.command == "user" and not args.user_command:
         subparsers.choices["user"].print_help()
