@@ -25,6 +25,7 @@ declare -a TEST_FILES=(
     "tests/test_conngroup_permit_deny.bats"
     "tests/test_ids_feature.bats"
     "tests/test_dump.bats"
+    "tests/test_logging.bats"
 )
 
 # Function to count tests in a file
