@@ -12,6 +12,7 @@ from mysql.connector.connection import MySQLConnection
 
 from .db_connection_parameters import CONNECTION_PARAMETERS
 from .db_user_parameters import USER_PARAMETERS
+from .logging_config import get_logger
 
 # Custom type definitions
 ConnectionConfig = Dict[str, str]
@@ -87,19 +88,70 @@ class GuacamoleDB:
             Environment variables take precedence over configuration file settings.
         """
         self.debug = debug
+        self.logger = get_logger('db')
         self.db_config = self.read_config(config_file)
         self.conn = self.connect_db()
         self.cursor = self.conn.cursor()
 
+    def _scrub_credentials(self, message: str) -> str:
+        """Scrub sensitive credentials from log messages.
+
+        Args:
+            message: The original message that may contain credentials.
+
+        Returns:
+            The message with sensitive values replaced with [REDACTED].
+        """
+        import re
+
+        # List of sensitive parameter names to scrub
+        sensitive_patterns = [
+            (r'password["\']?\s*[:=]\s*["\']?([^"\'\s,}]+)', 'password=[REDACTED]'),
+            (r'salt["\']?\s*[:=]\s*["\']?([^"\'\s,}]+)', 'salt=[REDACTED]'),
+            (r'secret["\']?\s*[:=]\s*["\']?([^"\'\s,}]+)', 'secret=[REDACTED]'),
+            (r'token["\']?\s*[:=]\s*["\']?([^"\'\s,}]+)', 'token=[REDACTED]'),
+            (r'api_key["\']?\s*[:=]\s*["\']?([^"\'\s,}]+)', 'api_key=[REDACTED]'),
+            (r'passwd["\']?\s*[:=]\s*["\']?([^"\'\s,}]+)', 'passwd=[REDACTED]'),
+        ]
+
+        scrubbed = message
+        for pattern, replacement in sensitive_patterns:
+            scrubbed = re.sub(pattern, replacement, scrubbed, flags=re.IGNORECASE)
+
+        return scrubbed
+
     def debug_print(self, *args: Any, **kwargs: Any) -> None:
         """Print debug messages if debug mode is enabled.
 
+        This method maintains backward compatibility by using the original print
+        approach when logging is not configured, and delegating to logging when
+        it is available. All messages are scrubbed for credentials.
+
         Args:
-            *args: Arguments to pass to print function.
-            **kwargs: Keyword arguments to pass to print function.
+            *args: Arguments to pass to print function or logger.
+            **kwargs: Keyword arguments to pass to print function or logger.
         """
         if self.debug:
-            print("[DEBUG]", *args, **kwargs)
+            # Convert all arguments to strings and scrub credentials
+            scrubbed_args = []
+            for arg in args:
+                if isinstance(arg, str):
+                    scrubbed_args.append(self._scrub_credentials(arg))
+                else:
+                    # For non-string arguments, convert to string then scrub
+                    scrubbed_args.append(self._scrub_credentials(str(arg)))
+
+            # Try to use logging if it's configured, otherwise fall back to print
+            try:
+                # Check if logging has been configured by checking if the logger has handlers
+                if hasattr(self.logger, 'handlers') and self.logger.handlers:
+                    self.logger.debug(" ".join(scrubbed_args), **kwargs)
+                else:
+                    # Fallback to original print behavior
+                    print("[DEBUG]", *scrubbed_args, **kwargs)
+            except Exception:
+                # If anything goes wrong with logging, fall back to print
+                print("[DEBUG]", *scrubbed_args, **kwargs)
 
     def __enter__(self) -> "GuacamoleDB":
         """Enter the runtime context for the database connection.
@@ -132,9 +184,15 @@ class GuacamoleDB:
                 # Always commit unless there was an exception
                 if exc_type is None:
                     self.conn.commit()
+                    self.debug_print("Transaction committed successfully")
                 else:
                     self.conn.rollback()
+                    # Only log rollback for non-SystemExit exceptions to avoid test noise
+                    if exc_type is not SystemExit:
+                        self.logger.warning(f"Transaction rolled back due to {exc_type.__name__}")
             finally:
+                if self.debug:
+                    self.debug_print("Closing database connection")
                 self.conn.close()
 
     @staticmethod
@@ -263,11 +321,13 @@ class GuacamoleDB:
             configuration file during initialization.
         """
         try:
-            return mysql.connector.connect(
+            conn = mysql.connector.connect(
                 **self.db_config, charset="utf8mb4", collation="utf8mb4_general_ci"
             )
+            self.logger.info(f"Database connection established to {self.db_config.get('host', 'unknown')}")
+            return conn
         except mysql.connector.Error as e:
-            print(f"Error connecting to database: {e}")
+            self.logger.error(f"Database connection failed: {self._scrub_credentials(str(e))}")
             sys.exit(1)
 
     def list_users(self) -> List[str]:
@@ -298,7 +358,7 @@ class GuacamoleDB:
             )
             return [row[0] for row in self.cursor.fetchall()]
         except mysql.connector.Error as e:
-            print(f"Error listing users: {e}")
+            self.logger.error(f"Failed to list users: {self._scrub_credentials(str(e))}")
             raise
 
     def list_usergroups(self) -> List[str]:
@@ -329,7 +389,7 @@ class GuacamoleDB:
             )
             return [row[0] for row in self.cursor.fetchall()]
         except mysql.connector.Error as e:
-            print(f"Error listing usergroups: {e}")
+            self.logger.error(f"Failed to list usergroups: {self._scrub_credentials(str(e))}")
             raise
 
     def usergroup_exists(self, group_name: str) -> bool:
@@ -973,7 +1033,7 @@ class GuacamoleDB:
             )
 
         except mysql.connector.Error as e:
-            print(f"Error deleting existing user: {e}")
+            self.logger.error(f"Failed to delete user '{username}': {self._scrub_credentials(str(e))}")
             raise
 
     def delete_existing_usergroup(self, group_name: str) -> None:
@@ -1282,8 +1342,10 @@ class GuacamoleDB:
                 (password_hash, password_salt, username),
             )
 
+            self.logger.info(f"User '{username}' created successfully")
+
         except mysql.connector.Error as e:
-            print(f"Error creating user: {e}")
+            self.logger.error(f"Failed to create user '{username}': {self._scrub_credentials(str(e))}")
             raise
 
     def create_usergroup(self, group_name: str) -> None:

@@ -45,7 +45,7 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
             guacdb.create_connection_group(args.name, args.parent)
             # Explicitly commit the transaction
             guacdb.conn.commit()
-            guacdb.debug_print(f"Successfully created connection group: {args.name}")
+            print(f"Successfully created connection group: {args.name}")
             sys.exit(0)
         except Exception as e:
             # Rollback on error
@@ -125,11 +125,13 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
             # Rely on database layer validation via resolvers
             if hasattr(args, "id") and args.id is not None:
                 # Delete by ID using resolver
+                group_name_display = guacdb.get_connection_group_name_by_id(args.id)
                 guacdb.delete_connection_group(group_id=args.id)
+                print(f"Successfully deleted connection group '{group_name_display}'")
             else:
                 # Delete by name using resolver
                 guacdb.delete_connection_group(group_name=args.name)
-            guacdb.debug_print(f"Successfully deleted connection group")
+                print(f"Successfully deleted connection group '{args.name}'")
             sys.exit(0)
         except ValueError as e:
             print(f"Error: {e}")

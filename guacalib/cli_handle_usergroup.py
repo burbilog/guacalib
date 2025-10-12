@@ -112,9 +112,11 @@ def handle_usergroup_command(args: Any, guacdb: GuacamoleDB) -> None:
                 print(f"Error: User '{args.adduser}' does not exist")
                 sys.exit(1)
             guacdb.add_user_to_usergroup(args.adduser, group_name)
+            print(f"Successfully added user '{args.adduser}' to usergroup '{group_name}'")
 
         if args.rmuser:
             if not guacdb.user_exists(args.rmuser):
                 print(f"Error: User '{args.rmuser}' does not exist")
                 sys.exit(1)
             guacdb.remove_user_from_usergroup(args.rmuser, group_name)
+            print(f"Successfully removed user '{args.rmuser}' from usergroup '{group_name}'")
