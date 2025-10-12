@@ -63,6 +63,24 @@ Ensure permissions are strict:
 chmod 0600 $HOME/.guacaman.ini
 ```
 
+## Library Documentation
+
+The `guacalib` library includes comprehensive API documentation with Google-style docstrings throughout the codebase. You can:
+
+- **View Online Documentation**: Generate static HTML docs with `make docs`
+- **Start Documentation Server**: Run interactive docs with `make docs-serve`
+- **Direct Python Access**: Use `help(guacalib.GuacamoleDB)` in Python
+
+```bash
+# Generate static documentation in docs/ directory
+make docs
+
+# Start interactive documentation server (clickable URL)
+make docs-serve
+```
+
+The documentation includes detailed method signatures, parameter descriptions, return values, and usage examples for all library functions.
+
 ## Python Library Usage
 
 The `guacalib` library provides programmatic access to all Guacamole management features. Here are some examples:
