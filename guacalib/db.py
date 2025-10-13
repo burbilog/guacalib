@@ -558,7 +558,27 @@ class GuacamoleDB:
     }
 
     def get_connection_group_id_by_name(self, group_name: str) -> Optional[int]:
-        """Get connection_group_id by name from guacamole_connection_group"""
+        """Get connection group ID by name from the database.
+
+        Retrieves the database ID for a connection group given its name.
+        Returns None for empty group names to handle root-level assignments.
+
+        Args:
+            group_name: Name of the connection group to look up.
+
+        Returns:
+            The database ID of the connection group, or None if group_name is empty.
+
+        Raises:
+            ValueError: If the connection group with the specified name is not found.
+            mysql.connector.Error: If database query fails.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     group_id = db.get_connection_group_id_by_name("Production Servers")
+            ...     print(f"Group ID: {group_id}")
+            Group ID: 42
+        """
         try:
             if not group_name:  # Handle empty group name as explicit NULL
                 return None
@@ -1495,7 +1515,30 @@ class GuacamoleDB:
             raise
 
     def get_connection_group_id(self, group_path: str) -> int:
-        """Resolve nested connection group path to group_id"""
+        """Resolve nested connection group path to connection group ID.
+
+        Resolves a hierarchical path (e.g., "parent/child/grandchild") to the
+        database ID of the final group in the path. This method traverses the
+        hierarchy to find the exact group at the specified path.
+
+        Args:
+            group_path: Slash-separated path to the connection group.
+                       Examples: "Production", "Production/Web", "Servers/Linux"
+
+        Returns:
+            The database ID of the connection group at the specified path.
+
+        Raises:
+            ValueError: If the group path cannot be resolved or any group in the
+                       path doesn't exist.
+            mysql.connector.Error: If database query fails.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     group_id = db.get_connection_group_id("Production/Web Servers")
+            ...     print(f"Group ID: {group_id}")
+            Group ID: 42
+        """
         try:
             groups = group_path.split("/")
             parent_group_id = None
@@ -1717,6 +1760,28 @@ class GuacamoleDB:
             raise
 
     def list_users_with_usergroups(self) -> Dict[str, List[str]]:
+        """List all users with their associated user group memberships.
+
+        Retrieves a comprehensive mapping of all users in the system and the
+        user groups they belong to. This provides a complete view of user
+        group memberships for reporting and analysis.
+
+        Returns:
+            Dict[str, List[str]]: Mapping of usernames to lists of user group names.
+                Users with no group memberships will have an empty list.
+
+        Raises:
+            mysql.connector.Error: If database query fails.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     users = db.list_users_with_usergroups()
+            ...     for username, groups in users.items():
+            ...         print(f"{username}: {groups}")
+            john.doe: ['admin', 'developers']
+            jane.smith: ['users']
+            guest: []
+        """
         query = """
             SELECT DISTINCT 
                 e1.name as username,
@@ -1884,7 +1949,31 @@ class GuacamoleDB:
             raise
 
     def list_usergroups_with_users_and_connections(self):
-        """List all groups with their users and connections"""
+        """List all user groups with their associated users and connections.
+
+        Retrieves a comprehensive mapping of all user groups in the system,
+        including the users belonging to each group and the connections
+        accessible to those users through group permissions.
+
+        Returns:
+            Dict[str, Dict[str, Any]]: Nested dictionary with group names as keys.
+                Each group dictionary contains:
+                - id (int): The database ID of the user group
+                - users (List[str]): List of usernames belonging to the group
+                - connections (List[str]): List of connection names accessible to the group
+
+        Raises:
+            mysql.connector.Error: If database query fails.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     result = db.list_usergroups_with_users_and_connections()
+            ...     admin_group = result.get('admin', {})
+            ...     print(f"Admin users: {admin_group.get('users', [])}")
+            ...     print(f"Admin connections: {admin_group.get('connections', [])}")
+            Admin users: ['admin1', 'admin2']
+            Admin connections: ['server1', 'server2']
+        """
         try:
             # Get users per group with IDs
             self.cursor.execute(
@@ -1940,8 +2029,30 @@ class GuacamoleDB:
             print(f"Error listing groups with users and connections: {e}")
             raise
 
-    def _check_connection_group_cycle(self, group_id, parent_id):
-        """Check if setting parent_id would create a cycle in connection groups"""
+    def _check_connection_group_cycle(self, group_id: int, parent_id: Optional[int]) -> bool:
+        """Check if setting a parent connection group would create a cycle.
+
+        Validates whether assigning a parent group to a connection group would
+        result in a circular reference in the connection group hierarchy.
+        This prevents infinite loops and maintains a proper tree structure.
+
+        Args:
+            group_id: The database ID of the connection group to be modified.
+            parent_id: The database ID of the proposed parent group, or None
+                      to remove the parent relationship.
+
+        Returns:
+            True if setting the parent would create a cycle, False otherwise.
+
+        Raises:
+            mysql.connector.Error: If database query fails.
+
+        Example:
+            >>> # Group 1 -> Group 2 -> Group 3 (hierarchy)
+            >>> # Attempting to make Group 3 parent of Group 1 would create a cycle
+            >>> db._check_connection_group_cycle(1, 3)  # Returns True
+            >>> db._check_connection_group_cycle(4, None)  # Returns False
+        """
         if parent_id is None:
             return False
 
@@ -1967,7 +2078,31 @@ class GuacamoleDB:
     def create_connection_group(
         self, group_name: str, parent_group_name: Optional[str] = None
     ) -> bool:
-        """Create a new connection group"""
+        """Create a new connection group in the Guacamole database.
+
+        Creates a new connection group with the specified name and optionally
+        assigns it to a parent group to establish a hierarchical structure.
+
+        Args:
+            group_name: Name for the new connection group.
+            parent_group_name: Optional name of the parent connection group.
+                              If None, the group will be created at the root level.
+
+        Returns:
+            True if the connection group was created successfully.
+
+        Raises:
+            ValueError: If group name is invalid, parent group doesn't exist,
+                       or would create a cycle in the hierarchy.
+            mysql.connector.Error: If database operation fails.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     # Create root-level group
+            ...     db.create_connection_group("Production Servers")
+            ...     # Create child group
+            ...     db.create_connection_group("Web Servers", "Production Servers")
+        """
         try:
             parent_group_id = None
             if parent_group_name:
@@ -2517,7 +2652,27 @@ class GuacamoleDB:
             raise ValueError(f"Database error while checking usergroup existence: {e}")
 
     def get_usergroup_name_by_id(self, group_id: int) -> str:
-        """Get usergroup name by ID"""
+        """Get user group name by its database ID.
+
+        Retrieves the name of a user group given its database ID.
+        This is useful for converting internal IDs back to human-readable names.
+
+        Args:
+            group_id: The database ID of the user group.
+
+        Returns:
+            The name of the user group.
+
+        Raises:
+            ValueError: If user group with the specified ID is not found.
+            mysql.connector.Error: If database query fails.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     name = db.get_usergroup_name_by_id(42)
+            ...     print(f"Group name: {name}")
+            Group name: admin-group
+        """
         try:
             self.cursor.execute(
                 """
@@ -2534,7 +2689,29 @@ class GuacamoleDB:
         except mysql.connector.Error as e:
             raise ValueError(f"Database error while getting usergroup name: {e}")
 
-    def list_groups_with_users(self):
+    def list_groups_with_users(self) -> Dict[str, List[str]]:
+        """List all user groups with their associated users.
+
+        Retrieves a mapping of user group names to the list of usernames
+        that belong to each group. This provides a simplified view of
+        user group membership.
+
+        Returns:
+            Dict[str, List[str]]: Mapping of group names to lists of usernames.
+                Groups with no members will have an empty list.
+
+        Raises:
+            mysql.connector.Error: If database query fails.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     groups = db.list_groups_with_users()
+            ...     for group_name, users in groups.items():
+            ...         print(f"{group_name}: {users}")
+            admin: ['admin1', 'admin2']
+            users: ['john.doe', 'jane.smith']
+            guests: []
+        """
         query = """
             SELECT 
                 e.name as groupname,
@@ -2558,8 +2735,34 @@ class GuacamoleDB:
 
         return groups_users
 
-    def debug_connection_permissions(self, connection_name):
-        """Debug function to check permissions for a connection"""
+    def debug_connection_permissions(self, connection_name: str) -> None:
+        """Debug function to check and display permissions for a connection.
+
+        Outputs detailed debugging information about all permissions associated
+        with a specific connection, including both user and user group permissions.
+        This function is intended for troubleshooting connection access issues.
+
+        Args:
+            connection_name: The name of the connection to debug.
+
+        Returns:
+            None (outputs debug information to stdout).
+
+        Raises:
+            mysql.connector.Error: If database query fails.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     db.debug_connection_permissions("my-server")
+            [DEBUG] Checking permissions for connection 'my-server'
+            [DEBUG] Connection ID: 42
+            [DEBUG] Found 2 permissions:
+            [DEBUG]   Entity ID: 15, Name: john.doe, Type: USER, Permission: READ
+            [DEBUG]   Entity ID: 20, Name: admin-group, Type: USER_GROUP, Permission: READ
+            [DEBUG] Found 1 user permissions:
+            [DEBUG]   User: john.doe
+            [DEBUG] End of debug info
+        """
         try:
             print(f"\n[DEBUG] Checking permissions for connection '{connection_name}'")
 
@@ -2631,7 +2834,31 @@ class GuacamoleDB:
     def grant_connection_group_permission_to_user(
         self, username: str, conngroup_name: str
     ) -> bool:
-        """Grant connection group permission to a specific user"""
+        """Grant connection group permission to a specific user.
+
+        Grants READ permission to a user for accessing a connection group.
+        This allows the user to see and use all connections within that group.
+
+        Args:
+            username: Name of the user to grant permission to.
+            conngroup_name: Name of the connection group to grant access to.
+
+        Returns:
+            True if the permission was granted successfully.
+
+        Raises:
+            ValueError: If username or connection group name is invalid, or if
+                       the user or connection group doesn't exist.
+            mysql.connector.Error: If database operation fails.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     success = db.grant_connection_group_permission_to_user(
+            ...         "john.doe", "Production Servers"
+            ...     )
+            ...     print(f"Permission granted: {success}")
+            Permission granted: True
+        """
         if not username or not isinstance(username, str):
             raise ValueError("Username must be a non-empty string")
         if not conngroup_name or not isinstance(conngroup_name, str):
@@ -2824,7 +3051,31 @@ class GuacamoleDB:
     def grant_connection_group_permission_to_user_by_id(
         self, username: str, conngroup_id: int
     ) -> bool:
-        """Grant connection group permission to a specific user by connection group ID"""
+        """Grant connection group permission to a user using connection group ID.
+
+        Grants READ permission to a user for accessing a connection group
+        when you have the database ID rather than the name.
+
+        Args:
+            username: Name of the user to grant permission to.
+            conngroup_id: Database ID of the connection group to grant access to.
+
+        Returns:
+            True if the permission was granted successfully.
+
+        Raises:
+            ValueError: If username is invalid, conngroup_id is not a positive
+                       integer, or if the user or connection group doesn't exist.
+            mysql.connector.Error: If database operation fails.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     success = db.grant_connection_group_permission_to_user_by_id(
+            ...         "john.doe", 42
+            ...     )
+            ...     print(f"Permission granted: {success}")
+            Permission granted: True
+        """
         if not username or not isinstance(username, str):
             raise ValueError("Username must be a non-empty string")
         if (

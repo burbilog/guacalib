@@ -66,6 +66,18 @@ def validate_selector(args: Any, entity_type: str = "connection") -> None:
     Note:
         This function performs XOR (^) logic to ensure exactly one of name or ID
         is provided, but not both or neither.
+
+    Example:
+        >>> import argparse
+        >>> args = argparse.Namespace()
+        >>> args.name = "test-connection"
+        >>> args.id = None
+        >>> validate_selector(args, "connection")  # Valid - passes silently
+        >>>
+        >>> args.name = "test-connection"
+        >>> args.id = 42
+        >>> validate_selector(args, "connection")  # Invalid - exits with error
+        Error: Exactly one of --name or --id must be provided for connection
     """
     has_name = hasattr(args, "name") and args.name is not None
     has_id = hasattr(args, "id") and args.id is not None
