@@ -227,4 +227,3 @@ guacalib/
 - Overall cyclomatic complexity of `guacalib/db.py` drops dramatically; file becomes thin façade.
 - Transaction management and credential scrubbing are centralized and well-documented.
 - Documentation reflects modular architecture, testing strategy, and guides future maintenance.
-```
