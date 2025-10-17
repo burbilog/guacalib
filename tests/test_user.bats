@@ -37,5 +37,5 @@ load run_tests.bats
 @test "Delete non-existent user should fail" {
     run guacaman --config "$TEST_CONFIG" user del --name nonexistentuser
     [ "$status" -ne 0 ]
-    [[ "$output" == *"doesn't exist"* ]]
+    [[ "$output" == *"not found"* ]]
 }

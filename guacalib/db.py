@@ -1041,7 +1041,7 @@ class GuacamoleDB:
         """
         try:
             if not self.user_exists(username):
-                raise ValueError(f"User '{username}' doesn't exist")
+                raise ValueError(f"User '{username}' not found")
 
             self.debug_print(f"Deleting user: {username}")
             # Delete user group permissions first
@@ -2581,7 +2581,7 @@ class GuacamoleDB:
                 )
                 result = self.cursor.fetchone()
                 if not result:
-                    raise ValueError(f"Connection '{connection_name}' doesn't exist")
+                    raise ValueError(f"Connection '{connection_name}' not found")
                 return result[0]
             except mysql.connector.Error as e:
                 raise ValueError(f"Database error while resolving connection name: {e}")

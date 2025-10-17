@@ -38,6 +38,6 @@ load run_tests.bats
 @test "Delete non-existent connection should fail" {
     run guacaman --config "$TEST_CONFIG" conn del --name nonexistentconn
     [ "$status" -ne 0 ]
-    [[ "$output" == *"doesn't exist"* ]]
+    [[ "$output" == *"not found"* ]]
 }
 
