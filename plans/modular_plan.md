@@ -24,7 +24,7 @@ The current `guacalib/db.py` file has grown into a monolithic module that mixes 
 ```
 guacalib/
 ├── data_access/
-│   ├── base.py              # Low-level DB session + helper interfaces
+│   ├── base.py              # DatabaseSession / Unit-of-Work abstraction + helpers
 │   ├── config_loader.py     # Loads env/config files, returns ConnectionConfig
 │   ├── repositories/
 │   │   ├── user_repository.py
@@ -41,6 +41,8 @@ guacalib/
 │   └── permission_service.py
 ├── facade/
 │   └── guac_db.py           # Thin façade exposing current public API
+├── security.py              # Credential scrubbing and security utilities
+├── types.py                 # Shared type aliases / Protocols
 └── __init__.py              # Exports façade + new interfaces as needed
 ```
 
@@ -53,22 +55,110 @@ guacalib/
 
 - **Base (`base.py`)**
   - Defines `DatabaseSession` interface / wrapper around `mysql.connector` connection & cursor.
-  - Manages connection lifecycle (connect, commit, rollback, close).
-  - Provides context management utilities for services.
+  - Manages connection lifecycle (connect, commit, rollback, close) and provides context manager helpers.
+  - Ensures services receive a session that can span multiple repository calls in an operation.
 
 - **Repositories (`repositories/`)**
   - Contain raw SQL queries for their domain.
-  - Operate on simple data structures (dicts/tuples) without business rules.
-  - Offer CRUD + listing methods returning normalized entities.
+  - Operate on simple data structures (dicts/tuples) or typed dataclasses without business rules.
+  - Expose explicit CRUD/query methods plus ID resolution helpers (`resolve_*_id`).
+  - Raise typed data-access errors (wrapping `mysql.connector.Error`) or return `None` where appropriate.
 
 - **Services (`services/`)**
   - Consume repositories to implement business rules, validation, and cross-entity operations.
-  - Handle errors, raise domain-specific exceptions, call logging, and scrub credentials.
+  - Manage transaction boundaries via `DatabaseSession` (begin/commit/rollback).
+  - Translate repository errors into domain-specific exceptions while preserving user-facing messaging.
 
 - **Façade (`facade/guac_db.py`)**
   - Implements the existing `GuacamoleDB` API by delegating to services.
-  - Manages initialization (config, session factory).
-  - Serves as compatibility layer while downstream consumers migrate.
+  - Manages initialization (config, session factory wiring, dependency injection).
+  - Maintains backwards-compatible behaviour for CLI/tests (including `debug_print` bridge).
+
+- **Security (`security.py`)**
+  - Provides credential scrubbing helpers reused by services and logging utilities.
+
+- **Types (`types.py`)**
+  - Hosts shared type aliases, Protocol definitions (e.g., repository/service interfaces), and data contracts.
+
+## Design Clarifications
+
+### Database Session & Transaction Management
+
+- Introduce a `DatabaseSession` (or Unit-of-Work) abstraction encapsulating a `mysql.connector` connection and cursor.
+- Session lifecycle:
+  - Created by façade for each CLI/library invocation (mirroring current context manager semantics).
+  - Exposed to services; repositories receive the active session or cursor.
+  - Services begin/commit transactions; on exception they trigger rollback.
+- Transactions:
+  - Services own commit/rollback calls; repositories are transaction-agnostic and never commit.
+  - Multi-repository operations (e.g., `delete_existing_user`) execute within a single session to preserve ACID properties.
+
+### Repository Interfaces & Data Contracts
+
+- Define Protocols/ABCs in `types.py` describing required repository methods (CRUD, list, resolve ID).
+- Repositories return typed dictionaries or lightweight dataclasses (documented per method).
+- Error handling:
+  - Wrap `mysql.connector.Error` into `DataAccessError` (defined in `errors.py` or `types.py`).
+  - Validation failures (e.g., missing entity) return `None` or raise specialized exceptions (e.g., `EntityNotFoundError`).
+- ID resolution helpers (current `resolve_*` methods) migrate into repositories (e.g., `ConnectionRepository.resolve_id`).
+
+### Service Layer Responsibilities
+
+- Services enforce business rules:
+  - Validation beyond pure SQL (e.g., detecting cycles, ensuring parameters conform).
+  - Coordinating multiple repository calls for composite operations.
+  - Translating repository errors into domain-level exceptions (`DomainValidationError`, `EntityConflictError`, etc.).
+- Logging:
+  - Services log business events (`info`) and warnings/errors; repositories log SQL-related diagnostics at `debug`.
+
+### Credential Scrubbing
+
+- Move `_scrub_credentials` logic into `security.py` as a reusable function.
+- Services/repositories call scrubbing helper before logging sensitive strings.
+- `debug_print` in façade delegates to logging + scrubbing to retain compatibility.
+
+### Logging Responsibilities
+
+- Repository logging:
+  - Emit debug-level statements for SQL execution, parameters (scrubbed), and row counts when debug mode is active.
+- Service logging:
+  - Log high-level operations, validation outcomes, and translated errors.
+- Façade logging:
+  - Maintains existing loggers and ensures CLI expectations (stdout vs stderr) remain intact.
+  - Continues to bridge `debug_print` to logging when debugging is enabled.
+
+### Error Handling Strategy
+
+- Introduce `guacalib/errors.py` or definitions in `types.py` with a minimal hierarchy:
+  - `GuacError` (base), `DomainValidationError`, `EntityNotFoundError`, `EntityConflictError`, `DataAccessError`.
+- Services raise domain-level errors; façade converts them to current `ValueError`/user-facing messages to keep CLI behaviour stable.
+- Document how exceptions propagate to ensure existing tests remain valid.
+
+### Dependency Injection & Composition
+
+- Constructor injection:
+  - Services receive repository instances and a `DatabaseSession`.
+  - Façade’s initialization builds repositories and services (possibly via factory functions).
+- Support for future DI enhancements (e.g., providing alternate repositories for testing) by centralizing wiring in façade or a `builder` module.
+
+### Configuration & Shared Types
+
+- `config_loader.py` handles environment + `.ini` reading, returning a validated `ConnectionConfig` dataclass.
+- Shared type aliases and Protocols move to `types.py` (e.g., `ConnectionConfig`, `UserRecord`, repository/service interfaces).
+- Parameter dictionaries (`CONNECTION_PARAMETERS`, `USER_PARAMETERS`) remain in their dedicated modules and are imported where needed.
+
+### Testing Strategy
+
+- Maintain existing bats/integration tests as regression suite throughout refactor.
+- Repository tests:
+  - Use fixture database or transactional test DB (with rollback) to validate SQL queries.
+  - Optionally provide in-memory fakes/mocks if feasible.
+- Service tests:
+  - Mock repositories to isolate business rules and error translation.
+  - Cover transaction behaviour (commit/rollback) via session mocks.
+- Façade tests:
+  - Ensure compatibility by exercising a subset of existing CLI flows.
+- Document testing approach in plan; update `Phase 5` to detail repository/service test coverage.
 
 ## Public API Strategy
 
@@ -78,10 +168,10 @@ guacalib/
 
 ## Error Handling & Logging
 
-- Repositories raise data access exceptions (wrapping `mysql.connector.Error`).
-- Services translate low-level errors into meaningful domain errors, preserving user-facing messages expected by CLI.
-- Logging remains at service level using existing `get_logger`.
-- Credential scrubbing moved to shared helper to ensure consistency across modules.
+- Repositories raise `DataAccessError` (wrapping `mysql.connector.Error`) and avoid altering transactions directly.
+- Services translate low-level errors into domain exceptions and ensure credential scrubbing before logging.
+- Façade converts domain errors into the current CLI-facing messages to maintain backwards compatibility.
+- Logging responsibilities follow the strategy outlined in “Design Clarifications”.
 
 ## Migration Considerations
 
@@ -89,42 +179,52 @@ guacalib/
 - Tests referencing `GuacamoleDB` remain valid; new unit tests can target individual services and repositories.
 - Internal methods currently calling `self.cursor` adapt to repository usage.
 - Gradual migration: move one domain at a time while others remain in the monolith until refactoring is complete.
+- Preserve `debug_print` behaviour via façade delegating to logger + scrubbing helper during transition.
 
 ## Phased Implementation Plan
 
 - [ ] **Phase 1 — Infrastructure Setup**
-  - Create `data_access` package with `base.py` (session abstraction) and `config_loader.py`.
-  - Implement shared validation helpers (`validators.py`) and ensure logging utilities are accessible.
-  - Update imports in `guacalib/__init__.py` to reference new façade location once ready (no behavior changes yet).
+  - Create `data_access` package with `base.py` defining `DatabaseSession` abstraction and transaction helpers.
+  - Implement `config_loader.py`, `types.py`, `security.py`, and shared validation utilities.
+  - Add minimal exception hierarchy (`errors.py` or within `types.py`) and update plan documentation/comments.
+  - Ensure logging utilities can consume credential scrubbing helper.
+  - Update imports in `guacalib/__init__.py` to reference new façade location once ready (no behaviour changes yet).
 
 - [ ] **Phase 2 — Repository Layer Extraction**
   - For each domain (users, usergroups, connections, conngroups, permissions), move raw SQL and simple helpers into repositories.
-  - Maintain method signatures but relocate logic; ensure unit tests cover repository methods.
+  - Implement repository Protocols and concrete classes that accept `DatabaseSession`.
+  - Migrate resolver methods (`resolve_*_id`) and document return types or exceptions.
+  - Ensure repositories never commit/rollback; rely on session provided.
 
 - [ ] **Phase 3 — Service Layer Formation**
-  - Build services that wrap repositories and implement business rules (validation, composite operations, transaction coordination).
-  - Wire logging, credential scrubbing, and error translation within services.
+  - Build services wrapping repositories, implementing business rules, validation, and multi-repository coordination.
+  - Enforce transaction boundaries (begin/commit/rollback) within services.
+  - Wire logging (service-level), credential scrubbing, and error translation into the new services.
+  - Maintain backwards-compatible outputs/messages.
 
 - [ ] **Phase 4 — Façade Refactoring**
-  - Rewrite `GuacamoleDB` as a façade that composes services.
-  - Ensure all public methods simply delegate to service counterparts.
+  - Rewrite `GuacamoleDB` as a façade that composes services via constructor injection.
+  - Ensure façade tracks debug flag, bridges `debug_print`, and preserves CLI-facing behaviour.
+  - Introduce wiring/builder to assemble repositories, services, and sessions for CLI/library clients.
   - Keep compatibility tests green; update CLI if necessary for dependency injection improvements.
 
 - [ ] **Phase 5 — Testing & Documentation**
-  - Create targeted unit tests for repositories and services.
-  - Run full integration tests (`make tests` / `bats` suites).
-  - Update documentation (README, CHANGELOG) detailing new architecture and future migration guidance.
-  - Optionally publish migration tips for downstream users wanting to adopt services directly.
+  - Create targeted unit tests for repositories (SQL correctness) and services (business rules, transactions).
+  - Use mocks/fakes to isolate layers; document testing strategy in README/TODO as needed.
+  - Run full integration tests (`make tests` / `bats` suites) to verify no regressions.
+  - Update documentation (README, CHANGELOG) detailing new architecture, testing approach, and migration guidance.
+  - Capture lessons and adjustments in a follow-up plan if error-code standardization or other enhancements are pursued.
 
 - [ ] **Phase 6 — Optional Enhancements**
-  - Evaluate introducing dependency injection for session factories (e.g., to support async/backends).
+  - Evaluate introducing dependency injection container or factories to simplify configuration.
   - Consider deprecating direct façade usage if consumers adopt modular services.
-  - Explore caching, query optimization, and connection pooling improvements using the new structure.
+  - Explore caching, query optimization, alternative backends, or async support using the new structure.
 
 ## Success Criteria
 
 - `GuacamoleDB` façade remains functionally equivalent for CLI and existing consumers.
-- Each domain’s logic resides in its own repository/service with dedicated tests.
+- Each domain’s logic resides in its own repository/service with dedicated tests and documented interfaces.
 - Overall cyclomatic complexity of `guacalib/db.py` drops dramatically; file becomes thin façade.
-- Future contributors can modify domain logic without touching unrelated code.
-- Documentation reflects modular architecture and guides future maintenance.
+- Transaction management and credential scrubbing are centralized and well-documented.
+- Documentation reflects modular architecture, testing strategy, and guides future maintenance.
+```
