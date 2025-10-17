@@ -262,8 +262,8 @@ class GuacamoleDB:
         # If environment variables are not complete, fall back to config file
         config = configparser.ConfigParser()
         if not os.path.exists(config_file):
-            print(f"Error: Config file not found: {config_file}")
-            print("Please set environment variables or create a config file at ~/.guacaman.ini")
+            self.logger.error(f"Config file not found: {config_file}")
+            print("Error: Config file not found. Please set environment variables or create a config file at ~/.guacaman.ini")
             print("\nOption 1: Set environment variables:")
             print("export GUACALIB_HOST=your_mysql_host")
             print("export GUACALIB_USER=your_mysql_user")
@@ -280,12 +280,14 @@ class GuacamoleDB:
         try:
             config.read(config_file)
             if "mysql" not in config:
+                self.logger.error(f"Missing [mysql] section in config file: {config_file}")
                 print(f"Error: Missing [mysql] section in config file: {config_file}")
                 sys.exit(1)
 
             required_keys = ["host", "user", "password", "database"]
             missing_keys = [key for key in required_keys if key not in config["mysql"]]
             if missing_keys:
+                self.logger.error(f"Missing required keys in [mysql] section: {', '.join(missing_keys)} in config file: {config_file}")
                 print(
                     f"Error: Missing required keys in [mysql] section: {', '.join(missing_keys)}"
                 )
@@ -299,6 +301,7 @@ class GuacamoleDB:
                 "database": config["mysql"]["database"],
             }
         except Exception as e:
+            self.logger.error(f"Error reading config file {config_file}: {self._scrub_credentials(str(e))}")
             print(f"Error reading config file {config_file}: {str(e)}")
             sys.exit(1)
 
@@ -422,7 +425,7 @@ class GuacamoleDB:
             )
             return self.cursor.fetchone()[0] > 0
         except mysql.connector.Error as e:
-            print(f"Error checking usergroup existence: {e}")
+            self.logger.error(f"Error checking usergroup existence: {self._scrub_credentials(str(e))}")
             raise
 
     def get_usergroup_id(self, group_name: str) -> int:
@@ -462,7 +465,7 @@ class GuacamoleDB:
             else:
                 raise Exception(f"Usergroup '{group_name}' not found")
         except mysql.connector.Error as e:
-            print(f"Error getting usergroup ID: {e}")
+            self.logger.error(f"Error getting usergroup ID: {self._scrub_credentials(str(e))}")
             raise
 
     def user_exists(self, username: str) -> bool:
@@ -495,7 +498,7 @@ class GuacamoleDB:
             )
             return self.cursor.fetchone()[0] > 0
         except mysql.connector.Error as e:
-            print(f"Error checking user existence: {e}")
+            self.logger.error(f"Error checking user existence: {self._scrub_credentials(str(e))}")
             raise
 
     # Define allowed user parameters as a class attribute
@@ -596,7 +599,7 @@ class GuacamoleDB:
                 raise ValueError(f"Connection group '{group_name}' not found")
             return result[0]
         except mysql.connector.Error as e:
-            print(f"Error getting connection group ID: {e}")
+            self.logger.error(f"Error getting connection group ID: {self._scrub_credentials(str(e))}")
             raise
 
     def modify_connection_parent_group(
@@ -665,7 +668,7 @@ class GuacamoleDB:
             return True
 
         except mysql.connector.Error as e:
-            print(f"Error modifying connection parent group: {e}")
+            self.logger.error(f"Error modifying connection parent group: {self._scrub_credentials(str(e))}")
             raise
 
     def get_connection_user_permissions(self, connection_name: str) -> List[str]:
@@ -683,7 +686,7 @@ class GuacamoleDB:
             )
             return [row[0] for row in self.cursor.fetchall()]
         except mysql.connector.Error as e:
-            print(f"Error getting connection user permissions: {e}")
+            self.logger.error(f"Error getting connection user permissions: {self._scrub_credentials(str(e))}")
             raise
 
     def modify_connection(
@@ -820,7 +823,7 @@ class GuacamoleDB:
             return True
 
         except mysql.connector.Error as e:
-            print(f"Error modifying connection parameter: {e}")
+            self.logger.error(f"Error modifying connection parameter: {self._scrub_credentials(str(e))}")
             raise
 
     def change_user_password(self, username: str, new_password: str) -> bool:
@@ -963,7 +966,7 @@ class GuacamoleDB:
             return True
 
         except mysql.connector.Error as e:
-            print(f"Error modifying user parameter: {e}")
+            self.logger.error(f"Error modifying user parameter: {self._scrub_credentials(str(e))}")
             raise
 
     def delete_existing_user(self, username: str) -> None:
@@ -1108,7 +1111,7 @@ class GuacamoleDB:
             )
 
         except mysql.connector.Error as e:
-            print(f"Error deleting existing usergroup: {e}")
+            self.logger.error(f"Error deleting existing usergroup: {self._scrub_credentials(str(e))}")
             raise
 
     def delete_existing_usergroup_by_id(self, group_id: int) -> None:
@@ -1165,7 +1168,7 @@ class GuacamoleDB:
             )
 
         except mysql.connector.Error as e:
-            print(f"Error deleting existing usergroup: {e}")
+            self.logger.error(f"Error deleting existing usergroup: {self._scrub_credentials(str(e))}")
             raise
         except ValueError as e:
             print(f"Error: {e}")
@@ -1235,7 +1238,7 @@ class GuacamoleDB:
             self.debug_print(f"Successfully deleted connection '{connection_name}'")
 
         except mysql.connector.Error as e:
-            print(f"Error deleting existing connection: {e}")
+            self.logger.error(f"Error deleting existing connection: {self._scrub_credentials(str(e))}")
             raise
 
     def delete_connection_group(
@@ -1293,11 +1296,11 @@ class GuacamoleDB:
             return True
 
         except mysql.connector.Error as e:
-            print(f"Error deleting connection group: {e}")
+            self.logger.error(f"Error deleting connection group: {self._scrub_credentials(str(e))}")
             raise
 
         except mysql.connector.Error as e:
-            print(f"Error deleting existing connection: {e}")
+            self.logger.error(f"Error deleting existing connection: {self._scrub_credentials(str(e))}")
             raise
 
     def create_user(self, username: str, password: str) -> None:
@@ -1406,7 +1409,7 @@ class GuacamoleDB:
             )
 
         except mysql.connector.Error as e:
-            print(f"Error creating usergroup: {e}")
+            self.logger.error(f"Error creating usergroup: {self._scrub_credentials(str(e))}")
             raise
 
     def add_user_to_usergroup(self, username: str, group_name: str) -> None:
@@ -1619,7 +1622,7 @@ class GuacamoleDB:
             # If resolver fails with "not found", connection doesn't exist
             return False
         except mysql.connector.Error as e:
-            print(f"Error checking connection existence: {e}")
+            self.logger.error(f"Error checking connection existence: {self._scrub_credentials(str(e))}")
             raise
 
     def connection_group_exists(
@@ -1635,7 +1638,7 @@ class GuacamoleDB:
             # If resolver fails with "not found", connection group doesn't exist
             return False
         except mysql.connector.Error as e:
-            print(f"Error checking connection group existence: {e}")
+            self.logger.error(f"Error checking connection group existence: {self._scrub_credentials(str(e))}")
             raise
 
     def create_connection(
@@ -1721,7 +1724,7 @@ class GuacamoleDB:
             return connection_id
 
         except mysql.connector.Error as e:
-            print(f"Error creating VNC connection: {e}")
+            self.logger.error(f"Error creating VNC connection: {self._scrub_credentials(str(e))}")
             raise
 
     def grant_connection_permission(
@@ -1756,7 +1759,7 @@ class GuacamoleDB:
             )
 
         except mysql.connector.Error as e:
-            print(f"Error granting connection permission: {e}")
+            self.logger.error(f"Error granting connection permission: {self._scrub_credentials(str(e))}")
             raise
 
     def list_users_with_usergroups(self) -> Dict[str, List[str]]:
@@ -1880,7 +1883,7 @@ class GuacamoleDB:
             return result
 
         except mysql.connector.Error as e:
-            print(f"Error listing connections: {e}")
+            self.logger.error(f"Error listing connections: {self._scrub_credentials(str(e))}")
             raise
 
     def get_connection_by_id(self, connection_id: int) -> Optional[ConnectionInfo]:
@@ -1945,7 +1948,7 @@ class GuacamoleDB:
             )
 
         except mysql.connector.Error as e:
-            print(f"Error getting connection by ID: {e}")
+            self.logger.error(f"Error getting connection by ID: {self._scrub_credentials(str(e))}")
             raise
 
     def list_usergroups_with_users_and_connections(self):
@@ -2026,7 +2029,7 @@ class GuacamoleDB:
                 }
             return result
         except mysql.connector.Error as e:
-            print(f"Error listing groups with users and connections: {e}")
+            self.logger.error(f"Error listing groups with users and connections: {self._scrub_credentials(str(e))}")
             raise
 
     def _check_connection_group_cycle(self, group_id: int, parent_id: Optional[int]) -> bool:
@@ -2154,7 +2157,7 @@ class GuacamoleDB:
             return True
 
         except mysql.connector.Error as e:
-            print(f"Error creating connection group: {e}")
+            self.logger.error(f"Error creating connection group: {self._scrub_credentials(str(e))}")
             raise
 
     def grant_connection_permission_to_user(
@@ -2214,7 +2217,7 @@ class GuacamoleDB:
             return True
 
         except mysql.connector.Error as e:
-            print(f"Error granting connection permission: {e}")
+            self.logger.error(f"Error granting connection permission: {self._scrub_credentials(str(e))}")
             raise
 
     def revoke_connection_permission_from_user(
@@ -2273,7 +2276,7 @@ class GuacamoleDB:
             return True
 
         except mysql.connector.Error as e:
-            print(f"Error revoking connection permission: {e}")
+            self.logger.error(f"Error revoking connection permission: {self._scrub_credentials(str(e))}")
             raise
 
     def modify_connection_group_parent(
@@ -2332,7 +2335,7 @@ class GuacamoleDB:
             return True
 
         except mysql.connector.Error as e:
-            print(f"Error modifying connection group parent: {e}")
+            self.logger.error(f"Error modifying connection group parent: {self._scrub_credentials(str(e))}")
             raise
 
     def list_connection_groups(self) -> Dict[str, Dict[str, Union[int, List[str]]]]:
@@ -2369,7 +2372,7 @@ class GuacamoleDB:
                 }
             return groups
         except mysql.connector.Error as e:
-            print(f"Error listing groups: {e}")
+            self.logger.error(f"Error listing groups: {self._scrub_credentials(str(e))}")
             raise
 
     def get_connection_group_by_id(
@@ -2412,7 +2415,7 @@ class GuacamoleDB:
                 }
             }
         except mysql.connector.Error as e:
-            print(f"Error getting connection group by ID: {e}")
+            self.logger.error(f"Error getting connection group by ID: {self._scrub_credentials(str(e))}")
             raise
 
     def get_connection_name_by_id(self, connection_id: int) -> Optional[str]:
@@ -2429,7 +2432,7 @@ class GuacamoleDB:
             result = self.cursor.fetchone()
             return result[0] if result else None
         except mysql.connector.Error as e:
-            print(f"Error getting connection name by ID: {e}")
+            self.logger.error(f"Error getting connection name by ID: {self._scrub_credentials(str(e))}")
             raise
 
     def get_connection_group_name_by_id(self, group_id: int) -> Optional[str]:
@@ -2446,7 +2449,7 @@ class GuacamoleDB:
             result = self.cursor.fetchone()
             return result[0] if result else None
         except mysql.connector.Error as e:
-            print(f"Error getting connection group name by ID: {e}")
+            self.logger.error(f"Error getting connection group name by ID: {self._scrub_credentials(str(e))}")
             raise
 
     def validate_positive_id(
@@ -2829,7 +2832,7 @@ class GuacamoleDB:
             print("[DEBUG] End of debug info")
 
         except mysql.connector.Error as e:
-            print(f"[DEBUG] Error debugging permissions: {e}")
+            self.logger.debug(f"Error debugging permissions: {self._scrub_credentials(str(e))}")
 
     def grant_connection_group_permission_to_user(
         self, username: str, conngroup_name: str
