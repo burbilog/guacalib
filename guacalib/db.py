@@ -2,6 +2,7 @@
 
 import mysql.connector
 import configparser
+import logging
 import sys
 import hashlib
 import os
@@ -894,8 +895,7 @@ class GuacamoleDB:
             return True
 
         except mysql.connector.Error as e:
-            self.logger.error(f"Error changing password: {e}")
-            print(f"Error changing password: {e}")
+            self.logger.error(f"Error changing password: {self._scrub_credentials(str(e))}")
             raise
 
     def modify_user(
@@ -1464,8 +1464,7 @@ class GuacamoleDB:
             )
 
         except mysql.connector.Error as e:
-            self.logger.error(f"Error adding user to usergroup: {e}")
-            print(f"Error adding user to usergroup: {e}")
+            self.logger.error(f"Error adding user to usergroup: {self._scrub_credentials(str(e))}")
             raise
 
     def remove_user_from_usergroup(self, username: str, group_name: str) -> None:
@@ -1519,8 +1518,7 @@ class GuacamoleDB:
             )
 
         except mysql.connector.Error as e:
-            self.logger.error(f"Error removing user from group: {e}")
-            print(f"Error removing user from group: {e}")
+            self.logger.error(f"Error removing user from group: {self._scrub_credentials(str(e))}")
             raise
 
     def get_connection_group_id(self, group_path: str) -> int:
@@ -1587,8 +1585,7 @@ class GuacamoleDB:
             return parent_group_id
 
         except mysql.connector.Error as e:
-            self.logger.error(f"Error resolving group path: {e}")
-            print(f"Error resolving group path: {e}")
+            self.logger.error(f"Error resolving group path: {self._scrub_credentials(str(e))}")
             raise
 
     def connection_exists(
@@ -2774,7 +2771,7 @@ class GuacamoleDB:
             [DEBUG] End of debug info
         """
         try:
-            print(f"\n[DEBUG] Checking permissions for connection '{connection_name}'")
+            self.logger.debug(f"Checking permissions for connection '{connection_name}'")
 
             # Get connection ID
             self.cursor.execute(
@@ -2786,10 +2783,10 @@ class GuacamoleDB:
             )
             result = self.cursor.fetchone()
             if not result:
-                print(f"[DEBUG] Connection '{connection_name}' not found")
+                self.logger.debug(f"Connection '{connection_name}' not found")
                 return
             connection_id = result[0]
-            print(f"[DEBUG] Connection ID: {connection_id}")
+            self.logger.debug(f"Connection ID: {connection_id}")
 
             # Check all permissions
             self.cursor.execute(
@@ -2804,15 +2801,15 @@ class GuacamoleDB:
 
             permissions = self.cursor.fetchall()
             if not permissions:
-                print(
-                    f"[DEBUG] No permissions found for connection '{connection_name}'"
+                self.logger.debug(
+                    f"No permissions found for connection '{connection_name}'"
                 )
             else:
-                print(f"[DEBUG] Found {len(permissions)} permissions:")
+                self.logger.debug(f"Found {len(permissions)} permissions:")
                 for perm in permissions:
                     entity_id, name, entity_type, permission = perm
-                    print(
-                        f"[DEBUG]   Entity ID: {entity_id}, Name: {name}, Type: {entity_type}, Permission: {permission}"
+                    self.logger.debug(
+                        f"  Entity ID: {entity_id}, Name: {name}, Type: {entity_type}, Permission: {permission}"
                     )
 
             # Specifically check user permissions
@@ -2828,15 +2825,15 @@ class GuacamoleDB:
 
             user_permissions = self.cursor.fetchall()
             if not user_permissions:
-                print(
-                    f"[DEBUG] No user permissions found for connection '{connection_name}'"
+                self.logger.debug(
+                    f"No user permissions found for connection '{connection_name}'"
                 )
             else:
-                print(f"[DEBUG] Found {len(user_permissions)} user permissions:")
+                self.logger.debug(f"Found {len(user_permissions)} user permissions:")
                 for perm in user_permissions:
-                    print(f"[DEBUG]   User: {perm[0]}")
+                    self.logger.debug(f"  User: {perm[0]}")
 
-            print("[DEBUG] End of debug info")
+            self.logger.debug("End of debug info")
 
         except mysql.connector.Error as e:
             self.logger.debug(f"Error debugging permissions: {self._scrub_credentials(str(e))}")
@@ -2957,7 +2954,7 @@ class GuacamoleDB:
             return True
         except mysql.connector.Error as e:
             error_msg = f"Database error granting connection group permission for user '{username}' on group '{conngroup_name}': {e}"
-            self.debug_print(error_msg)
+            self.logger.error(self._scrub_credentials(error_msg))
             raise ValueError(error_msg) from e
 
     def revoke_connection_group_permission_from_user(
@@ -3044,7 +3041,7 @@ class GuacamoleDB:
             return True
         except mysql.connector.Error as e:
             error_msg = f"Database error revoking connection group permission for user '{username}' on group '{conngroup_name}': {e}"
-            self.debug_print(error_msg)
+            self.logger.error(self._scrub_credentials(error_msg))
             raise ValueError(error_msg) from e
 
     def _atomic_permission_operation(
@@ -3055,7 +3052,7 @@ class GuacamoleDB:
             return operation_func(*args, **kwargs)
         except mysql.connector.Error as e:
             error_msg = f"Database error during permission operation: {e}"
-            self.debug_print(error_msg)
+            self.logger.error(self._scrub_credentials(error_msg))
             raise ValueError(error_msg) from e
 
     def grant_connection_group_permission_to_user_by_id(
@@ -3178,7 +3175,7 @@ class GuacamoleDB:
             return True
         except mysql.connector.Error as e:
             error_msg = f"Database error granting connection group permission for user '{username}' on group ID '{conngroup_id}': {e}"
-            self.debug_print(error_msg)
+            self.logger.error(self._scrub_credentials(error_msg))
             raise ValueError(error_msg) from e
 
     def revoke_connection_group_permission_from_user_by_id(
@@ -3269,5 +3266,5 @@ class GuacamoleDB:
             return True
         except mysql.connector.Error as e:
             error_msg = f"Database error revoking connection group permission for user '{username}' on group ID '{conngroup_id}': {e}"
-            self.debug_print(error_msg)
+            self.logger.error(self._scrub_credentials(error_msg))
             raise ValueError(error_msg) from e
