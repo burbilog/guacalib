@@ -8,7 +8,6 @@ to support both library usage and CLI invocation scenarios.
 import logging
 import os
 import sys
-from typing import Optional
 
 
 def setup_logging(debug: bool = False, force_reconfigure: bool = False) -> None:

@@ -97,22 +97,54 @@ class GuacamoleDB:
     def _scrub_credentials(self, message: str) -> str:
         """Scrub sensitive credentials from log messages.
 
+        This function removes sensitive information like passwords, tokens,
+        and other credentials from log messages to prevent accidental exposure
+        in logs. It replaces sensitive values with [REDACTED] placeholders.
+
         Args:
-            message: The original message that may contain credentials.
+            message: The original message that may contain sensitive credentials.
 
         Returns:
             The message with sensitive values replaced with [REDACTED].
+
+        Note:
+            This function handles common credential patterns but may not catch
+            all possible formats. Review log output to ensure no credentials
+            are accidentally exposed.
+
+        Example:
+            >>> scrubbed = self._scrub_credentials("password=secret123")
+            >>> print(scrubbed)
+            password=[REDACTED]
         """
         import re
 
-        # List of sensitive parameter names to scrub
+        # Enhanced list of sensitive parameter names to scrub
         sensitive_patterns = [
+            # Basic password patterns
             (r'password["\']?\s*[:=]\s*["\']?([^"\'\s,}]+)', 'password=[REDACTED]'),
+            (r'passwd["\']?\s*[:=]\s*["\']?([^"\'\s,}]+)', 'passwd=[REDACTED]'),
+            (r'pwd["\']?\s*[:=]\s*["\']?([^"\'\s,}]+)', 'pwd=[REDACTED]'),
+
+            # Authentication secrets
             (r'salt["\']?\s*[:=]\s*["\']?([^"\'\s,}]+)', 'salt=[REDACTED]'),
             (r'secret["\']?\s*[:=]\s*["\']?([^"\'\s,}]+)', 'secret=[REDACTED]'),
             (r'token["\']?\s*[:=]\s*["\']?([^"\'\s,}]+)', 'token=[REDACTED]'),
             (r'api_key["\']?\s*[:=]\s*["\']?([^"\'\s,}]+)', 'api_key=[REDACTED]'),
-            (r'passwd["\']?\s*[:=]\s*["\']?([^"\'\s,}]+)', 'passwd=[REDACTED]'),
+            (r'apikey["\']?\s*[:=]\s*["\']?([^"\'\s,}]+)', 'apikey=[REDACTED]'),
+            (r'access_key["\']?\s*[:=]\s*["\']?([^"\'\s,}]+)', 'access_key=[REDACTED]'),
+            (r'secret_key["\']?\s*[:=]\s*["\']?([^"\'\s,}]+)', 'secret_key=[REDACTED]'),
+
+            # Database connection patterns
+            (r'database["\']?\s*[:=]\s*["\']?([^"\'\s,}]+@[^\s\'"]+)', 'database=user@[REDACTED]'),
+            (r'mysql://[^@]+@', 'mysql://[REDACTED]@'),
+            (r'mysql\+://[^@]+@', 'mysql+://[REDACTED]@'),
+
+            # Common authentication field names
+            (r'auth["\']?\s*[:=]\s*["\']?([^"\'\s,}]+)', 'auth=[REDACTED]'),
+            (r'private_key["\']?\s*[:=]\s*["\']?([^"\'\s,}]+)', 'private_key=[REDACTED]'),
+            (r'credential["\']?\s*[:=]\s*["\']?([^"\'\s,}]+)', 'credential=[REDACTED]'),
+            (r'credentials["\']?\s*[:=]\s*["\']?([^"\'\s,}]+)', 'credentials=[REDACTED]'),
         ]
 
         scrubbed = message
@@ -122,15 +154,26 @@ class GuacamoleDB:
         return scrubbed
 
     def debug_print(self, *args: Any, **kwargs: Any) -> None:
-        """Print debug messages if debug mode is enabled.
+        """Print debug messages if debug mode is enabled with credential scrubbing.
 
-        This method maintains backward compatibility by using the original print
-        approach when logging is not configured, and delegating to logging when
-        it is available. All messages are scrubbed for credentials.
+        This method provides backward compatibility by using logging when configured
+        and falling back to print statements when logging is not available. All
+        messages are scrubbed for sensitive credentials before output.
 
         Args:
-            *args: Arguments to pass to print function or logger.
+            *args: Arguments to pass to print function or logger. All arguments
+                  will be converted to strings and scrubbed for credentials.
             **kwargs: Keyword arguments to pass to print function or logger.
+
+        Note:
+            This method automatically scrubs all arguments for sensitive
+            credentials before output to prevent accidental exposure in logs
+            or debug output. It maintains the original debug functionality
+            while enhancing security.
+
+        Example:
+            >>> self.debug_print("Connecting with password=secret123")
+            [DEBUG] Connecting with password=[REDACTED]
         """
         if self.debug:
             # Convert all arguments to strings and scrub credentials
