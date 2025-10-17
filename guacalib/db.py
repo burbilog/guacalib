@@ -142,15 +142,11 @@ class GuacamoleDB:
                     scrubbed_args.append(self._scrub_credentials(str(arg)))
 
             # Try to use logging if it's configured, otherwise fall back to print
-            try:
-                # Check if logging has been configured by checking if the logger has handlers
-                if hasattr(self.logger, 'handlers') and self.logger.handlers:
-                    self.logger.debug(" ".join(scrubbed_args), **kwargs)
-                else:
-                    # Fallback to original print behavior
-                    print("[DEBUG]", *scrubbed_args, **kwargs)
-            except Exception:
-                # If anything goes wrong with logging, fall back to print
+            # Check if logging has been configured by checking if the logger has handlers
+            if hasattr(self.logger, 'handlers') and self.logger.handlers:
+                self.logger.debug(" ".join(scrubbed_args), **kwargs)
+            else:
+                # Fallback to original print behavior
                 print("[DEBUG]", *scrubbed_args, **kwargs)
 
     def __enter__(self) -> "GuacamoleDB":
@@ -262,7 +258,8 @@ class GuacamoleDB:
         # If environment variables are not complete, fall back to config file
         config = configparser.ConfigParser()
         if not os.path.exists(config_file):
-            self.logger.error(f"Config file not found: {config_file}")
+            logger = logging.getLogger('guacalib.db')
+            logger.error(f"Config file not found: {config_file}")
             print("Error: Config file not found. Please set environment variables or create a config file at ~/.guacaman.ini")
             print("\nOption 1: Set environment variables:")
             print("export GUACALIB_HOST=your_mysql_host")
@@ -280,14 +277,16 @@ class GuacamoleDB:
         try:
             config.read(config_file)
             if "mysql" not in config:
-                self.logger.error(f"Missing [mysql] section in config file: {config_file}")
+                logger = logging.getLogger('guacalib.db')
+                logger.error(f"Missing [mysql] section in config file: {config_file}")
                 print(f"Error: Missing [mysql] section in config file: {config_file}")
                 sys.exit(1)
 
             required_keys = ["host", "user", "password", "database"]
             missing_keys = [key for key in required_keys if key not in config["mysql"]]
             if missing_keys:
-                self.logger.error(f"Missing required keys in [mysql] section: {', '.join(missing_keys)} in config file: {config_file}")
+                logger = logging.getLogger('guacalib.db')
+                logger.error(f"Missing required keys in [mysql] section: {', '.join(missing_keys)} in config file: {config_file}")
                 print(
                     f"Error: Missing required keys in [mysql] section: {', '.join(missing_keys)}"
                 )
@@ -301,7 +300,10 @@ class GuacamoleDB:
                 "database": config["mysql"]["database"],
             }
         except Exception as e:
-            self.logger.error(f"Error reading config file {config_file}: {self._scrub_credentials(str(e))}")
+            logger = logging.getLogger('guacalib.db')
+            # Simple credential scrubbing for static method
+            scrubbed_error = str(e).replace('password=', 'password=[REDACTED]')
+            logger.error(f"Error reading config file {config_file}: {scrubbed_error}")
             print(f"Error reading config file {config_file}: {str(e)}")
             sys.exit(1)
 
@@ -892,6 +894,7 @@ class GuacamoleDB:
             return True
 
         except mysql.connector.Error as e:
+            self.logger.error(f"Error changing password: {e}")
             print(f"Error changing password: {e}")
             raise
 
@@ -1171,6 +1174,7 @@ class GuacamoleDB:
             self.logger.error(f"Error deleting existing usergroup: {self._scrub_credentials(str(e))}")
             raise
         except ValueError as e:
+            self.logger.error(f"Error: {e}")
             print(f"Error: {e}")
             raise
 
@@ -1460,6 +1464,7 @@ class GuacamoleDB:
             )
 
         except mysql.connector.Error as e:
+            self.logger.error(f"Error adding user to usergroup: {e}")
             print(f"Error adding user to usergroup: {e}")
             raise
 
@@ -1514,6 +1519,7 @@ class GuacamoleDB:
             )
 
         except mysql.connector.Error as e:
+            self.logger.error(f"Error removing user from group: {e}")
             print(f"Error removing user from group: {e}")
             raise
 
@@ -1581,6 +1587,7 @@ class GuacamoleDB:
             return parent_group_id
 
         except mysql.connector.Error as e:
+            self.logger.error(f"Error resolving group path: {e}")
             print(f"Error resolving group path: {e}")
             raise
 

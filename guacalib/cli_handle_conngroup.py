@@ -3,6 +3,7 @@ import mysql.connector
 from typing import Any
 
 from guacalib.db import GuacamoleDB
+from guacalib.logging_config import get_logger
 
 
 def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
@@ -34,46 +35,57 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
                  * User permissions (--permit, --deny)
                  * Supports both name and ID-based identification
     """
+    logger = get_logger('cli_handle_conngroup')
     if args.conngroup_command == "new":
         try:
             # Check if group already exists
+            logger.debug(f"Creating new connection group: {args.name}")
             groups = guacdb.list_connection_groups()
             if args.name in groups:
+                logger.error(f"Connection group '{args.name}' already exists")
                 print(f"Error: Connection group '{args.name}' already exists")
                 sys.exit(1)
 
             guacdb.create_connection_group(args.name, args.parent)
             # Explicitly commit the transaction
             guacdb.conn.commit()
+            logger.info(f"Successfully created connection group: {args.name}")
             print(f"Successfully created connection group: {args.name}")
             sys.exit(0)
         except Exception as e:
             # Rollback on error
+            logger.error(f"Error creating connection group: {e}")
             guacdb.conn.rollback()
             print(f"Error creating connection group: {e}")
             sys.exit(1)
 
     elif args.conngroup_command == "list":
+        logger.debug("Listing connection groups")
         # Validate --id if provided
         if hasattr(args, "id") and args.id is not None:
             if args.id <= 0:
+                logger.error("Connection group ID must be a positive integer greater than 0")
                 print(
                     "Error: Connection group ID must be a positive integer greater than 0"
                 )
                 sys.exit(1)
             # Get specific connection group by ID
+            logger.debug(f"Getting connection group by ID: {args.id}")
             groups_result = guacdb.get_connection_group_by_id(args.id)
             if groups_result is None:
+                logger.warning(f"Connection group with ID {args.id} not found")
                 print(f"Connection group with ID {args.id} not found")
                 sys.exit(1)
         else:
             # Get all connection groups
+            logger.debug("Getting all connection groups")
             groups = guacdb.list_connection_groups()
 
         # Use the appropriate groups variable
         if hasattr(args, "id") and args.id is not None:
             groups = groups_result  # type: ignore  # We know it's not None here
 
+        logger.info(f"Retrieved {len(groups)} connection groups")
         print("conngroups:")
         for group_name, data in groups.items():
             print(f"  {group_name}:")
@@ -97,26 +109,34 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
             # Rely on database layer validation via resolvers
             if hasattr(args, "id") and args.id is not None:
                 # Check if connection group exists by ID using resolver
+                logger.debug(f"Checking if connection group exists by ID: {args.id}")
                 if guacdb.connection_group_exists(group_id=args.id):
+                    logger.info(f"Connection group with ID '{args.id}' exists")
                     guacdb.debug_print(f"Connection group with ID '{args.id}' exists")
                     sys.exit(0)
                 else:
+                    logger.info(f"Connection group with ID '{args.id}' does not exist")
                     guacdb.debug_print(
                         f"Connection group with ID '{args.id}' does not exist"
                     )
                     sys.exit(1)
             else:
                 # Use name-based lookup
+                logger.debug(f"Checking if connection group exists: {args.name}")
                 if guacdb.connection_group_exists(group_name=args.name):
+                    logger.info(f"Connection group '{args.name}' exists")
                     guacdb.debug_print(f"Connection group '{args.name}' exists")
                     sys.exit(0)
                 else:
+                    logger.info(f"Connection group '{args.name}' does not exist")
                     guacdb.debug_print(f"Connection group '{args.name}' does not exist")
                     sys.exit(1)
         except ValueError as e:
+            logger.error(f"Error checking connection group existence: {e}")
             print(f"Error: {e}")
             sys.exit(1)
         except Exception as e:
+            logger.error(f"Error checking connection group existence: {e}")
             print(f"Error checking connection group existence: {e}")
             sys.exit(1)
 
@@ -126,17 +146,23 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
             if hasattr(args, "id") and args.id is not None:
                 # Delete by ID using resolver
                 group_name_display = guacdb.get_connection_group_name_by_id(args.id)
+                logger.debug(f"Deleting connection group '{group_name_display}' by ID: {args.id}")
                 guacdb.delete_connection_group(group_id=args.id)
+                logger.info(f"Successfully deleted connection group '{group_name_display}'")
                 print(f"Successfully deleted connection group '{group_name_display}'")
             else:
                 # Delete by name using resolver
+                logger.debug(f"Deleting connection group: {args.name}")
                 guacdb.delete_connection_group(group_name=args.name)
+                logger.info(f"Successfully deleted connection group '{args.name}'")
                 print(f"Successfully deleted connection group '{args.name}'")
             sys.exit(0)
         except ValueError as e:
+            logger.error(f"Error deleting connection group: {e}")
             print(f"Error: {e}")
             sys.exit(1)
         except Exception as e:
+            logger.error(f"Error deleting connection group: {e}")
             print(f"Error deleting connection group: {e}")
             sys.exit(1)
 
@@ -202,6 +228,7 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
 
             # Handle parent modification
             if args.parent is not None:
+                logger.debug(f"Setting parent connection group: {args.parent}")
                 guacdb.debug_print(f"Setting parent connection group: {args.parent}")
                 if hasattr(args, "id") and args.id is not None:
                     guacdb.modify_connection_group_parent(
@@ -212,6 +239,7 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
                         group_name=args.name, new_parent_name=args.parent
                     )
                 guacdb.conn.commit()  # Explicitly commit the transaction
+                logger.info(f"Successfully set parent group for '{group_name}' to '{args.parent}'")
                 print(
                     f"Successfully set parent group for '{group_name}' to '{args.parent}'"
                 )
@@ -220,29 +248,35 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
             connection_modified = False
 
             if hasattr(args, "addconn_by_name") and args.addconn_by_name is not None:
+                logger.debug(f"Adding connection by name: {args.addconn_by_name}")
                 guacdb.debug_print(f"Adding connection by name: {args.addconn_by_name}")
                 guacdb.modify_connection_parent_group(
                     connection_name=args.addconn_by_name, group_name=group_name
                 )
                 connection_modified = True
+                logger.info(f"Added connection '{args.addconn_by_name}' to group '{group_name}'")
                 print(
                     f"Added connection '{args.addconn_by_name}' to group '{group_name}'"
                 )
 
             elif hasattr(args, "addconn_by_id") and args.addconn_by_id is not None:
+                logger.debug(f"Adding connection by ID: {args.addconn_by_id}")
                 guacdb.debug_print(f"Adding connection by ID: {args.addconn_by_id}")
                 # Get connection name for display
                 conn_name = guacdb.get_connection_name_by_id(args.addconn_by_id)
                 if not conn_name:
+                    logger.error(f"Connection with ID {args.addconn_by_id} not found")
                     print(f"Error: Connection with ID {args.addconn_by_id} not found")
                     sys.exit(1)
                 guacdb.modify_connection_parent_group(
                     connection_id=args.addconn_by_id, group_name=group_name
                 )
                 connection_modified = True
+                logger.info(f"Added connection '{conn_name}' to group '{group_name}'")
                 print(f"Added connection '{conn_name}' to group '{group_name}'")
 
             elif hasattr(args, "rmconn_by_name") and args.rmconn_by_name is not None:
+                logger.debug(f"Removing connection by name: {args.rmconn_by_name}")
                 guacdb.debug_print(
                     f"Removing connection by name: {args.rmconn_by_name}"
                 )
@@ -250,21 +284,25 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
                     connection_name=args.rmconn_by_name, group_name=None
                 )
                 connection_modified = True
+                logger.info(f"Removed connection '{args.rmconn_by_name}' from group '{group_name}'")
                 print(
                     f"Removed connection '{args.rmconn_by_name}' from group '{group_name}'"
                 )
 
             elif hasattr(args, "rmconn_by_id") and args.rmconn_by_id is not None:
+                logger.debug(f"Removing connection by ID: {args.rmconn_by_id}")
                 guacdb.debug_print(f"Removing connection by ID: {args.rmconn_by_id}")
                 # Get connection name for display
                 conn_name = guacdb.get_connection_name_by_id(args.rmconn_by_id)
                 if not conn_name:
+                    logger.error(f"Connection with ID {args.rmconn_by_id} not found")
                     print(f"Error: Connection with ID {args.rmconn_by_id} not found")
                     sys.exit(1)
                 guacdb.modify_connection_parent_group(
                     connection_id=args.rmconn_by_id, group_name=None
                 )
                 connection_modified = True
+                logger.info(f"Removed connection '{conn_name}' from group '{group_name}'")
                 print(f"Removed connection '{conn_name}' from group '{group_name}'")
 
             # Handle permission grant/revoke
@@ -278,12 +316,14 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
                     print("Error: Username must be a non-empty string")
                     sys.exit(1)
 
+                logger.debug(f"Granting permission to user: {username}")
                 guacdb.debug_print(f"Granting permission to user: {username}")
                 try:
                     if hasattr(args, "id") and args.id is not None:
                         guacdb.grant_connection_group_permission_to_user_by_id(
                             username, args.id
                         )
+                        logger.info(f"Successfully granted permission to user '{username}' for connection group ID '{args.id}'")
                         print(
                             f"Successfully granted permission to user '{username}' for connection group ID '{args.id}'"
                         )
@@ -291,6 +331,7 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
                         guacdb.grant_connection_group_permission_to_user(
                             username, args.name
                         )
+                        logger.info(f"Successfully granted permission to user '{username}' for connection group '{group_name}'")
                         print(
                             f"Successfully granted permission to user '{username}' for connection group '{group_name}'"
                         )
@@ -330,12 +371,14 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
                     print("Error: Username must be a non-empty string")
                     sys.exit(1)
 
+                logger.debug(f"Revoking permission from user: {username}")
                 guacdb.debug_print(f"Revoking permission from user: {username}")
                 try:
                     if hasattr(args, "id") and args.id is not None:
                         guacdb.revoke_connection_group_permission_from_user_by_id(
                             username, args.id
                         )
+                        logger.info(f"Successfully revoked permission from user '{username}' for connection group ID '{args.id}'")
                         print(
                             f"Successfully revoked permission from user '{username}' for connection group ID '{args.id}'"
                         )
@@ -343,6 +386,7 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
                         guacdb.revoke_connection_group_permission_from_user(
                             username, args.name
                         )
+                        logger.info(f"Successfully revoked permission from user '{username}' for connection group '{group_name}'")
                         print(
                             f"Successfully revoked permission from user '{username}' for connection group '{group_name}'"
                         )

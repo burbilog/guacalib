@@ -2,6 +2,7 @@ import sys
 from typing import Any
 
 from guacalib.db import GuacamoleDB
+from guacalib.logging_config import get_logger
 
 
 def handle_usergroup_command(args: Any, guacdb: GuacamoleDB) -> None:
@@ -28,16 +29,21 @@ def handle_usergroup_command(args: Any, guacdb: GuacamoleDB) -> None:
         - modify: Modify group membership (requires exactly one of --name or --id,
                   optional --adduser and --rmuser)
     """
+    logger = get_logger('cli_handle_usergroup')
     if args.usergroup_command == "new":
         if guacdb.usergroup_exists(args.name):
+            logger.error(f"Group '{args.name}' already exists")
             print(f"Error: Group '{args.name}' already exists")
             sys.exit(1)
 
         guacdb.create_usergroup(args.name)
+        logger.info(f"Successfully created group '{args.name}'")
         guacdb.debug_print(f"Successfully created group '{args.name}'")
 
     elif args.usergroup_command == "list":
+        logger.debug("Listing user groups with users and connections")
         groups_data = guacdb.list_usergroups_with_users_and_connections()
+        logger.info(f"Retrieved {len(groups_data)} user groups")
         print("usergroups:")
         for group, data in groups_data.items():
             print(f"  {group}:")
@@ -58,16 +64,21 @@ def handle_usergroup_command(args: Any, guacdb: GuacamoleDB) -> None:
         if hasattr(args, "id") and args.id is not None:
             # Delete by ID using resolver
             group_name = guacdb.get_usergroup_name_by_id(args.id)
+            logger.debug(f"Deleting user group '{group_name}' by ID: {args.id}")
             guacdb.delete_existing_usergroup_by_id(args.id)
+            logger.info(f"Successfully deleted user group '{group_name}' (ID: {args.id})")
             guacdb.debug_print(
                 f"Successfully deleted user group '{group_name}' (ID: {args.id})"
             )
         else:
             # Delete by name (original behavior)
             if not guacdb.usergroup_exists(args.name):
+                logger.error(f"Group '{args.name}' does not exist")
                 print(f"Error: Group '{args.name}' does not exist")
                 sys.exit(1)
+            logger.debug(f"Deleting user group '{args.name}'")
             guacdb.delete_existing_usergroup(args.name)
+            logger.info(f"Successfully deleted user group '{args.name}'")
             guacdb.debug_print(f"Successfully deleted user group '{args.name}'")
 
     elif args.usergroup_command == "exists":
@@ -78,15 +89,21 @@ def handle_usergroup_command(args: Any, guacdb: GuacamoleDB) -> None:
 
         if hasattr(args, "id") and args.id is not None:
             # Check existence by ID using resolver
+            logger.debug(f"Checking if user group exists by ID: {args.id}")
             if guacdb.usergroup_exists_by_id(args.id):
+                logger.info(f"User group exists: ID {args.id}")
                 sys.exit(0)
             else:
+                logger.info(f"User group does not exist: ID {args.id}")
                 sys.exit(1)
         else:
             # Check existence by name (original behavior)
+            logger.debug(f"Checking if user group exists: {args.name}")
             if guacdb.usergroup_exists(args.name):
+                logger.info(f"User group exists: {args.name}")
                 sys.exit(0)
             else:
+                logger.info(f"User group does not exist: {args.name}")
                 sys.exit(1)
 
     elif args.usergroup_command == "modify":
@@ -102,6 +119,7 @@ def handle_usergroup_command(args: Any, guacdb: GuacamoleDB) -> None:
         else:
             # Modify by name (original behavior)
             if not guacdb.usergroup_exists(args.name):
+                logger.error(f"Group '{args.name}' does not exist")
                 print(f"Error: Group '{args.name}' does not exist")
                 sys.exit(1)
             group_name = args.name
@@ -109,14 +127,20 @@ def handle_usergroup_command(args: Any, guacdb: GuacamoleDB) -> None:
 
         if args.adduser:
             if not guacdb.user_exists(args.adduser):
+                logger.error(f"User '{args.adduser}' does not exist")
                 print(f"Error: User '{args.adduser}' does not exist")
                 sys.exit(1)
+            logger.debug(f"Adding user '{args.adduser}' to usergroup '{group_name}'")
             guacdb.add_user_to_usergroup(args.adduser, group_name)
+            logger.info(f"Successfully added user '{args.adduser}' to usergroup '{group_name}'")
             print(f"Successfully added user '{args.adduser}' to usergroup '{group_name}'")
 
         if args.rmuser:
             if not guacdb.user_exists(args.rmuser):
+                logger.error(f"User '{args.rmuser}' does not exist")
                 print(f"Error: User '{args.rmuser}' does not exist")
                 sys.exit(1)
+            logger.debug(f"Removing user '{args.rmuser}' from usergroup '{group_name}'")
             guacdb.remove_user_from_usergroup(args.rmuser, group_name)
+            logger.info(f"Successfully removed user '{args.rmuser}' from usergroup '{group_name}'")
             print(f"Successfully removed user '{args.rmuser}' from usergroup '{group_name}'")
