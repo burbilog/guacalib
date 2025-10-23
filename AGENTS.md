@@ -60,3 +60,7 @@ make tests
 ## Project specific details
 
 Details are in CLAUDE.md file.
+
+## Designing plans
+
+If ever asked about creating or modifying a plan, strictly follow PLAN.md guidelines.

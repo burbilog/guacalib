@@ -138,6 +138,8 @@ File permissions must be 0600 (owner read/write only) for security.
 - Resolution of naming ambiguity in hierarchical structures
 
 ### Planned Improvements
+
+- If ever asked about creating or modifying a plan, strictly follow PLAN.md guidelines.
 - GuacamoleDB initialization without configuration file
 - More granular permission management for users and groups
 - Custom connection parameters for different protocols
@@ -150,3 +152,4 @@ File permissions must be 0600 (owner read/write only) for security.
 - Password hashing before database storage
 - Input validation on all user-provided data
 - No hardcoded sensitive information in source code
+
