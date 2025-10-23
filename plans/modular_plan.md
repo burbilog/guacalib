@@ -1,202 +1,645 @@
-# Simplified Modular Refactoring Plan for `GuacamoleDB`
+# Incremental Refactoring Plan for `GuacamoleDB`
 
-> **Status**: ✅ **READY FOR EXECUTION** (Revision 3 - Simplified)
-> **Last Updated**: 2025-10-23
-> **Approach**: Practical domain-based split, not enterprise architecture
+> **Status**: ✅ **READY FOR EXECUTION** (Revision 5 - Repository Pattern Committed)
+> **Last Updated**: 2025-10-24
+> **Approach**: Evidence-driven, incremental repository extraction following YAGNI and KISS principles
 
 ## Executive Summary
 
-This plan refactors the monolithic 3313-line `guacalib/db.py` into a simpler modular architecture with domain-based modules - while maintaining **100% backwards compatibility** for all 14 bats tests and 5 CLI handlers (1442 lines).
+This plan addresses **documented code quality issues** in the 3313-line `guacalib/db.py` through incremental, evidence-based refactoring - while maintaining **100% backwards compatibility** for all 14 bats tests and 5 CLI handlers (1442 lines).
 
-**What Changed in Revision 3 (Simplified):**
-- ✅ **Removed overengineered layers**: No module/service pattern, no dependency injection
-- ✅ **Simplified to domain modules**: users.py, usergroups.py, connections.py, conngroups.py
-- ✅ **Reduced phases**: From 6 phases to 3 practical phases
-- ✅ **Maintained benefits**: Same separation of concerns with 70% less complexity
-- ✅ **Kept guarantees**: Zero breaking changes, all tests pass without modification
+**What Changed in Revision 5 (Committed to Repository Pattern):**
+- ✅ **Evidence-driven approach**: Documented actual pain points (P1-P4) with code evidence
+- ✅ **Incremental execution**: 10 phases, each independently shippable
+- ✅ **YAGNI compliance**: Repository pattern justified by mixed responsibilities (P4)
+- ✅ **TDD alignment**: All changes validated by existing 14 bats tests
+- ✅ **Clear commitment**: Phases 1-3 fix duplication/transactions, Phases 4-10 extract repositories
+- ✅ **Walking skeleton**: Phase 5 validates approach before continuing
+- ✅ **Thin facade**: GuacamoleDB becomes orchestration layer (~400 lines)
 
-**Risk Level**: 🟢 **Very Low** - Much simpler architecture with the same backwards compatibility strategy, 14 bats tests as safety net.
+**Goal:** Achieve **modularity and maintainability** through clear layer separation (repositories for SQL, facade for orchestration), not to satisfy LLM context limits. Better LLM usability is a side benefit of well-factored code.
 
-## Overview
+**Risk Level**: 🟢 **Very Low** - Small, incremental changes validated by 14 bats tests after each step.
 
-The current `guacalib/db.py` file (3313 lines) mixes configuration loading, connection management, and CRUD operations for all entities. This plan proposes a **practical modular architecture** that:
+---
 
-- Splits the monolith into domain-based modules (`users.py`, `usergroups.py`, etc.)
-- Provides a simple façade (`guac_db.py`) for backwards compatibility
-- Removes over-engineering while improving maintainability
-- Preserves the existing simple transaction model
-- Maintains zero breaking changes for CLI and library users
+## Problem Statement
 
-**Key Principle**: All 14 existing bats integration tests and CLI handlers (`cli_handle_*.py`) must continue working without modification throughout the migration.
+### Current Pain Points (Evidence-Based)
 
-## Design Goals
+#### **P1: Code Duplication (HIGH SEVERITY)**
+**Evidence:**
+```python
+# Lines 15, 68 in db.py - Import from canonical source
+from .db_user_parameters import USER_PARAMETERS
 
-1. **Separation of Concerns**: Each domain (users, groups, connections, permissions, configuration) lives in its own module.
-2. **Simplicity**: No over-engineering - direct module functions, simple imports, minimal abstraction.
-3. **Backwards Compatibility**: Maintain the existing `GuacamoleDB` API as a façade during transition.
-4. **Maintainability**: Easier for single developer to understand and modify domain-specific code.
-5. **Low Risk**: Minimal changes to existing behavior, same testing strategy.
-6. **Security**: Ensure existing logging strategy, credential scrubbing, and security guarantees remain intact.
+# Lines 551-607 in db.py - Complete override (57 lines duplicated)
+USER_PARAMETERS = {
+    "disabled": {...},
+    "expired": {...},
+    # ... 11 parameters redefined
+}
+```
+**Impact:** Maintenance burden - changes must be made in two places, risk of inconsistency.
+**Call sites:** Used throughout user modification methods.
 
-## High-Level Architecture
+#### **P2: Redundant Transaction Commits (MEDIUM SEVERITY)**
+**Evidence:**
+```python
+# Line 226 in __exit__ - Context manager handles commits
+if exc_type is None:
+    self.conn.commit()
+
+# Line 1284 in delete_existing_connection() - Redundant commit
+self.conn.commit()
+
+# Line 1341 in delete_connection_group() - Redundant commit
+self.conn.commit()
+```
+**Impact:** Confusion about transaction boundaries, potential for partial commits in multi-step operations.
+**Risk:** If inline commits are removed without testing, multi-step operations may fail.
+
+#### **P3: ID Resolution Duplication (MEDIUM SEVERITY)**
+**Evidence:**
+```python
+# Resolver methods used across multiple domains:
+- resolve_connection_id() (line 2512) - 76 lines
+- resolve_conngroup_id() (line 2589) - 51 lines
+- resolve_usergroup_id() (line 2641) - 48 lines
+- validate_positive_id() (line 2502) - 9 lines
+- get_connection_name_by_id() (line 2468) - 16 lines
+- get_connection_group_name_by_id() (line 2485) - 16 lines
+- get_usergroup_name_by_id() (line 2704) - 37 lines
+```
+**Impact:** 253 lines of pure utility code mixed with business logic.
+**Call sites:** ≥3 call sites per resolver across different domain methods.
+
+#### **P4: Mixed Responsibilities (HIGH SEVERITY)**
+**Evidence:**
+- Single GuacamoleDB class conflates multiple responsibilities:
+  - **Config/Loading**: Database credentials and connection setup (~114 lines)
+  - **DB Connection/Transactions**: Context manager, commit/rollback (~26 lines)
+  - **SQL Repositories**: CRUD operations for users, connections, groups (~2300 lines)
+  - **Validation/Resolution**: ID resolution, parameter validation (~253 lines, partially fixed in Phase 2)
+  - **Permissions Logic**: Grant/deny operations across domains (~400 lines)
+  - **Logging Utilities**: Credential scrubbing, debug output (~120 lines)
+
+**Impact:**
+- **Hard to test**: Tightly coupled SQL, transaction, and business logic requires database for all tests
+- **Fragile to change**: Modifications ripple across unrelated concerns
+- **Duplication prone**: Multiple sources of truth (e.g., USER_PARAMETERS override in P1)
+- **Unclear boundaries**: Transaction boundaries unclear, permission logic scattered
+- **Cognitive load**: Mental context switching between infrastructure, SQL, and business logic
+
+**Justification for Splitting:**
+The goal is **modularity and maintainability**, not LLM context limits. Clear layer boundaries (repositories for SQL, facade for orchestration, utilities for helpers) enable:
+- **Targeted testing**: Unit test SQL logic without database context manager
+- **Safer changes**: Modify connection logic without risk to user logic
+- **Clear contracts**: Repositories accept cursor, return data (stateless)
+- **Eliminated duplication**: Single source of truth for each concern
+- **Better onboarding**: Navigate by domain, not by line number
+
+---
+
+## Design Principles (PLAN.md Compliance)
+
+### **RULE #0: DO NOT OVERENGINEER**
+Start with the simplest solution that works; add complexity only with evidence.
+
+### **Approach:**
+1. **Solve Today's Problem** - Fix documented bugs and duplication (P1-P3)
+2. **Test-Driven** - All changes validated by existing 14 bats tests
+3. **Incremental** - Each phase is a complete, shippable improvement
+4. **Optimize Last** - Defer domain splitting (P4) until evidence proves necessity
+
+### **Complexity Checklist Applied:**
+- ✅ **Add complexity when:** ≥3 call sites (ID resolvers) ✓
+- ✅ **Add complexity when:** Painful duplication (USER_PARAMETERS) ✓
+- ❌ **Avoid:** "Just in case" abstractions (removed security.py, errors.py)
+- ❌ **Avoid:** Single-implementation interfaces (removed errors.py)
+- ❌ **Avoid:** Designing for scale you don't have (deferred domain split)
+
+---
+
+## Incremental Implementation Plan
+
+### **Phase 0 - Preparation** (Est: 30 minutes)
+**Outcome:** Baseline established, tests passing, ready for refactoring.
+
+- [ ] **0.1. Establish baseline**
+  - [ ] 0.1.1. Run full bats test suite: `export TEST_CONFIG=/home/rm/.guacaman.ini && make tests`
+  - [ ] 0.1.2. Document current test pass rate and runtime
+  - [ ] 0.1.3. Create git branch: `git checkout -b refactor/incremental-cleanup`
+
+  **Acceptance Criteria:**
+  - All 14 bats tests pass (100% green)
+  - Baseline metrics documented for comparison
+
+---
+
+### **Phase 1 - Fix Code Duplication** (Est: 1 hour)
+**Outcome:** USER_PARAMETERS duplication eliminated, single source of truth restored.
+
+**Problem Addressed:** P1 (Code Duplication - HIGH)
+
+- [ ] **1.1. Remove USER_PARAMETERS override**
+  - [ ] 1.1.1. Delete lines 551-607 in `guacalib/db.py`
+  - [ ] 1.1.2. Verify import on line 15 remains: `from .db_user_parameters import USER_PARAMETERS`
+  - [ ] 1.1.3. Verify class attribute on line 68 remains: `USER_PARAMETERS = USER_PARAMETERS`
+
+  **Acceptance Criteria:**
+  - Given db.py imports USER_PARAMETERS from db_user_parameters.py
+  - When a user parameter is modified in db_user_parameters.py
+  - Then the change is reflected in GuacamoleDB without duplicating edits
+
+- [ ] **1.2. Validate fix**
+  - [ ] 1.2.1. Run full bats test suite
+  - [ ] 1.2.2. Verify all tests pass (no regressions)
+  - [ ] 1.2.3. Test user modification: `guacaman user modify --username testuser --disabled 1`
+
+  **Acceptance Criteria:**
+  - All 14 bats tests pass (100% green)
+  - User modification commands work identically
+
+- [ ] **1.3. Commit changes**
+  - [ ] 1.3.1. Git commit: "fix: remove USER_PARAMETERS duplication (lines 551-607)"
+  - [ ] 1.3.2. Document lines saved: 57 lines removed
+
+  **Success Metrics:**
+  - Lines of code: -57
+  - Duplication: 0 instances
+  - Tests passing: 14/14
+
+---
+
+### **Phase 2 - Extract Shared Utilities** (Est: 2 hours)
+**Outcome:** ID resolvers and validation helpers centralized in dedicated utility module.
+
+**Problem Addressed:** P3 (ID Resolution Duplication - MEDIUM)
+
+- [ ] **2.1. Create db_utils.py**
+  - [ ] 2.1.1. Create new file: `guacalib/db_utils.py`
+  - [ ] 2.1.2. Add module docstring explaining purpose (shared utilities for ID resolution)
+  - [ ] 2.1.3. Move resolver functions from db.py (preserve exact logic, add type hints):
+    - `resolve_connection_id()` (line 2512, ~76 lines)
+    - `resolve_conngroup_id()` (line 2589, ~51 lines)
+    - `resolve_usergroup_id()` (line 2641, ~48 lines)
+    - `validate_positive_id()` (line 2502, ~9 lines)
+    - `get_connection_name_by_id()` (line 2468, ~16 lines)
+    - `get_connection_group_name_by_id()` (line 2485, ~16 lines)
+    - `get_usergroup_name_by_id()` (line 2704, ~37 lines)
+
+  **Acceptance Criteria:**
+  - Given multiple domains need to resolve entity IDs
+  - When ID resolution is needed
+  - Then a single, tested utility function is called (no duplication)
+
+- [ ] **2.2. Update db.py to use db_utils**
+  - [ ] 2.2.1. Add import: `from .db_utils import resolve_connection_id, resolve_conngroup_id, ...`
+  - [ ] 2.2.2. Replace method implementations with delegation:
+    ```python
+    def resolve_connection_id(self, connection_name=None, connection_id=None):
+        from .db_utils import resolve_connection_id as _resolve
+        return _resolve(self.cursor, connection_name, connection_id)
+    ```
+  - [ ] 2.2.3. OR: Replace all call sites to use db_utils directly and remove wrapper methods
+
+  **Acceptance Criteria:**
+  - All resolver call sites use db_utils functions
+  - No logic duplication between db.py and db_utils.py
+
+- [ ] **2.3. Validate extraction**
+  - [ ] 2.3.1. Run full bats test suite
+  - [ ] 2.3.2. Test connection operations with ID resolution: `guacaman conn modify --id 123 --parameter hostname --value newhost`
+  - [ ] 2.3.3. Test connection group hierarchy: `guacaman conngroup create --name "parent/child"`
+
+  **Acceptance Criteria:**
+  - All 14 bats tests pass (100% green)
+  - ID resolution works identically for connections, connection groups, usergroups
+
+- [ ] **2.4. Commit changes**
+  - [ ] 2.4.1. Git commit: "refactor: extract ID resolvers to db_utils.py"
+  - [ ] 2.4.2. Document lines moved: ~253 lines to db_utils.py
+
+  **Success Metrics:**
+  - Lines in db.py: -253
+  - New file: db_utils.py (~253 lines)
+  - Duplication eliminated: 7 utility functions centralized
+  - Tests passing: 14/14
+
+---
+
+### **Phase 3 - Fix Transaction Handling** (Est: 1.5 hours)
+**Outcome:** Redundant commits removed, transaction boundaries clarified.
+
+**Problem Addressed:** P2 (Redundant Transaction Commits - MEDIUM)
+
+**⚠️ RISK:** This changes transaction behavior. Requires careful testing.
+
+- [ ] **3.1. Analyze transaction boundaries**
+  - [ ] 3.1.1. Document which operations are multi-step (require transaction atomicity)
+  - [ ] 3.1.2. Verify context manager commit (line 226) handles all normal flows
+  - [ ] 3.1.3. Identify if inline commits serve a purpose (e.g., partial commit before next step)
+
+  **Acceptance Criteria:**
+  - Transaction boundaries documented
+  - Decision recorded: remove inline commits OR keep with justification
+
+- [ ] **3.2. Remove redundant commits (if analysis confirms safe)**
+  - [ ] 3.2.1. Remove commit at line 1284 in `delete_existing_connection()`
+  - [ ] 3.2.2. Remove commit at line 1341 in `delete_connection_group()`
+  - [ ] 3.2.3. Update docstrings to clarify: "Transaction committed by context manager"
+
+  **Acceptance Criteria:**
+  - Given a delete operation is called within GuacamoleDB context manager
+  - When the operation completes successfully
+  - Then the transaction is committed exactly once (by __exit__)
+
+- [ ] **3.3. Validate transaction behavior**
+  - [ ] 3.3.1. Run full bats test suite (especially delete operations)
+  - [ ] 3.3.2. Test multi-step operation: Create connection, grant permission, delete connection
+  - [ ] 3.3.3. Test rollback: Trigger error mid-operation, verify no partial commits
+
+  **Acceptance Criteria:**
+  - All 14 bats tests pass (100% green)
+  - Delete operations commit exactly once
+  - Rollback works correctly on errors
+
+- [ ] **3.4. Commit changes**
+  - [ ] 3.4.1. Git commit: "fix: remove redundant transaction commits (lines 1284, 1341)"
+  - [ ] 3.4.2. Document reasoning in commit message
+
+  **Success Metrics:**
+  - Redundant commits: 0 (down from 2)
+  - Transaction boundaries: Clear and documented
+  - Tests passing: 14/14
+
+---
+
+### **Phase 4 - Plan Repository Layer** (Est: 1 hour)
+**Outcome:** Clear mapping of SQL operations to repository modules, transaction boundaries documented.
+
+**Problem Addressed:** P4 (Mixed Responsibilities - GuacamoleDB conflates config, transactions, SQL, validation, permissions)
+
+**Rationale for Splitting:**
+The current GuacamoleDB class mixes multiple responsibilities that should be separated:
+- **Config/Loading**: Database credentials and connection setup
+- **DB Connection/Transactions**: Context manager, commit/rollback logic
+- **SQL Repositories**: CRUD operations for users, connections, groups
+- **Validation/Resolution**: ID resolution, parameter validation (partially addressed in Phase 2)
+- **Permissions Logic**: Grant/deny operations across domains
+- **Logging Utilities**: Credential scrubbing, debug output
+
+This conflation makes the code:
+- Hard to test (tightly coupled SQL, transaction, and business logic)
+- Difficult to reason about (transaction boundaries unclear, multiple sources of truth)
+- Fragile to change (modifications ripple across unrelated concerns)
+- Prone to duplication (e.g., USER_PARAMETERS override discovered in Phase 1)
+
+**Goal:** Achieve modularity through clear layer boundaries (repositories → services → facade), not to satisfy LLM context limits.
+
+- [ ] **4.1. Document current responsibilities**
+  - [ ] 4.1.1. Identify all SQL operations (CRUD methods by domain)
+  - [ ] 4.1.2. Identify transaction boundaries (which operations must be atomic)
+  - [ ] 4.1.3. Identify permission operations (grant/deny, cross-domain)
+  - [ ] 4.1.4. Identify shared utilities (beyond db_utils.py from Phase 2)
+
+  **Acceptance Criteria:**
+  - Responsibility matrix created (method → layer mapping)
+  - Transaction boundaries documented
+
+- [ ] **4.2. Design repository layer**
+  - [ ] 4.2.1. Define repository modules:
+    - `users_repo.py` - User CRUD SQL operations
+    - `usergroups_repo.py` - User group CRUD SQL operations
+    - `connections_repo.py` - Connection CRUD SQL operations
+    - `conngroups_repo.py` - Connection group CRUD SQL operations
+    - `permissions_repo.py` - Permission grant/deny SQL operations
+  - [ ] 4.2.2. Define repository function signatures (input: cursor + params, output: dict/list)
+  - [ ] 4.2.3. Define transaction policy: repositories are stateless, caller manages transactions
+
+  **Acceptance Criteria:**
+  - Repository API contracts documented
+  - Each repository has single responsibility (one domain's SQL operations)
+
+- [ ] **4.3. Design facade preservation**
+  - [ ] 4.3.1. Plan GuacamoleDB facade structure:
+    - Preserve all public methods (100% backwards compatible)
+    - Delegate to repositories (thin orchestration layer)
+    - Manage database connection and transactions
+    - Handle config loading (keep in facade or extract to db_config.py)
+  - [ ] 4.3.2. Document import compatibility:
+    - `from guacalib import GuacamoleDB` remains unchanged
+    - Internal imports change, external API identical
+
+  **Acceptance Criteria:**
+  - Facade design documented with delegation strategy
+  - Zero breaking changes for CLI handlers
+
+- [ ] **4.4. Document incremental migration path**
+  - [ ] 4.4.1. Phase 5: Extract users repository (walking skeleton)
+  - [ ] 4.4.2. Phase 6: Extract usergroups repository
+  - [ ] 4.4.3. Phase 7: Extract connections repository
+  - [ ] 4.4.4. Phase 8: Extract conngroups repository
+  - [ ] 4.4.5. Phase 9: Extract permissions repository
+  - [ ] 4.4.6. Phase 10: Final cleanup and documentation
+
+  **Success Criteria:**
+  - Each phase has clear scope (one repository at a time)
+  - Each phase is independently testable (14 bats tests pass)
+  - Walking skeleton approach (end-to-end before next domain)
+
+---
+
+### **Phase 5 - Extract Users Repository** (Est: 3 hours)
+**Outcome:** User CRUD operations moved to `users_repo.py`, GuacamoleDB delegates to repository.
+
+**Walking Skeleton:** First end-to-end domain extraction to validate approach.
+
+- [ ] **5.1. Create users_repo.py**
+  - [ ] 5.1.1. Create `guacalib/users_repo.py` with module docstring
+  - [ ] 5.1.2. Extract SQL functions (preserve exact logic):
+    - `user_exists(cursor, username)` (lines 517-548)
+    - `create_user(cursor, username, password, ...)` (lines 1353-1419)
+    - `delete_user(cursor, username)` (lines 1018-1106)
+    - `modify_user_parameter(cursor, username, parameter, value)` (lines 944-1016)
+    - `change_user_password(cursor, username, new_password)` (lines 875-942)
+    - `list_users(cursor)` (lines 382-411)
+  - [ ] 5.1.3. Add type hints to all function signatures
+  - [ ] 5.1.4. Import USER_PARAMETERS from db_user_parameters.py
+
+  **Acceptance Criteria:**
+  - All user SQL operations in users_repo.py
+  - Functions accept cursor as first parameter (stateless)
+  - No GuacamoleDB class dependencies
+
+- [ ] **5.2. Update GuacamoleDB to delegate**
+  - [ ] 5.2.1. Add import: `from . import users_repo`
+  - [ ] 5.2.2. Update methods to delegate:
+    ```python
+    def user_exists(self, username):
+        return users_repo.user_exists(self.cursor, username)
+    ```
+  - [ ] 5.2.3. Preserve all method signatures (backwards compatibility)
+
+  **Acceptance Criteria:**
+  - GuacamoleDB methods are thin wrappers (≤3 lines each)
+  - No user SQL logic remains in db.py
+
+- [ ] **5.3. Validate extraction**
+  - [ ] 5.3.1. Run full bats test suite
+  - [ ] 5.3.2. Test user operations: create, modify, delete, list
+  - [ ] 5.3.3. Verify CLI handlers unchanged: `git diff guacalib/cli_handle_user.py`
+
+  **Acceptance Criteria:**
+  - All 14 bats tests pass (100% green)
+  - User operations identical to pre-refactor
+
+- [ ] **5.4. Commit changes**
+  - [ ] 5.4.1. Git commit: "refactor: extract users repository to users_repo.py"
+  - [ ] 5.4.2. Document lines moved: ~450 lines to users_repo.py
+
+  **Success Metrics:**
+  - Lines in db.py: -450
+  - New file: users_repo.py (~450 lines)
+  - Tests passing: 14/14
+  - Walking skeleton validated ✅
+
+---
+
+### **Phase 6 - Extract UserGroups Repository** (Est: 2 hours)
+**Outcome:** User group CRUD operations moved to `usergroups_repo.py`.
+
+- [ ] **6.1. Create usergroups_repo.py**
+  - [ ] 6.1.1. Create `guacalib/usergroups_repo.py` with module docstring
+  - [ ] 6.1.2. Extract SQL functions:
+    - `usergroup_exists(cursor, usergroup_name)` (lines 444-475)
+    - `create_usergroup(cursor, usergroup_name, ...)` (lines 1421-1460)
+    - `delete_usergroup(cursor, usergroup_name)` (lines 1108-1161)
+    - `list_usergroups(cursor)` (lines 413-442)
+  - [ ] 6.1.3. Add type hints
+
+- [ ] **6.2. Update GuacamoleDB to delegate**
+  - [ ] 6.2.1. Add import: `from . import usergroups_repo`
+  - [ ] 6.2.2. Update methods to delegate (thin wrappers)
+
+- [ ] **6.3. Validate extraction**
+  - [ ] 6.3.1. Run full bats test suite
+  - [ ] 6.3.2. Test usergroup operations
+
+- [ ] **6.4. Commit changes**
+  - [ ] 6.4.1. Git commit: "refactor: extract usergroups repository"
+
+  **Success Metrics:**
+  - Lines in db.py: -350
+  - New file: usergroups_repo.py (~350 lines)
+  - Tests passing: 14/14
+
+---
+
+### **Phase 7 - Extract Connections Repository** (Est: 3 hours)
+**Outcome:** Connection CRUD operations moved to `connections_repo.py`.
+
+- [ ] **7.1. Create connections_repo.py**
+  - [ ] 7.1.1. Create `guacalib/connections_repo.py` with module docstring
+  - [ ] 7.1.2. Extract SQL functions:
+    - `connection_exists(cursor, connection_name, connection_id)` (lines 1634-1673)
+    - `create_connection(cursor, protocol, name, ...)` (lines 1691-1775)
+    - `delete_connection(cursor, connection_id)` (lines 1224-1289)
+    - `modify_connection_parameter(cursor, connection_id, parameter, value)` (lines 738-873)
+  - [ ] 7.1.3. Import CONNECTION_PARAMETERS from db_connection_parameters.py
+  - [ ] 7.1.4. Add type hints
+
+- [ ] **7.2. Update GuacamoleDB to delegate**
+  - [ ] 7.2.1. Add import: `from . import connections_repo`
+  - [ ] 7.2.2. Update methods to delegate
+
+- [ ] **7.3. Validate extraction**
+  - [ ] 7.3.1. Run full bats test suite (connection tests critical)
+  - [ ] 7.3.2. Test connection operations with various protocols
+
+- [ ] **7.4. Commit changes**
+  - [ ] 7.4.1. Git commit: "refactor: extract connections repository"
+
+  **Success Metrics:**
+  - Lines in db.py: -600
+  - New file: connections_repo.py (~600 lines)
+  - Tests passing: 14/14
+
+---
+
+### **Phase 8 - Extract ConnGroups Repository** (Est: 2.5 hours)
+**Outcome:** Connection group CRUD operations moved to `conngroups_repo.py`.
+
+- [ ] **8.1. Create conngroups_repo.py**
+  - [ ] 8.1.1. Create `guacalib/conngroups_repo.py` with module docstring
+  - [ ] 8.1.2. Extract SQL functions:
+    - `connection_group_exists(cursor, conngroup_name, conngroup_id)` (lines 1675-1689)
+    - `create_connection_group(cursor, name, group_type, ...)` (lines 2128-2208)
+    - `delete_connection_group(cursor, conngroup_id)` (lines 1291-1351)
+    - `check_connection_group_cycle(cursor, group_id, parent_id)` (lines 2082-2126)
+  - [ ] 8.1.3. Add type hints
+
+- [ ] **8.2. Update GuacamoleDB to delegate**
+  - [ ] 8.2.1. Add import: `from . import conngroups_repo`
+  - [ ] 8.2.2. Update methods to delegate
+
+- [ ] **8.3. Validate extraction**
+  - [ ] 8.3.1. Run full bats test suite (conngroup hierarchy tests critical)
+  - [ ] 8.3.2. Test connection group operations
+
+- [ ] **8.4. Commit changes**
+  - [ ] 8.4.1. Git commit: "refactor: extract conngroups repository"
+
+  **Success Metrics:**
+  - Lines in db.py: -400
+  - New file: conngroups_repo.py (~400 lines)
+  - Tests passing: 14/14
+
+---
+
+### **Phase 9 - Extract Permissions Repository** (Est: 3 hours)
+**Outcome:** Permission grant/deny operations moved to `permissions_repo.py`.
+
+- [ ] **9.1. Create permissions_repo.py**
+  - [ ] 9.1.1. Create `guacalib/permissions_repo.py` with module docstring
+  - [ ] 9.1.2. Extract SQL functions for all permission operations:
+    - User-to-connection grants/denies
+    - User-to-connection-group grants/denies
+    - UserGroup-to-connection grants/denies
+    - UserGroup-to-connection-group grants/denies
+    - Permission listing functions
+  - [ ] 9.1.3. Add type hints
+
+- [ ] **9.2. Update GuacamoleDB to delegate**
+  - [ ] 9.2.1. Add import: `from . import permissions_repo`
+  - [ ] 9.2.2. Update methods to delegate
+
+- [ ] **9.3. Validate extraction**
+  - [ ] 9.3.1. Run full bats test suite (permission tests critical)
+  - [ ] 9.3.2. Test all permission operations
+
+- [ ] **9.4. Commit changes**
+  - [ ] 9.4.1. Git commit: "refactor: extract permissions repository"
+
+  **Success Metrics:**
+  - Lines in db.py: -500
+  - New file: permissions_repo.py (~500 lines)
+  - Tests passing: 14/14
+
+---
+
+### **Phase 10 - Create Facade and Deprecate db.py** (Est: 2 hours)
+**Outcome:** Clean GuacamoleDB facade in `guac_db.py`, `db.py` deprecated.
+
+- [ ] **10.1. Create guac_db.py facade**
+  - [ ] 10.1.1. Create `guacalib/guac_db.py`
+  - [ ] 10.1.2. Move GuacamoleDB class from db.py
+  - [ ] 10.1.3. Keep config loading, connection management, context manager
+  - [ ] 10.1.4. Keep `_scrub_credentials()` utility
+  - [ ] 10.1.5. All methods delegate to repositories (thin wrappers)
+  - [ ] 10.1.6. Add comprehensive module docstring
+
+  **Acceptance Criteria:**
+  - guac_db.py is thin orchestration layer (~400 lines)
+  - No SQL queries in guac_db.py (delegated to repositories)
+  - All public methods preserved (100% API compatibility)
+
+- [ ] **10.2. Update db.py to re-export**
+  - [ ] 10.2.1. Replace db.py contents with deprecation notice:
+    ```python
+    """
+    DEPRECATED: This module is deprecated and will be removed in v2.0.
+    Import from guacalib.guac_db instead.
+    """
+    from .guac_db import GuacamoleDB
+    __all__ = ['GuacamoleDB']
+    ```
+
+- [ ] **10.3. Update __init__.py**
+  - [ ] 10.3.1. Change import: `from .guac_db import GuacamoleDB`
+  - [ ] 10.3.2. External import unchanged: `from guacalib import GuacamoleDB`
+
+- [ ] **10.4. Validate final state**
+  - [ ] 10.4.1. Run full bats test suite
+  - [ ] 10.4.2. Verify CLI handlers unchanged
+  - [ ] 10.4.3. Test all import paths
+
+- [ ] **10.5. Update documentation**
+  - [ ] 10.5.1. Update README.md with new architecture
+  - [ ] 10.5.2. Update CLAUDE.md with repository layer
+  - [ ] 10.5.3. Add migration guide for library users
+
+- [ ] **10.6. Commit changes**
+  - [ ] 10.6.1. Git commit: "refactor: create GuacamoleDB facade in guac_db.py, deprecate db.py"
+
+  **Success Metrics:**
+  - guac_db.py: ~400 lines (thin facade)
+  - db.py: ~10 lines (deprecation re-export)
+  - Total LOC unchanged (code moved, not added)
+  - Tests passing: 14/14
+  - Zero breaking changes ✅
+
+---
+
+## Repository Extraction (Phase 5-10) - Summary
+
+**Commitment:** Execute repository extraction to achieve clean layer separation (planned in Phase 4).
+
+### **Target Architecture**
 
 ```
 guacalib/
-├── db_base.py               # Database connection, config loading, shared utilities
-├── users.py                 # All user operations (CRUD + permissions)
-├── usergroups.py            # All user group operations (CRUD + memberships)
-├── connections.py           # All connection operations (CRUD + permissions)
-├── conngroups.py            # All connection group operations (CRUD + hierarchy)
-├── guacamole_db.py          # NEW: Simple façade preserving GuacamoleDB API
-├── security.py              # NEW: Credential scrubbing utilities
-├── errors.py                # NEW: Simple exception hierarchy
-├── __init__.py              # UPDATED: Exports GuacamoleDB from guac_db.py
-├── db.py                    # DEPRECATED: Will be removed after migration completes
-├── logging_config.py        # EXISTING: Already has setup_logging, get_logger
-├── db_connection_parameters.py  # EXISTING: Canonical source (917 lines)
-├── db_user_parameters.py    # EXISTING: Canonical source (92 lines)
-├── version.py               # EXISTING: Unchanged
-├── cli.py                   # EXISTING: Unchanged
-└── cli_handle_*.py          # EXISTING: Unchanged (5 files, 1442 lines total)
+├── db_utils.py              # CREATED Phase 2 - ID resolvers, validation helpers
+├── users_repo.py            # Phase 5 - User CRUD SQL operations
+├── usergroups_repo.py       # Phase 6 - User group CRUD SQL operations
+├── connections_repo.py      # Phase 7 - Connection CRUD SQL operations
+├── conngroups_repo.py       # Phase 8 - Connection group CRUD SQL operations
+├── permissions_repo.py      # Phase 9 - Permission grant/deny SQL operations
+├── guac_db.py               # Phase 10 - Thin façade preserving GuacamoleDB API
+├── db.py                    # DEPRECATED - Kept for one release, imports from guac_db.py
 ```
 
-**Key Architectural Decisions**:
-1. **Direct module functions**: No module/service pattern - just simple functions in domain modules.
-2. **Simple dependency management**: Direct imports between modules, no complex injection.
-3. **Maintained transaction model**: Keep MySQL's natural transaction handling.
-4. **Façade at Package Root**: `guacamole_db.py` lives at package root for simple imports.
-5. **Minimal abstraction**: Each domain module handles its own logic without layers.
+**Walking Skeleton Approach:**
+1. Extract ONE repository at a time (Phases 5-9)
+2. Update GuacamoleDB to delegate to repository
+3. Run full bats suite (100% pass required)
+4. Commit before proceeding to next domain
+5. Each phase is independently shippable
 
-### Component Responsibilities
+**Explicitly NOT Created:**
+- ❌ `security.py` - `_scrub_credentials()` stays in guac_db.py (single caller, no duplication)
+- ❌ `errors.py` - `ValueError` sufficient (no custom exception hierarchy needed)
+- ❌ `db_config.py` - Config loading stays in guac_db.py (114 lines, no duplication)
 
-- **db_base.py**
-  - Database connection management and configuration loading.
-  - Replaces current `GuacamoleDB.read_config()` static method (lines 239-352 in db.py).
-  - Preserves exact behavior: environment variable support, INI file parsing, validation.
-  - Hosts shared utility functions: ID resolvers, validation helpers, name lookups.
-
-- **users.py**
-  - All user-related operations: CRUD, password management, permissions.
-  - Functions like `user_exists()`, `create_user()`, `delete_user()`, `grant_connection_permission()`.
-  - Direct SQL queries with proper parameterization and error handling.
-
-- **usergroups.py**
-  - All user group operations: CRUD, membership management, permissions.
-  - Functions like `create_usergroup()`, `add_user_to_group()`, `list_groups_with_users()`.
-  - Handles group-to-connection permissions.
-
-- **connections.py**
-  - All connection operations: CRUD, parameter management, permissions.
-  - Functions like `create_connection()`, `modify_connection()`, `delete_connection()`.
-  - Connection-to-group assignment and permission management.
-
-- **conngroups.py**
-  - All connection group operations: CRUD, hierarchy management, cycle detection.
-  - Functions like `create_connection_group()`, `set_parent_group()`, `check_cycle()`.
-  - Hierarchy validation and path resolution.
-
-- **guacamole_db.py** (Façade)
-  - Implements the existing `GuacamoleDB` API by delegating to domain modules.
-  - Manages database connection and provides backwards compatibility.
-  - Preserves `debug_print` method and all existing behaviors.
-
-- **security.py**
-  - Credential scrubbing helpers reused across modules.
-
-- **errors.py**
-  - Simple exception hierarchy for consistent error handling.
-
-## Design Simplifications
-
-### Simple Database Connection Management
-
-- Use existing MySQL connector connection directly (no abstraction layer).
-- Connection lifecycle:
-  - Created by façade for each CLI/library invocation (same as current context manager).
-  - Shared between domain functions as a simple connection object.
-- **Transactions**:
-  - Keep current transaction model: connection.commit() and connection.rollback() work as they do now.
-  - Multi-module operations execute within same connection automatically.
-  - **Inline commits**: Current `self.conn.commit()` calls work fine - keep them where needed.
-
-### Direct Module Functions
-
-- No complex interfaces or protocols - just direct functions in domain modules.
-- Functions accept connection parameter and other simple arguments.
-- Return simple data types (dicts, tuples) or None.
-- Error handling:
-  - Use existing `ValueError` exceptions for backwards compatibility.
-  - Wrap `mysql.connector.Error` with descriptive messages.
-
-### Shared Utilities
-
-- ID resolution helpers live in `db_base.py`:
-  - `resolve_connection_id(conn, name=None, id=None) -> int`
-  - `resolve_connection_group_id(conn, name=None, id=None) -> int`
-  - `resolve_usergroup_id(conn, name=None, id=None) -> int`
-  - These are simple functions that any domain module can import and use.
-
-### Simplified Logging
-
-- Keep existing logging patterns from `logging_config.py`.
-- Move `_scrub_credentials` to `security.py` for reuse.
-- Domain functions use existing logging with credential scrubbing.
-
-### Simple Error Handling
-
-- Use existing `ValueError` exceptions throughout.
-- Wrap database errors with descriptive messages.
-- No complex exception hierarchy needed for CLI tool.
-
-### Import Strategy
-
-- Domain modules import from `db_base.py` for utilities.
-- Façade imports from domain modules.
-- Simple, direct imports - no dependency injection.
-
-### Simple Migration Strategy
-
-- Maintain the current `GuacamoleDB` façade while domain modules are introduced.
-- Refactor one domain at a time by redirecting façade methods to new domain modules.
-- Unrefactored methods continue using legacy inline SQL until their domain is migrated.
-- After each domain migration, run the full bats suite to confirm no regressions.
-- Keep changes simple: façade methods directly call domain functions with same parameters.
-- Remove old code only after successful migration and testing.
-
-## Configuration
-
-- `db_base.py` handles environment + `.ini` reading, preserving current behavior.
-  - **Preserves environment variable support**: `GUACALIB_HOST`, `GUACALIB_USER`, `GUACALIB_PASSWORD`, `GUACALIB_DATABASE`
-  - **Preserves INI file format validation** and user-friendly error messages
-
-- **Parameter dictionaries**:
-  - `CONNECTION_PARAMETERS` and `USER_PARAMETERS` remain in their dedicated modules
-  - **Remove duplication**: Delete lines 551-607 from current `db.py` (hardcoded USER_PARAMETERS override)
-  - Domain modules import from canonical source: `from guacalib.db_connection_parameters import CONNECTION_PARAMETERS`
+---
 
 ## Testing Strategy
 
-- **Primary Safety Net**: Continue running the existing 14 bats integration tests (`tests/*.bats`) against live MySQL database.
-  - These tests already cover all major functionality and provide excellent coverage.
-  - No changes needed to test files throughout the migration.
+### **Primary Safety Net**
+- **14 bats integration tests** run after EVERY phase
+- **Success criterion:** 100% pass rate (no regressions allowed)
+- **Command:** `export TEST_CONFIG=/home/rm/.guacaman.ini && make tests`
 
-- **Optional Unit Tests**:
-  - Add unit tests only if specific complex logic needs isolated testing.
-  - Use standard library `unittest.mock` for database mocking if needed.
-  - Not required for basic CRUD operations.
+### **Smoke Tests**
+After each phase, manually verify:
+1. User CRUD: `guacaman user create testuser password123`
+2. Connection CRUD: `guacaman conn create --protocol vnc --name test --hostname localhost`
+3. Permission grant: `guacaman user grant-conn --username testuser --connection test`
+4. List operations: `guacaman user list`, `guacaman conn list`
 
-- **Migration Testing**:
-  - After each domain migration, run full bats suite to ensure zero regressions.
-  - Success criterion: All 14 bats tests pass after each phase with no modifications.
-  - Use existing `make tests` command.
+### **Rollback Strategy**
+- Each phase is a separate git commit
+- If any phase fails tests: `git reset --hard HEAD~1`
+- No phase depends on future phases - can stop at any point
+
+---
 
 ## Import Compatibility
 
-### Zero Breaking Changes
+### **Zero Breaking Changes Guarantee**
 
-The migration preserves exact import paths for all consumers:
-
-**Current Import Pattern (remains unchanged):**
+**Current Import (Preserved Throughout):**
 ```python
 # CLI handlers (cli_handle_*.py)
 from guacalib.db import GuacamoleDB
@@ -206,286 +649,263 @@ from guacalib import GuacamoleDB
 ```
 
 **Implementation:**
-
-1. **During Migration:**
-   - `guacalib/__init__.py` continues: `from .db import GuacamoleDB`
-   - New domain modules coexist alongside `db.py`
-   - CLI handlers and external users see zero changes
-
-2. **After Façade Complete:**
-   - Create new `guacalib/guac_db.py` with refactored `GuacamoleDB` class
-   - Update `guacalib/__init__.py` to: `from .guac_db import GuacamoleDB`
-   - **Result**: Import path `from guacalib import GuacamoleDB` remains identical
-   - **CLI handlers**: No changes required
+- **Phases 1-4:** `guacalib/__init__.py` continues: `from .db import GuacamoleDB`
+- **Phase 5+ (if executed):** Update to: `from .guac_db import GuacamoleDB`
+- **Result:** Import path `from guacalib import GuacamoleDB` remains identical
 
 **Compatibility Guarantees:**
-- ✅ `from guacalib import GuacamoleDB` works identically before/after migration
-- ✅ CLI handlers require **zero import changes**
-- ✅ All method signatures, return types, and exceptions remain identical
-- ✅ No breaking changes for external library consumers
-
-## Error Handling & Logging
-
-- Use existing `ValueError` exceptions throughout for backwards compatibility.
-- Wrap `mysql.connector.Error` with descriptive error messages.
-- Use existing logging patterns from `logging_config.py`.
-- Move `_scrub_credentials` to `security.py` for reuse across modules.
-
-## Migration Considerations
-
-- **CLI Handlers**: Continue working with zero code changes. All method signatures and return types preserved.
-- **Bats Integration Tests**: All 14 tests remain valid without modification. Façade ensures identical behavior.
-- **Transaction Handling**: Keep existing transaction model - no complex refactoring needed.
-- **Gradual Migration**: Migrate one domain at a time (users → usergroups → connections → connection_groups).
-- **Debug/Logging**: Preserve `debug_print()` method and existing logging patterns.
-
-## Simplified Implementation Plan
-
-- [ ] **Phase 1 — Infrastructure Setup**
-  1.1. [ ] Create `db_base.py` with database connection management and configuration loading
-  1.2. [ ] Create `security.py` with credential scrubbing utilities
-  1.3. [ ] Create `errors.py` with simple exception hierarchy
-  1.4. [ ] Verify existing `logging_config.py` has complete implementation (no changes needed)
-
-- [ ] **Phase 2 — Domain Module Migration**
-  2.1. [ ] Migrate Users domain (simplest CRUD)
-    2.1.1. [ ] Create `users.py` with simple functions
-    2.1.2. [ ] Move SQL queries and logic from current `GuacamoleDB` methods
-    2.1.3. [ ] Add shared utility functions to `db_base.py` (ID resolvers, validation)
-    2.1.4. [ ] Update façade to delegate migrated methods to domain module
-    2.1.5. [ ] Run full bats suite to verify no regressions
-  2.2. [ ] Migrate UserGroups domain (group memberships)
-    2.2.1. [ ] Create `usergroups.py` with simple functions
-    2.2.2. [ ] Move SQL queries and logic from current `GuacamoleDB` methods
-    2.2.3. [ ] Add shared utility functions to `db_base.py` if needed
-    2.2.4. [ ] Update façade to delegate migrated methods to domain module
-    2.2.5. [ ] Run full bats suite to verify no regressions
-  2.3. [ ] Migrate Connections domain (parameters, parent groups)
-    2.3.1. [ ] Create `connections.py` with simple functions
-    2.3.2. [ ] Move SQL queries and logic from current `GuacamoleDB` methods
-    2.3.3. [ ] Add shared utility functions to `db_base.py` if needed
-    2.3.4. [ ] Update façade to delegate migrated methods to domain module
-    2.3.5. [ ] Run full bats suite to verify no regressions
-  2.4. [ ] Migrate ConnectionGroups domain (hierarchy, cycle detection)
-    2.4.1. [ ] Create `conngroups.py` with simple functions
-    2.4.2. [ ] Move SQL queries and logic from current `GuacamoleDB` methods
-    2.4.3. [ ] Add shared utility functions to `db_base.py` if needed
-    2.4.4. [ ] Update façade to delegate migrated methods to domain module
-    2.4.5. [ ] Run full bats suite to verify no regressions
-
-- [ ] **Phase 3 — Façade Completion & Cleanup**
-  3.1. [ ] Create `guac_db.py` with new `GuacamoleDB` class delegating to domain modules
-  3.2. [ ] Fix USER_PARAMETERS duplication: Delete lines 551-607 from current `db.py`
-  3.3. [ ] Update `guacalib/__init__.py` to export: `from .guac_db import GuacamoleDB`
-  3.4. [ ] Run full integration tests to verify zero regressions
-  3.5. [ ] Mark old `db.py` as deprecated (keep for one release cycle)
-  3.6. [ ] Update README with new architecture documentation
-
-## Appendix A: Method-to-Module Mapping
-
-### User Domain (`users.py`)
-| Current Method | Lines | Module Function | Notes |
-|---------------|-------|-------------------|-------|
-| `user_exists()` | 517-548 | `user_exists()` | Validation helper |
-| `create_user()` | 1353-1419 | `create_user()` | Password hashing logic |
-| `delete_existing_user()` | 1018-1106 | `delete_user()` | Multi-table cascade delete |
-| `modify_user()` | 944-1016 | `modify_user_parameter()` | Parameter validation |
-| `change_user_password()` | 875-942 | `change_user_password()` | New salt + hash |
-| `list_users()` | 382-411 | `list_users()` | Simple query |
-| `list_users_with_usergroups()` | 1812-1859 | `list_users_with_groups()` | JOIN query |
-| `grant_connection_permission_to_user()` | 2210-2268 | `grant_connection_permission()` | Permission CRUD |
-| `revoke_connection_permission_from_user()` | 2270-2327 | `revoke_connection_permission()` | Permission CRUD |
-| `grant_connection_group_permission_to_user()` | 2884-3001 | `grant_connection_group_permission()` | Permission CRUD |
-| `revoke_connection_group_permission_from_user()` | 3003-3088 | `revoke_connection_group_permission()` | Permission CRUD |
-| `grant_connection_group_permission_to_user_by_id()` | 3101-3222 | `grant_connection_group_permission_by_id()` | ID-based variant |
-| `revoke_connection_group_permission_from_user_by_id()` | 3224-3313 | `revoke_connection_group_permission_by_id()` | ID-based variant |
-
-### UserGroup Domain (`usergroups.py`)
-| Current Method | Lines | Module Function | Notes |
-|---------------|-------|-------------------|-------|
-| `usergroup_exists()` | 444-475 | `usergroups.exists()` | Validation helper |
-| `create_usergroup()` | 1421-1460 | `usergroups.create()` | Entity + group record |
-| `delete_existing_usergroup()` | 1108-1161 | `usergroups.delete()` | Cascade delete |
-| `delete_existing_usergroup_by_id()` | 1163-1222 | `usergroups.delete_by_id()` | ID-based variant |
-| `list_usergroups()` | 413-442 | `usergroups.list_all()` | Simple query |
-| `get_usergroup_id()` | 477-515 | Use `resolve_usergroup_id()` from base.py | Moved to base |
-| `add_user_to_usergroup()` | 1462-1511 | `usergroups.add_member()` | Membership + permission |
-| `remove_user_from_usergroup()` | 1513-1565 | `usergroups.remove_member()` | Membership removal |
-| `list_usergroups_with_users_and_connections()` | 2001-2080 | `usergroups.list_with_details()` | Complex JOIN |
-| `list_groups_with_users()` | 2742-2786 | `usergroups.list_with_members()` | Simplified JOIN |
-
-### Connection Domain (`connections.py`)
-| Current Method | Lines | Module Function | Notes |
-|---------------|-------|-------------------|-------|
-| `connection_exists()` | 1634-1673 | `connections.exists()` | Uses resolver |
-| `create_connection()` | 1691-1775 | `connections.create()` | Connection + parameters |
-| `delete_existing_connection()` | 1224-1289 | `connections.delete()` | Cascade delete, **remove inline commit** |
-| `modify_connection()` | 738-873 | `connections.modify_parameter()` | Two-table parameter handling |
-| `modify_connection_parent_group()` | 651-718 | `connections.set_parent_group()` | Parent assignment |
-| `list_connections_with_conngroups_and_parents()` | 1861-1934 | `connections.list_with_details()` | Complex JOIN |
-| `get_connection_by_id()` | 1936-1999 | `connections.get_by_id()` | Single connection lookup |
-| `get_connection_user_permissions()` | 720-736 | `connections.get_user_permissions()` | Permission query |
-| `grant_connection_permission()` | 1777-1810 | `connections.grant_permission()` | Legacy method |
-
-### ConnectionGroup Domain (`conngroups.py`)
-| Current Method | Lines | Module Function | Notes |
-|---------------|-------|-------------------|-------|
-| `connection_group_exists()` | 1675-1689 | `conngroups.exists()` | Uses resolver |
-| `create_connection_group()` | 2128-2208 | `conngroups.create()` | Hierarchy validation |
-| `delete_connection_group()` | 1291-1351 | `conngroups.delete()` | Update children, **remove inline commit** |
-| `modify_connection_group_parent()` | 2329-2386 | `conngroups.set_parent()` | Cycle detection |
-| `_check_connection_group_cycle()` | 2082-2126 | `conngroups.check_cycle()` | Validation helper |
-| `get_connection_group_id()` | 1567-1632 | `conngroups.resolve_path()` | Hierarchical path resolution |
-| `get_connection_group_id_by_name()` | 609-649 | Use `resolve_connection_group_id()` from base.py | Moved to base |
-| `list_connection_groups()` | 2388-2423 | `conngroups.list_with_details()` | Hierarchy + connections |
-| `get_connection_group_by_id()` | 2425-2466 | `conngroups.get_by_id()` | Single group lookup |
-
-### Shared Utilities (Move to `base.py`)
-| Current Method | Lines | Target Location | Signature |
-|---------------|-------|-----------------|-----------|
-| `resolve_connection_id()` | 2512-2587 | `base.py` | `resolve_connection_id(cursor, connection_name=None, connection_id=None) -> int` |
-| `resolve_conngroup_id()` | 2589-2639 | `base.py` | `resolve_connection_group_id(cursor, group_name=None, group_id=None) -> int` |
-| `resolve_usergroup_id()` | 2641-2688 | `base.py` | `resolve_usergroup_id(cursor, group_name=None, group_id=None) -> int` |
-| `validate_positive_id()` | 2502-2510 | `base.py` | `validate_positive_id(id_value, entity_type) -> int` |
-| `get_connection_name_by_id()` | 2468-2483 | `base.py` | `get_connection_name_by_id(cursor, connection_id) -> str` |
-| `get_connection_group_name_by_id()` | 2485-2500 | `base.py` | `get_connection_group_name_by_id(cursor, group_id) -> str` |
-| `get_usergroup_name_by_id()` | 2704-2740 | `base.py` | `get_usergroup_name_by_id(cursor, group_id) -> str` |
-| `usergroup_exists_by_id()` | 2690-2702 | `base.py` or `UserGroupRepository` | Helper for ID validation |
-
-### Security & Debugging (Move to dedicated modules)
-| Current Method | Lines | Target Location | Notes |
-|---------------|-------|-----------------|-------|
-| `_scrub_credentials()` | 98-154 | `security.py` | `scrub_credentials(message: str) -> str` |
-| `debug_print()` | 156-194 | Façade only | Delegates to logger + scrub_credentials |
-| `debug_connection_permissions()` | 2788-2882 | `ConnectionRepository` or remove | Debug utility |
-
-### Configuration (Move to `config_loader.py`)
-| Current Method | Lines | Target Location | Notes |
-|---------------|-------|-----------------|-------|
-| `read_config()` | 239-352 | `config_loader.py` | `load_config(config_file: str) -> ConnectionConfig` |
-| `connect_db()` | 354-380 | `DatabaseSession.__init__()` in `base.py` | Connection creation logic |
-
-## Appendix B: Simple Exception Handling
-
-### Approach
-- Use existing `ValueError` exceptions throughout for backwards compatibility
-- Wrap `mysql.connector.Error` with descriptive error messages
-- No complex exception hierarchy needed for CLI tool
-
-### Parameter Dictionary Deduplication
-- **Current Issue**: Lines 551-607 in `db.py` override the imported `USER_PARAMETERS`
-- **Fix**: Delete lines 551-607, keep import from `db_user_parameters.py`
-- **Result**: Use canonical parameter definitions consistently
-
-## Success Criteria
-
-### **Functional Requirements**
-- ✅ `GuacamoleDB` façade remains functionally equivalent for CLI and existing consumers
-- ✅ **All 14 bats integration tests pass without modification**
-- ✅ **All CLI handlers (`cli_handle_*.py`) work without code changes**
-- ✅ Exception types remain `ValueError` for backwards compatibility at façade layer
-- ✅ `debug_print()` method preserved and functional
-
-### **Architectural Requirements**
-- ✅ Each domain's logic resides in its own module/service with dedicated tests
-- ✅ New `guacalib/guac_db.py` becomes thin façade (~300-500 lines)
-- ✅ Old `guacalib/db.py` deprecated and eventually removed (3313 → 0 lines)
-- ✅ Transaction management centralized in modules/context manager (no inline commits in repositories)
-- ✅ Credential scrubbing centralized in `security.py` and reused across layers
-- ✅ ID resolvers centralized in `base.py` as shared utilities
-- ✅ USER_PARAMETERS duplication eliminated (lines 551-607 deleted, use import from canonical source)
-
-### **Testing Requirements**
-- ✅ New pytest unit tests cover repositories (SQL correctness) and modules (business logic)
-- ✅ Test suite includes both `pytest` (fast unit tests) and `bats` (integration regression)
-- ✅ Documentation reflects modular architecture, testing strategy, and migration approach
-
-### **Migration Validation**
-After each phase, verify:
-1. Run `export TEST_CONFIG=/home/rm/.guacaman.ini && make tests` → all green
-2. Check CLI handlers unchanged: `git diff guacalib/cli_handle_*.py` → no changes
-3. Verify façade size: `wc -l guacalib/guac_db.py` → trending toward target (~300-500 lines)
-4. Check imports work: `python -c "from guacalib import GuacamoleDB; print(GuacamoleDB)"` → success
-5. Run smoke test: Create user, grant permission, list users via CLI → success
+- ✅ All method signatures unchanged
+- ✅ All return types unchanged
+- ✅ All exceptions unchanged (ValueError throughout)
+- ✅ All CLI handlers require zero import changes
 
 ---
 
-## Plan Revision Summary
+## Success Criteria
 
-### 📅 **Revision History**
+### **Phase 1-3 (Fix Duplication and Transactions)**
+- ✅ USER_PARAMETERS duplication eliminated (P1 resolved)
+- ✅ ID resolvers centralized in db_utils.py (P3 resolved)
+- ✅ Redundant commits removed (P2 resolved)
+- ✅ All 14 bats tests pass (100% green)
+- ✅ All 5 CLI handlers unchanged (1442 lines)
+- ✅ Backwards compatibility maintained
+- ✅ Lines of code reduced: ~310 lines
 
-**Revision 2 (2025-10-23)** - Code Analysis & Validation
-- Verified all line number references against actual codebase (db.py confirmed at 3313 lines)
-- Validated method-to-module mapping accuracy (spot-checked Appendix A)
-- Confirmed 14 bats test files and CLI handler structure (1442 total lines)
-- **Critical findings addressed**:
-  - USER_PARAMETERS duplication is MORE severe than documented (lines 551-607 completely override import)
-  - logging_config.py already exists with full implementation - no need to create from scratch
-  - Façade placement: changed from `facade/guac_db.py` to `guac_db.py` at package root for simpler imports
-  - Import strategy clarified: `guacalib/__init__.py` exports ensure zero breaking changes
+### **Phase 4 (Plan Repository Layer)**
+- ✅ Responsibility matrix created (method → layer mapping)
+- ✅ Repository API contracts documented
+- ✅ Transaction boundaries documented
+- ✅ Facade delegation strategy designed
+- ✅ Migration path defined (Phases 5-10)
 
-### ✅ **Original Plan Strengths (Revision 1)**
-1. **Added Connection Groups as First-Class Entity**: Explicit `ConnectionGroupRepository` and `ConnectionGroupService` with hierarchy management and cycle detection
-2. **Clarified Resolver Placement**: All ID resolvers (`resolve_*_id`, `get_*_name_by_id`, `validate_positive_id`) moved to `base.py` as shared utilities
-3. **Defined Permission Management Structure**: Permissions embedded in entity repositories (e.g., `UserRepository.grant_connection_permission()`) rather than separate permission module
-4. **Exception Translation Strategy**: Complete mapping from current `ValueError` → GuacError subclasses → façade conversion for backwards compatibility
-5. **Transaction Refactoring Approach**: Explicit strategy to remove inline commits (lines 1284, 1341) and rely on context manager
-6. **Testing Strategy Details**: Choice between mock cursors vs transactional test database, with bats as regression safety net
-7. **Naming Standardization**: Consistent use of `connection_group` throughout (not `conngroup`)
-8. **Config Loader Specification**: Preserves environment variable support and error messaging from current `read_config()`
-9. **CLI Handler Success Criterion**: Zero code changes required to handlers - validated with `git diff`
+### **Phase 5-9 (Extract Repositories)**
+- ✅ Walking skeleton validated (Phase 5 users_repo.py)
+- ✅ All repositories extracted (users, usergroups, connections, conngroups, permissions)
+- ✅ Each repository is stateless (accepts cursor, returns data)
+- ✅ All 14 bats tests pass after each phase
+- ✅ Zero breaking changes for CLI handlers
 
-### 🔧 **Revision 2 Improvements**
-1. **USER_PARAMETERS Duplication (Appendix C)**:
-   - Corrected file sizes: db_connection_parameters.py (917 lines), db_user_parameters.py (92 lines)
-   - Documented severity: Lines 551-607 completely replace import (worse than initially described)
-   - Explicit deletion strategy: Remove lines 551-607, preserve lines 15 and 68
+### **Phase 10 (Create Facade)**
+- ✅ GuacamoleDB facade is thin orchestration layer (~400 lines)
+- ✅ No SQL queries in guac_db.py (delegated to repositories)
+- ✅ db.py deprecated with re-export (backwards compatible)
+- ✅ All 14 bats tests pass (100% green)
+- ✅ Documentation updated (README.md, CLAUDE.md)
+- ✅ Mixed responsibilities resolved (P4) ✅
 
-2. **File Structure Refinement**:
-   - Changed façade location: `guacalib/guac_db.py` (not `guacalib/facade/guac_db.py`)
-   - Rationale: Minimizes import path changes, simplifies `__init__.py` exports
-   - Added NEW/EXISTING/DEPRECATED markers to architecture diagram for clarity
+---
 
-3. **Import Compatibility Strategy (New Section)**:
-   - Simple 3-phase implementation (Infrastructure, Domain Migration, Façade Completion)
-   - Explicit guarantees: Zero changes to CLI handlers, zero breaking changes to library users
-   - Validation checkpoint: `from guacalib import GuacamoleDB` must work identically
+## Definition of Done (Per Phase)
 
-4. **Phase 0 Prototype Scope**:
-   - Explicitly skip password hashing complexity initially
-   - Focus on 2-3 simple methods to validate architecture
-   - Include 1 permission method to test cross-entity patterns
-   - Validate import strategy as part of prototype
+**Each phase is considered complete when:**
+1. ✅ Code changes committed to git
+2. ✅ All 14 bats tests passing (100% green)
+3. ✅ CLI handlers unchanged (verified with `git diff guacalib/cli_handle_*.py`)
+4. ✅ Smoke tests passed manually
+5. ✅ Metrics documented (lines changed, duplication removed, etc.)
+6. ✅ Decision point reached (continue or stop)
 
-5. **Phase 1 Clarifications**:
-   - Document that logging_config.py exists - enhance, don't replace
-   - Integrate credential scrubbing with existing logging utilities
-   - Clarify __init__.py export strategy
+---
 
-6. **Phase 3 Enhancements**:
-   - Explicit USER_PARAMETERS fix steps
-   - Import path update: `from .guac_db import GuacamoleDB`
-   - Verification that CLI handlers need zero changes
+## Risk Management
 
-7. **Migration Validation Updates**:
-   - Changed façade path reference: `guac_db.py` (not `facade/guac_db.py`)
-   - Added import verification checkpoint
+### **Risk Log**
 
-### 📋 **Comprehensive Appendices (Revision 1)**
-- **Appendix A**: Complete method-to-module mapping with line numbers (115 methods mapped) ✅ Validated accurate
-- **Appendix B**: Exception translation table with conversion patterns
-- **Appendix C**: Parameter dictionary deduplication plan ✅ Updated with severity and explicit fix
+| Risk | Severity | Mitigation | Owner |
+|------|----------|------------|-------|
+| Transaction commit removal breaks multi-step operations | MEDIUM | Thorough analysis in Phase 3.1, extensive testing, easy rollback | Developer |
+| ID resolver extraction changes behavior | LOW | Preserve exact logic, comprehensive test coverage | Developer |
+| Import changes break external users | LOW | No import changes in Phases 1-4, façade pattern in Phase 5+ | Developer |
+| Domain split adds complexity without benefit | MEDIUM | Phase 4 measure-and-decide gate, walking skeleton approach | Developer |
 
-### 🎯 **Phase 0 Addition (Revision 1)**
-- New planning phase for detailed mapping document
-- Prototype approach: Build ONE domain end-to-end before full migration ✅ Enhanced with specific scope
-- Lessons learned capture before proceeding
+### **Rollback Strategy**
+- Each phase is a separate git commit
+- Revert command: `git reset --hard <phase-N-commit>`
+- All phases are independent - can stop at any point without breaking changes
 
-### ✅ **Validation Status**
-- ✅ Line numbers verified against codebase
-- ✅ File structure validated (no data_access/ or facade/ directories exist yet)
-- ✅ Existing infrastructure identified (logging_config.py, parameter files)
-- ✅ Import strategy tested against CLI handler patterns
-- ✅ Method mappings spot-checked for accuracy
+---
 
-**This plan is now READY FOR EXECUTION with code-verified mappings, clarified import strategy, and enhanced Phase 0 prototype scope.**
+## Non-Functional Requirements
+
+### **Performance**
+- **Target:** No degradation in query execution time
+- **Measurement:** Compare bats test suite runtime before/after
+- **Acceptable:** ±5% variance
+
+### **Reliability**
+- **Target:** 100% bats test pass rate maintained
+- **Measurement:** All 14 tests green after every phase
+
+### **Security**
+- **Target:** Credential scrubbing preserved
+- **Measurement:** Verify `_scrub_credentials()` still called in all log/error paths
+
+### **Maintainability**
+- **Target:** Reduced code duplication, clearer separation of concerns
+- **Measurement:**
+  - Duplication: 0 instances of USER_PARAMETERS
+  - Utility code: Centralized in db_utils.py
+  - Lines of code: Reduced by ~310 in Phases 1-3
+
+---
+
+## Comparison: Before vs After
+
+### **Before (Current State)**
+```
+guacalib/db.py: 3313 lines
+- Mixed responsibilities: config, transactions, SQL, validation, permissions, logging
+- Duplication: USER_PARAMETERS (57 lines)
+- Redundant commits: 2 instances
+- Utility functions: Scattered throughout
+- Hard to test: Requires full database context for all operations
+- Fragile: Changes ripple across unrelated domains
+```
+
+### **After Phase 1-3 (Quick Wins)**
+```
+guacalib/db.py: ~3003 lines (−310 lines)
+guacalib/db_utils.py: ~253 lines (NEW)
+- Duplication eliminated: USER_PARAMETERS, redundant commits
+- Utilities extracted: ID resolvers centralized
+- Still monolithic: Mixed responsibilities remain
+```
+
+### **After Phase 4-10 (Final Architecture)**
+```
+guacalib/guac_db.py: ~400 lines (thin facade)
+  ├─ Config loading, connection management, context manager
+  ├─ Credential scrubbing utility
+  └─ Thin delegation methods (≤3 lines each)
+
+guacalib/users_repo.py: ~450 lines (user CRUD SQL)
+guacalib/usergroups_repo.py: ~350 lines (usergroup CRUD SQL)
+guacalib/connections_repo.py: ~600 lines (connection CRUD SQL)
+guacalib/conngroups_repo.py: ~400 lines (conngroup CRUD SQL)
+guacalib/permissions_repo.py: ~500 lines (permission grant/deny SQL)
+guacalib/db_utils.py: ~253 lines (ID resolvers, validation)
+guacalib/db.py: ~10 lines (deprecation re-export)
+
+Total LOC: ~2963 (−350 lines due to eliminated duplication)
+
+Benefits:
+- ✅ Clear separation: Each repository has single responsibility
+- ✅ Testable: Can unit test SQL logic without context manager
+- ✅ Safe changes: Modify connections without risk to users
+- ✅ Clear contracts: Repositories accept cursor, return data (stateless)
+- ✅ Easy navigation: Find code by domain, not line number
+- ✅ Onboarding: Understand one repository at a time
+- ✅ Transaction boundaries: Documented and enforced by facade
+```
+
+---
+
+## Appendix A: Method-to-Repository Mapping
+
+**Reference:** Detailed method-to-repository mapping for Phases 5-9 execution.
+
+### User Repository (`users_repo.py`) - Phase 5
+| Current Method | Lines | Repository Function | Notes |
+|---------------|-------|---------------------|-------|
+| `user_exists()` | 517-548 | `user_exists(cursor, username)` | Validation helper |
+| `create_user()` | 1353-1419 | `create_user(cursor, username, password, ...)` | Password hashing logic |
+| `delete_existing_user()` | 1018-1106 | `delete_user(cursor, username)` | Multi-table cascade delete |
+| `modify_user()` | 944-1016 | `modify_user_parameter(cursor, username, parameter, value)` | Parameter validation |
+| `change_user_password()` | 875-942 | `change_user_password(cursor, username, new_password)` | New salt + hash |
+| `list_users()` | 382-411 | `list_users(cursor)` | Simple query |
+
+### UserGroup Repository (`usergroups_repo.py`) - Phase 6
+| Current Method | Lines | Repository Function | Notes |
+|---------------|-------|---------------------|-------|
+| `usergroup_exists()` | 444-475 | `usergroup_exists(cursor, usergroup_name)` | Validation helper |
+| `create_usergroup()` | 1421-1460 | `create_usergroup(cursor, usergroup_name, ...)` | Entity + group record |
+| `delete_existing_usergroup()` | 1108-1161 | `delete_usergroup(cursor, usergroup_name)` | Cascade delete |
+| `list_usergroups()` | 413-442 | `list_usergroups(cursor)` | Simple query |
+
+### Connection Repository (`connections_repo.py`) - Phase 7
+| Current Method | Lines | Repository Function | Notes |
+|---------------|-------|---------------------|-------|
+| `connection_exists()` | 1634-1673 | `connection_exists(cursor, connection_name, connection_id)` | Uses resolver |
+| `create_connection()` | 1691-1775 | `create_connection(cursor, protocol, name, ...)` | Connection + parameters |
+| `delete_existing_connection()` | 1224-1289 | `delete_connection(cursor, connection_id)` | Cascade delete |
+| `modify_connection()` | 738-873 | `modify_connection_parameter(cursor, connection_id, parameter, value)` | Two-table parameter handling |
+
+### ConnectionGroup Repository (`conngroups_repo.py`) - Phase 8
+| Current Method | Lines | Repository Function | Notes |
+|---------------|-------|---------------------|-------|
+| `connection_group_exists()` | 1675-1689 | `connection_group_exists(cursor, conngroup_name, conngroup_id)` | Uses resolver |
+| `create_connection_group()` | 2128-2208 | `create_connection_group(cursor, name, group_type, ...)` | Hierarchy validation |
+| `delete_connection_group()` | 1291-1351 | `delete_connection_group(cursor, conngroup_id)` | Update children |
+| `_check_connection_group_cycle()` | 2082-2126 | `check_connection_group_cycle(cursor, group_id, parent_id)` | Validation helper |
+
+### Permissions Repository (`permissions_repo.py`) - Phase 9
+| Current Method Domain | Lines Range | Repository Functions | Notes |
+|----------------------|-------------|----------------------|-------|
+| User-to-Connection permissions | Various | `grant_user_connection(cursor, ...)`, `deny_user_connection(cursor, ...)` | INSERT/DELETE in permission tables |
+| User-to-ConnGroup permissions | Various | `grant_user_conngroup(cursor, ...)`, `deny_user_conngroup(cursor, ...)` | INSERT/DELETE in permission tables |
+| UserGroup-to-Connection permissions | Various | `grant_usergroup_connection(cursor, ...)`, `deny_usergroup_connection(cursor, ...)` | INSERT/DELETE in permission tables |
+| UserGroup-to-ConnGroup permissions | Various | `grant_usergroup_conngroup(cursor, ...)`, `deny_usergroup_conngroup(cursor, ...)` | INSERT/DELETE in permission tables |
+| Permission listing | Various | `list_user_permissions(cursor, ...)`, `list_usergroup_permissions(cursor, ...)` | Query permission tables |
+
+---
+
+## Appendix B: Resolved Issues from Previous Revisions
+
+### **Issues Fixed in Revision 5 (from Revision 4):**
+1. ✅ **Removed conditional decision gate** - Phase 4 now plans repositories, doesn't decide
+2. ✅ **Reclassified P4** - From "LOW - Monolithic File" to "HIGH - Mixed Responsibilities"
+3. ✅ **Added splitting justification** - Clear rationale based on testability, safety, clarity (not LLM limits)
+4. ✅ **Detailed Phases 5-10** - Concrete extraction steps for each repository
+5. ✅ **Committed to final architecture** - guac_db.py facade + 5 repositories + db_utils.py
+6. ✅ **Updated success criteria** - Phase-by-phase outcomes documented
+7. ✅ **Walking skeleton approach** - Phase 5 validates before continuing
+
+### **Issues Fixed in Revision 4 (from Revision 3):**
+1. ✅ **Removed security.py** - Single function, no duplication, keep in façade
+2. ✅ **Removed errors.py** - ValueError sufficient, no custom exceptions needed
+3. ✅ **Removed db_base.py** - Simplified to db_utils.py (utilities only), config stays in façade
+4. ✅ **Fixed transaction documentation** - Lines 1284, 1341 marked for removal
+5. ✅ **Added evidence-based approach** - Problem statement documents actual pain points
+6. ✅ **Added PLAN.md compliance** - YAGNI, KISS, TDD alignment throughout
+
+### **Complexity Comparison:**
+- **Revision 3:** 8 new files (db_base.py, users.py, usergroups.py, connections.py, conngroups.py, guac_db.py, security.py, errors.py)
+- **Revision 4 (Conditional):** 1-5 new files depending on Phase 4 decision
+- **Revision 5 (Committed):** 7 new files (db_utils.py + 5 repositories + guac_db.py) + 1 deprecated (db.py → re-export)
+
+---
+
+## Plan Revision History
+
+### **Revision 5 (2025-10-24)** - Repository Pattern Committed
+- **Commitment to splitting**: Phase 4 decision gate removed, repository extraction committed
+- **P4 reclassified**: From "LOW - Monolithic File" to "HIGH - Mixed Responsibilities"
+- **Justification added**: Clear rationale for splitting (testability, safety, clarity, not LLM limits)
+- **Phases 5-10 detailed**: Concrete extraction steps for each repository (users, usergroups, connections, conngroups, permissions)
+- **Walking skeleton**: Phase 5 validates approach before continuing
+- **Final architecture**: guac_db.py facade (~400 lines) + 5 repositories + db_utils.py
+- **Risk management**: Each phase independently testable, reversible via git
+- **Documentation plan**: Update README.md, CLAUDE.md, add migration guide
+
+### **Revision 4 (2025-10-23)** - PLAN.md Compliance (Superseded)
+- **PLAN.md alignment**: Evidence-driven, incremental, YAGNI/KISS compliant
+- **Problem statement**: Documented actual pain points (P1-P4) with code evidence
+- **Minimal viable refactor**: Phases 1-3 fix real bugs without speculation
+- **Conditional domain split**: Phase 4 decision gate based on measured impact
+- **Removed overengineering**: Eliminated security.py, errors.py, simplified db_base.py to db_utils.py
+- **Issue:** Left decision to split as conditional, delaying commitment
+
+### **Revision 3 (2025-10-23)** - Simplified (Superseded)
+- Removed module/service pattern, no dependency injection
+- **Issue:** Still added 8 new files without evidence of need
+
+### **Revision 2 (2025-10-23)** - Code Analysis & Validation (Superseded)
+- Verified line numbers against actual codebase
+- **Issue:** Preserved overengineered architecture from Revision 1
+
+### **Revision 1 (Original)** - Enterprise Architecture (Superseded)
+- Module/service pattern with dependency injection
+- **Issue:** Severe overengineering for CLI tool
+
+**This plan is now READY FOR EXECUTION with clear commitment to repository extraction, evidence-driven approach, and incremental delivery.**
