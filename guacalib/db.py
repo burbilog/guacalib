@@ -14,6 +14,7 @@ from mysql.connector.connection import MySQLConnection
 from .db_connection_parameters import CONNECTION_PARAMETERS
 from .db_user_parameters import USER_PARAMETERS
 from .logging_config import get_logger
+from . import db_utils
 
 # Custom type definitions
 ConnectionConfig = Dict[str, str]
@@ -2410,16 +2411,7 @@ class GuacamoleDB:
     def get_connection_name_by_id(self, connection_id: int) -> Optional[str]:
         """Get connection name by ID"""
         try:
-            self.cursor.execute(
-                """
-                SELECT connection_name 
-                FROM guacamole_connection 
-                WHERE connection_id = %s
-            """,
-                (connection_id,),
-            )
-            result = self.cursor.fetchone()
-            return result[0] if result else None
+            return db_utils.get_connection_name_by_id(self.cursor, connection_id)
         except mysql.connector.Error as e:
             self.logger.error(f"Error getting connection name by ID: {self._scrub_credentials(str(e))}")
             raise
@@ -2427,16 +2419,7 @@ class GuacamoleDB:
     def get_connection_group_name_by_id(self, group_id: int) -> Optional[str]:
         """Get connection group name by ID"""
         try:
-            self.cursor.execute(
-                """
-                SELECT connection_group_name 
-                FROM guacamole_connection_group 
-                WHERE connection_group_id = %s
-            """,
-                (group_id,),
-            )
-            result = self.cursor.fetchone()
-            return result[0] if result else None
+            return db_utils.get_connection_group_name_by_id(self.cursor, group_id)
         except mysql.connector.Error as e:
             self.logger.error(f"Error getting connection group name by ID: {self._scrub_credentials(str(e))}")
             raise
@@ -2445,11 +2428,7 @@ class GuacamoleDB:
         self, id_value: Optional[int], entity_type: str = "entity"
     ) -> Optional[int]:
         """Validate that ID is a positive integer"""
-        if id_value is not None and id_value <= 0:
-            raise ValueError(
-                f"{entity_type} ID must be a positive integer greater than 0"
-            )
-        return id_value
+        return db_utils.validate_positive_id(id_value, entity_type)
 
     def resolve_connection_id(
         self, connection_name: Optional[str] = None, connection_id: Optional[int] = None
@@ -2482,152 +2461,19 @@ class GuacamoleDB:
             ...     # Resolve by ID (validates existence)
             ...     conn_id = db.resolve_connection_id(connection_id=123)
         """
-        # Validate exactly one parameter provided
-        if (connection_name is None) == (connection_id is None):
-            raise ValueError(
-                "Exactly one of connection_name or connection_id must be provided"
-            )
-
-        # If ID provided, validate and return it
-        if connection_id is not None:
-            if connection_id <= 0:
-                raise ValueError(
-                    "Connection ID must be a positive integer greater than 0"
-                )
-
-            # Verify the connection exists
-            try:
-                self.cursor.execute(
-                    """
-                    SELECT connection_id FROM guacamole_connection
-                    WHERE connection_id = %s
-                """,
-                    (connection_id,),
-                )
-                result = self.cursor.fetchone()
-                if not result:
-                    raise ValueError(f"Connection with ID {connection_id} not found")
-                return connection_id
-            except mysql.connector.Error as e:
-                raise ValueError(f"Database error while resolving connection ID: {e}")
-
-        # If name provided, resolve to ID
-        if connection_name is not None:
-            try:
-                self.cursor.execute(
-                    """
-                    SELECT connection_id FROM guacamole_connection
-                    WHERE connection_name = %s
-                """,
-                    (connection_name,),
-                )
-                result = self.cursor.fetchone()
-                if not result:
-                    raise ValueError(f"Connection '{connection_name}' not found")
-                return result[0]
-            except mysql.connector.Error as e:
-                raise ValueError(f"Database error while resolving connection name: {e}")
+        return db_utils.resolve_connection_id(self.cursor, connection_name, connection_id)
 
     def resolve_conngroup_id(
         self, group_name: Optional[str] = None, group_id: Optional[int] = None
     ) -> int:
         """Validate inputs and resolve to connection_group_id with centralized validation"""
-        # Validate exactly one parameter provided
-        if (group_name is None) == (group_id is None):
-            raise ValueError("Exactly one of group_name or group_id must be provided")
-
-        # If ID provided, validate and return it
-        if group_id is not None:
-            if group_id <= 0:
-                raise ValueError(
-                    "Connection group ID must be a positive integer greater than 0"
-                )
-
-            # Verify the connection group exists
-            try:
-                self.cursor.execute(
-                    """
-                    SELECT connection_group_id FROM guacamole_connection_group
-                    WHERE connection_group_id = %s
-                """,
-                    (group_id,),
-                )
-                result = self.cursor.fetchone()
-                if not result:
-                    raise ValueError(f"Connection group with ID {group_id} not found")
-                return group_id
-            except mysql.connector.Error as e:
-                raise ValueError(
-                    f"Database error while resolving connection group ID: {e}"
-                )
-
-        # If name provided, resolve to ID
-        if group_name is not None:
-            try:
-                self.cursor.execute(
-                    """
-                    SELECT connection_group_id FROM guacamole_connection_group
-                    WHERE connection_group_name = %s
-                """,
-                    (group_name,),
-                )
-                result = self.cursor.fetchone()
-                if not result:
-                    raise ValueError(f"Connection group '{group_name}' not found")
-                return result[0]
-            except mysql.connector.Error as e:
-                raise ValueError(
-                    f"Database error while resolving connection group name: {e}"
-                )
+        return db_utils.resolve_conngroup_id(self.cursor, group_name, group_id)
 
     def resolve_usergroup_id(
         self, group_name: Optional[str] = None, group_id: Optional[int] = None
     ) -> int:
         """Validate inputs and resolve to user_group_id with centralized validation"""
-        # Validate exactly one parameter provided
-        if (group_name is None) == (group_id is None):
-            raise ValueError("Exactly one of group_name or group_id must be provided")
-
-        # If ID provided, validate and return it
-        if group_id is not None:
-            if group_id <= 0:
-                raise ValueError(
-                    "Usergroup ID must be a positive integer greater than 0"
-                )
-
-            # Verify the usergroup exists
-            try:
-                self.cursor.execute(
-                    """
-                    SELECT user_group_id FROM guacamole_user_group
-                    WHERE user_group_id = %s
-                """,
-                    (group_id,),
-                )
-                result = self.cursor.fetchone()
-                if not result:
-                    raise ValueError(f"Usergroup with ID {group_id} not found")
-                return group_id
-            except mysql.connector.Error as e:
-                raise ValueError(f"Database error while resolving usergroup ID: {e}")
-
-        # If name provided, resolve to ID
-        if group_name is not None:
-            try:
-                self.cursor.execute(
-                    """
-                    SELECT user_group_id FROM guacamole_user_group g
-                    JOIN guacamole_entity e ON g.entity_id = e.entity_id
-                    WHERE e.name = %s
-                """,
-                    (group_name,),
-                )
-                result = self.cursor.fetchone()
-                if not result:
-                    raise ValueError(f"Usergroup '{group_name}' not found")
-                return result[0]
-            except mysql.connector.Error as e:
-                raise ValueError(f"Database error while resolving usergroup name: {e}")
+        return db_utils.resolve_usergroup_id(self.cursor, group_name, group_id)
 
     def usergroup_exists_by_id(self, group_id: int) -> bool:
         """Check if a usergroup exists by ID"""
@@ -2665,21 +2511,7 @@ class GuacamoleDB:
             ...     print(f"Group name: {name}")
             Group name: admin-group
         """
-        try:
-            self.cursor.execute(
-                """
-                SELECT e.name FROM guacamole_entity e
-                JOIN guacamole_user_group g ON e.entity_id = g.entity_id
-                WHERE g.user_group_id = %s
-            """,
-                (group_id,),
-            )
-            result = self.cursor.fetchone()
-            if not result:
-                raise ValueError(f"Usergroup with ID {group_id} not found")
-            return result[0]
-        except mysql.connector.Error as e:
-            raise ValueError(f"Database error while getting usergroup name: {e}")
+        return db_utils.get_usergroup_name_by_id(self.cursor, group_id)
 
     def list_groups_with_users(self) -> Dict[str, List[str]]:
         """List all user groups with their associated users.
