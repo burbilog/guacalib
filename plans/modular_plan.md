@@ -240,9 +240,16 @@ Start with the simplest solution that works; add complexity only with evidence.
   - [ ] 3.1.1. Document which operations are multi-step (require transaction atomicity)
   - [ ] 3.1.2. Verify context manager commit (line 226) handles all normal flows
   - [ ] 3.1.3. Identify if inline commits serve a purpose (e.g., partial commit before next step)
+  - [ ] 3.1.4. Verify all call sites use GuacamoleDB context manager
+    ```bash
+    # Check delete_existing_connection and delete_connection_group call sites
+    grep -rn "\.delete_existing_connection\|\.delete_connection_group" guacalib/cli_handle_*.py
+    ```
+    Expected: All calls are within `with GuacamoleDB() as db:` block
 
   **Acceptance Criteria:**
   - Transaction boundaries documented
+  - All call sites confirmed to use context manager (no direct instantiation)
   - Decision recorded: remove inline commits OR keep with justification
 
 - [ ] **3.2. Remove redundant commits (if analysis confirms safe)**
