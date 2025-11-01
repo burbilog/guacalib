@@ -6,20 +6,20 @@
 
 ## Executive Summary
 
-This plan addresses **documented code quality issues** in the 3313-line `guacalib/db.py` through incremental, evidence-based refactoring - while maintaining **100% backwards compatibility** for all 14 bats tests and 5 CLI handlers (1442 lines).
+This plan addresses **documented code quality issues** in the 3313-line `guacalib/db.py` through incremental, evidence-based refactoring - while maintaining **100% backwards compatibility** for all 132 bats test cases and 5 CLI handlers (1442 lines).
 
 **What Changed in Revision 5 (Committed to Repository Pattern):**
 - ✅ **Evidence-driven approach**: Documented actual pain points (P1-P4) with code evidence
 - ✅ **Incremental execution**: 10 phases, each independently shippable
 - ✅ **YAGNI compliance**: Repository pattern justified by mixed responsibilities (P4)
-- ✅ **TDD alignment**: All changes validated by existing 14 bats tests
+- ✅ **TDD alignment**: All changes validated by existing 132 bats test cases
 - ✅ **Clear commitment**: Phases 1-3 fix duplication/transactions, Phases 4-10 extract repositories
 - ✅ **Walking skeleton**: Phase 5 validates approach before continuing
 - ✅ **Thin facade**: GuacamoleDB becomes orchestration layer (~400 lines)
 
 **Goal:** Achieve **modularity and maintainability** through clear layer separation (repositories for SQL, facade for orchestration), not to satisfy LLM context limits. Better LLM usability is a side benefit of well-factored code.
 
-**Risk Level**: 🟢 **Very Low** - Small, incremental changes validated by 14 bats tests after each step.
+**Risk Level**: 🟢 **Very Low** - Small, incremental changes validated by 132 bats test cases after each step.
 
 ---
 
@@ -108,7 +108,7 @@ Start with the simplest solution that works; add complexity only with evidence.
 
 ### **Approach:**
 1. **Solve Today's Problem** - Fix documented bugs and duplication (P1-P3)
-2. **Test-Driven** - All changes validated by existing 14 bats tests
+2. **Test-Driven** - All changes validated by existing 132 bats test cases
 3. **Incremental** - Each phase is a complete, shippable improvement
 4. **Optimize Last** - Defer domain splitting (P4) until evidence proves necessity
 
@@ -132,7 +132,7 @@ Start with the simplest solution that works; add complexity only with evidence.
   - [ ] 0.1.3. Create git branch: `git checkout -b refactor/incremental-cleanup`
 
   **Acceptance Criteria:**
-  - All 14 bats tests pass (100% green)
+  - All 132 bats test cases pass (100% green)
   - Baseline metrics documented for comparison
 
 ---
@@ -158,7 +158,7 @@ Start with the simplest solution that works; add complexity only with evidence.
   - [ ] 1.2.3. Test user modification: `guacaman user modify --username testuser --disabled 1`
 
   **Acceptance Criteria:**
-  - All 14 bats tests pass (100% green)
+  - All 132 bats test cases pass (100% green)
   - User modification commands work identically
 
 - [ ] **1.3. Commit changes**
@@ -168,7 +168,7 @@ Start with the simplest solution that works; add complexity only with evidence.
   **Success Metrics:**
   - Lines of code: -57
   - Duplication: 0 instances
-  - Tests passing: 14/14
+  - Tests passing: 132/132
 
 ---
 
@@ -214,7 +214,7 @@ Start with the simplest solution that works; add complexity only with evidence.
   - [ ] 2.3.3. Test connection group hierarchy: `guacaman conngroup create --name "parent/child"`
 
   **Acceptance Criteria:**
-  - All 14 bats tests pass (100% green)
+  - All 132 bats test cases pass (100% green)
   - ID resolution works identically for connections, connection groups, usergroups
 
 - [ ] **2.4. Commit changes**
@@ -225,7 +225,7 @@ Start with the simplest solution that works; add complexity only with evidence.
   - Lines in db.py: -253
   - New file: db_utils.py (~253 lines)
   - Duplication eliminated: 7 utility functions centralized
-  - Tests passing: 14/14
+  - Tests passing: 132/132
 
 ---
 
@@ -261,7 +261,7 @@ Start with the simplest solution that works; add complexity only with evidence.
   - [ ] 3.3.3. Test rollback: Trigger error mid-operation, verify no partial commits
 
   **Acceptance Criteria:**
-  - All 14 bats tests pass (100% green)
+  - All 132 bats test cases pass (100% green)
   - Delete operations commit exactly once
   - Rollback works correctly on errors
 
@@ -272,7 +272,7 @@ Start with the simplest solution that works; add complexity only with evidence.
   **Success Metrics:**
   - Redundant commits: 0 (down from 2)
   - Transaction boundaries: Clear and documented
-  - Tests passing: 14/14
+  - Tests passing: 132/132
 
 ---
 
@@ -346,7 +346,7 @@ This conflation makes the code:
 
   **Success Criteria:**
   - Each phase has clear scope (one repository at a time)
-  - Each phase is independently testable (14 bats tests pass)
+  - Each phase is independently testable (132 bats test cases pass)
   - Walking skeleton approach (end-to-end before next domain)
 
 ---
@@ -392,7 +392,7 @@ This conflation makes the code:
   - [ ] 5.3.3. Verify CLI handlers unchanged: `git diff guacalib/cli_handle_user.py`
 
   **Acceptance Criteria:**
-  - All 14 bats tests pass (100% green)
+  - All 132 bats test cases pass (100% green)
   - User operations identical to pre-refactor
 
 - [ ] **5.4. Commit changes**
@@ -402,7 +402,7 @@ This conflation makes the code:
   **Success Metrics:**
   - Lines in db.py: -450
   - New file: users_repo.py (~450 lines)
-  - Tests passing: 14/14
+  - Tests passing: 132/132
   - Walking skeleton validated ✅
 
 ---
@@ -433,7 +433,7 @@ This conflation makes the code:
   **Success Metrics:**
   - Lines in db.py: -350
   - New file: usergroups_repo.py (~350 lines)
-  - Tests passing: 14/14
+  - Tests passing: 132/132
 
 ---
 
@@ -464,7 +464,7 @@ This conflation makes the code:
   **Success Metrics:**
   - Lines in db.py: -600
   - New file: connections_repo.py (~600 lines)
-  - Tests passing: 14/14
+  - Tests passing: 132/132
 
 ---
 
@@ -494,7 +494,7 @@ This conflation makes the code:
   **Success Metrics:**
   - Lines in db.py: -400
   - New file: conngroups_repo.py (~400 lines)
-  - Tests passing: 14/14
+  - Tests passing: 132/132
 
 ---
 
@@ -525,7 +525,7 @@ This conflation makes the code:
   **Success Metrics:**
   - Lines in db.py: -500
   - New file: permissions_repo.py (~500 lines)
-  - Tests passing: 14/14
+  - Tests passing: 132/132
 
 ---
 
@@ -577,7 +577,7 @@ This conflation makes the code:
   - guac_db.py: ~400 lines (thin facade)
   - db.py: ~10 lines (deprecation re-export)
   - Total LOC unchanged (code moved, not added)
-  - Tests passing: 14/14
+  - Tests passing: 132/132
   - Zero breaking changes ✅
 
 ---
@@ -617,7 +617,7 @@ guacalib/
 ## Testing Strategy
 
 ### **Primary Safety Net**
-- **14 bats integration tests** run after EVERY phase
+- **132 bats test cases** across 14 test files run after EVERY phase
 - **Success criterion:** 100% pass rate (no regressions allowed)
 - **Command:** `export TEST_CONFIG=/home/rm/.guacaman.ini && make tests`
 
@@ -667,7 +667,7 @@ from guacalib import GuacamoleDB
 - ✅ USER_PARAMETERS duplication eliminated (P1 resolved)
 - ✅ ID resolvers centralized in db_utils.py (P3 resolved)
 - ✅ Redundant commits removed (P2 resolved)
-- ✅ All 14 bats tests pass (100% green)
+- ✅ All 132 bats test cases pass (100% green)
 - ✅ All 5 CLI handlers unchanged (1442 lines)
 - ✅ Backwards compatibility maintained
 - ✅ Lines of code reduced: ~310 lines
@@ -683,14 +683,14 @@ from guacalib import GuacamoleDB
 - ✅ Walking skeleton validated (Phase 5 users_repo.py)
 - ✅ All repositories extracted (users, usergroups, connections, conngroups, permissions)
 - ✅ Each repository is stateless (accepts cursor, returns data)
-- ✅ All 14 bats tests pass after each phase
+- ✅ All 132 bats test cases pass after each phase
 - ✅ Zero breaking changes for CLI handlers
 
 ### **Phase 10 (Create Facade)**
 - ✅ GuacamoleDB facade is thin orchestration layer (~400 lines)
 - ✅ No SQL queries in guac_db.py (delegated to repositories)
 - ✅ db.py deprecated with re-export (backwards compatible)
-- ✅ All 14 bats tests pass (100% green)
+- ✅ All 132 bats test cases pass (100% green)
 - ✅ Documentation updated (README.md, CLAUDE.md)
 - ✅ Mixed responsibilities resolved (P4) ✅
 
@@ -700,7 +700,7 @@ from guacalib import GuacamoleDB
 
 **Each phase is considered complete when:**
 1. ✅ Code changes committed to git
-2. ✅ All 14 bats tests passing (100% green)
+2. ✅ All 132 bats test cases passing (100% green)
 3. ✅ CLI handlers unchanged (verified with `git diff guacalib/cli_handle_*.py`)
 4. ✅ Smoke tests passed manually
 5. ✅ Metrics documented (lines changed, duplication removed, etc.)
@@ -735,7 +735,7 @@ from guacalib import GuacamoleDB
 
 ### **Reliability**
 - **Target:** 100% bats test pass rate maintained
-- **Measurement:** All 14 tests green after every phase
+- **Measurement:** All 132 test cases green after every phase
 
 ### **Security**
 - **Target:** Credential scrubbing preserved
