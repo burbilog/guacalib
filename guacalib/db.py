@@ -226,11 +226,14 @@ class GuacamoleDB:
                 if exc_type is None:
                     self.conn.commit()
                     self.debug_print("Transaction committed successfully")
+                elif exc_type is SystemExit:
+                    # SystemExit (from sys.exit()) is used for normal CLI termination
+                    # Commit the transaction before exiting
+                    self.conn.commit()
+                    self.debug_print("Transaction committed successfully before SystemExit")
                 else:
                     self.conn.rollback()
-                    # Only log rollback for non-SystemExit exceptions to avoid test noise
-                    if exc_type is not SystemExit:
-                        self.logger.warning(f"Transaction rolled back due to {exc_type.__name__}")
+                    self.logger.warning(f"Transaction rolled back due to {exc_type.__name__}")
             finally:
                 if self.debug:
                     self.debug_print("Closing database connection")
@@ -1222,9 +1225,7 @@ class GuacamoleDB:
                 (resolved_connection_id,),
             )
 
-            # Commit the transaction
-            self.debug_print("Committing transaction...")
-            self.conn.commit()
+            # Transaction will be committed by context manager
             self.debug_print(f"Successfully deleted connection '{connection_name}'")
 
         except mysql.connector.Error as e:
@@ -1279,9 +1280,7 @@ class GuacamoleDB:
                 (resolved_group_id,),
             )
 
-            # Commit the transaction
-            self.debug_print("Committing transaction...")
-            self.conn.commit()
+            # Transaction will be committed by context manager
             self.debug_print(f"Successfully deleted connection group '{group_name}'")
             return True
 
