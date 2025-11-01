@@ -243,18 +243,16 @@ Start with the simplest solution that works; add complexity only with evidence.
 
 ---
 
-### **Phase 3 - Fix Transaction Handling** (Est: 1.5 hours)
+### **Phase 3 - Fix Transaction Handling** ✅ (COMPLETED)
 **Outcome:** Redundant commits removed, transaction boundaries clarified.
 
 **Problem Addressed:** P2 (Redundant Transaction Commits - MEDIUM)
 
-**⚠️ RISK:** This changes transaction behavior. Requires careful testing.
-
-- [ ] **3.1. Analyze transaction boundaries**
-  - [ ] 3.1.1. Document which operations are multi-step (require transaction atomicity)
-  - [ ] 3.1.2. Verify context manager commit (line 226) handles all normal flows
-  - [ ] 3.1.3. Identify if inline commits serve a purpose (e.g., partial commit before next step)
-  - [ ] 3.1.4. Verify all call sites use GuacamoleDB context manager
+- [x] **3.1. Analyze transaction boundaries**
+  - [x] 3.1.1. Document which operations are multi-step (require transaction atomicity)
+  - [x] 3.1.2. Verify context manager commit (line 226) handles all normal flows
+  - [x] 3.1.3. Identify if inline commits serve a purpose (e.g., partial commit before next step)
+  - [x] 3.1.4. Verify all call sites use GuacamoleDB context manager
     ```bash
     # Check delete_existing_connection and delete_connection_group call sites
     grep -rn "\.delete_existing_connection\|\.delete_connection_group" guacalib/cli_handle_*.py
@@ -262,38 +260,45 @@ Start with the simplest solution that works; add complexity only with evidence.
     Expected: All calls are within `with GuacamoleDB() as db:` block
 
   **Acceptance Criteria:**
-  - Transaction boundaries documented
-  - All call sites confirmed to use context manager (no direct instantiation)
-  - Decision recorded: remove inline commits OR keep with justification
+  - ✅ Transaction boundaries documented
+  - ✅ All call sites confirmed to use context manager (no direct instantiation)
+  - ✅ Decision recorded: remove inline commits OR keep with justification
 
-- [ ] **3.2. Remove redundant commits (if analysis confirms safe)**
-  - [ ] 3.2.1. Remove commit at line 1284 in `delete_existing_connection()`
-  - [ ] 3.2.2. Remove commit at line 1341 in `delete_connection_group()`
-  - [ ] 3.2.3. Update docstrings to clarify: "Transaction committed by context manager"
-
-  **Acceptance Criteria:**
-  - Given a delete operation is called within GuacamoleDB context manager
-  - When the operation completes successfully
-  - Then the transaction is committed exactly once (by __exit__)
-
-- [ ] **3.3. Validate transaction behavior**
-  - [ ] 3.3.1. Run full bats test suite (especially delete operations)
-  - [ ] 3.3.2. Test multi-step operation: Create connection, grant permission, delete connection
-  - [ ] 3.3.3. Test rollback: Trigger error mid-operation, verify no partial commits
+- [x] **3.2. Remove redundant commits (if analysis confirms safe)**
+  - [x] 3.2.1. Remove commit at line 1284 in `delete_existing_connection()`
+  - [x] 3.2.2. Remove commit at line 1341 in `delete_connection_group()`
+  - [x] 3.2.3. Update docstrings to clarify: "Transaction committed by context manager"
 
   **Acceptance Criteria:**
-  - All 132 bats test cases pass (100% green)
-  - Delete operations commit exactly once
-  - Rollback works correctly on errors
+  - ✅ Given a delete operation is called within GuacamoleDB context manager
+  - ✅ When the operation completes successfully
+  - ✅ Then the transaction is committed exactly once (by __exit__)
 
-- [ ] **3.4. Commit changes**
-  - [ ] 3.4.1. Git commit: "fix: remove redundant transaction commits (lines 1284, 1341)"
-  - [ ] 3.4.2. Document reasoning in commit message
+- [x] **3.3. Validate transaction behavior**
+  - [x] 3.3.1. Run full bats test suite (especially delete operations)
+  - [x] 3.3.2. Test multi-step operation: Create connection, grant permission, delete connection
+  - [x] 3.3.3. Test rollback: Trigger error mid-operation, verify no partial commits
+
+  **Acceptance Criteria:**
+  - ✅ All 132 bats test cases pass (100% green)
+  - ✅ Delete operations commit exactly once
+  - ✅ Rollback works correctly on errors
+
+- [x] **3.4. Commit changes**
+  - [x] 3.4.1. Git commit: "fix: remove redundant transaction commits (lines 1284, 1341)"
+  - [x] 3.4.2. Document reasoning in commit message
 
   **Success Metrics:**
-  - Redundant commits: 0 (down from 2)
-  - Transaction boundaries: Clear and documented
-  - Tests passing: 132/132
+  - Redundant commits: 0 (down from 2) ✅
+  - Transaction boundaries: Clear and documented ✅
+  - Tests passing: 132/132 ✅
+
+  **Results:**
+  - ✅ Redundant commits removed from delete_existing_connection() and delete_connection_group()
+  - ✅ Fixed SystemExit handling to ensure CLI operations persist properly
+  - ✅ Context manager now handles SystemExit (sys.exit()) by committing transactions
+  - ✅ All 132 bats test cases pass (100% green)
+  - ✅ Commit hash: c4992d6
 
 ---
 
@@ -928,5 +933,13 @@ Benefits:
 ### **Revision 1 (Original)** - Enterprise Architecture (Superseded)
 - Module/service pattern with dependency injection
 - **Issue:** Severe overengineering for CLI tool
+
+### **Phase 3 Implementation (2025-11-01)** - Transaction Handling Complete
+- **Redundant commits removed**: Fixed delete_existing_connection() and delete_connection_group() inline commits
+- **SystemExit handling fixed**: Context manager now commits on SystemExit (sys.exit()) from CLI handlers
+- **Transaction boundaries clarified**: Single source of truth in context manager, all 132 tests pass
+- **Issue discovered and resolved**: CLI sys.exit() calls were preventing commits without inline commits
+- **All tests passing**: 132/132 bats test cases green, cleanup script functioning properly
+- **Commit hash**: c4992d6
 
 **This plan is now READY FOR EXECUTION with clear commitment to repository extraction, evidence-driven approach, and incremental delivery.**
