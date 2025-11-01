@@ -150,28 +150,28 @@ Start with the simplest solution that works; add complexity only with evidence.
 
 **Problem Addressed:** P1 (Code Duplication - HIGH)
 
-- [ ] **1.1. Remove USER_PARAMETERS override**
-  - [ ] 1.1.1. Delete lines 551-607 in `guacalib/db.py`
-  - [ ] 1.1.2. Verify import on line 15 remains: `from .db_user_parameters import USER_PARAMETERS`
-  - [ ] 1.1.3. Verify class attribute on line 68 remains: `USER_PARAMETERS = USER_PARAMETERS`
+- [x] **1.1. Remove USER_PARAMETERS override**
+  - [x] 1.1.1. Delete lines 551-607 in `guacalib/db.py`
+  - [x] 1.1.2. Verify import on line 15 remains: `from .db_user_parameters import USER_PARAMETERS`
+  - [x] 1.1.3. Verify class attribute on line 68 remains: `USER_PARAMETERS = USER_PARAMETERS`
 
   **Acceptance Criteria:**
   - Given db.py imports USER_PARAMETERS from db_user_parameters.py
   - When a user parameter is modified in db_user_parameters.py
   - Then the change is reflected in GuacamoleDB without duplicating edits
 
-- [ ] **1.2. Validate fix**
-  - [ ] 1.2.1. Run full bats test suite
-  - [ ] 1.2.2. Verify all tests pass (no regressions)
-  - [ ] 1.2.3. Test user modification: `guacaman user modify --username testuser --disabled 1`
+- [x] **1.2. Validate fix**
+  - [x] 1.2.1. Run full bats test suite
+  - [x] 1.2.2. Verify all tests pass (no regressions)
+  - [x] 1.2.3. Test user modification: `guacaman user modify --username testuser --disabled 1`
 
   **Acceptance Criteria:**
   - All 132 bats test cases pass (100% green)
   - User modification commands work identically
 
-- [ ] **1.3. Commit changes**
-  - [ ] 1.3.1. Git commit: "fix: remove USER_PARAMETERS duplication (lines 551-607)"
-  - [ ] 1.3.2. Document lines saved: 57 lines removed
+- [x] **1.3. Commit changes**
+  - [x] 1.3.1. Git commit: "fix: remove USER_PARAMETERS duplication (lines 551-607)"
+  - [x] 1.3.2. Document lines saved: 57 lines removed
 
   **Success Metrics:**
   - Lines of code: -57
