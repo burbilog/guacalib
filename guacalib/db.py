@@ -15,6 +15,7 @@ from .db_connection_parameters import CONNECTION_PARAMETERS
 from .db_user_parameters import USER_PARAMETERS
 from .logging_config import get_logger
 from . import db_utils
+from . import users_repo
 
 # Custom type definitions
 ConnectionConfig = Dict[str, str]
@@ -401,15 +402,7 @@ class GuacamoleDB:
             ...     print(f"Found users: {', '.join(users)}")
         """
         try:
-            self.cursor.execute(
-                """
-                SELECT name
-                FROM guacamole_entity
-                WHERE type = 'USER'
-                ORDER BY name
-            """
-            )
-            return [row[0] for row in self.cursor.fetchall()]
+            return users_repo.list_users(self.cursor)
         except mysql.connector.Error as e:
             self.logger.error(f"Failed to list users: {self._scrub_credentials(str(e))}")
             raise
@@ -539,14 +532,7 @@ class GuacamoleDB:
             ...         print("Admin user exists")
         """
         try:
-            self.cursor.execute(
-                """
-                SELECT COUNT(*) FROM guacamole_entity
-                WHERE name = %s AND type = 'USER'
-            """,
-                (username,),
-            )
-            return self.cursor.fetchone()[0] > 0
+            return users_repo.user_exists(self.cursor, username)
         except mysql.connector.Error as e:
             self.logger.error(f"Error checking user existence: {self._scrub_credentials(str(e))}")
             raise
@@ -844,45 +830,7 @@ class GuacamoleDB:
             ...     db.change_user_password('user1', 'newsecurepassword')
         """
         try:
-            # Generate random 32-byte salt
-            salt = os.urandom(32)
-
-            # Convert salt to uppercase hex string as Guacamole expects
-            salt_hex = binascii.hexlify(salt).upper()
-
-            # Create password hash using Guacamole's method: SHA256(password + hex(salt))
-            digest = hashlib.sha256(new_password.encode("utf-8") + salt_hex).digest()
-
-            # Get user entity_id
-            self.cursor.execute(
-                """
-                SELECT entity_id FROM guacamole_entity
-                WHERE name = %s AND type = 'USER'
-            """,
-                (username,),
-            )
-            result = self.cursor.fetchone()
-            if not result:
-                raise ValueError(f"User '{username}' not found")
-            entity_id = result[0]
-
-            # Update the password
-            self.cursor.execute(
-                """
-                UPDATE guacamole_user
-                SET password_hash = %s,
-                    password_salt = %s,
-                    password_date = NOW()
-                WHERE entity_id = %s
-            """,
-                (digest, salt, entity_id),
-            )
-
-            if self.cursor.rowcount == 0:
-                raise ValueError(f"Failed to update password for user '{username}'")
-
-            return True
-
+            return users_repo.change_user_password(self.cursor, username, new_password)
         except mysql.connector.Error as e:
             self.logger.error(f"Error changing password: {self._scrub_credentials(str(e))}")
             raise
@@ -918,45 +866,7 @@ class GuacamoleDB:
             ...     db.modify_user('user1', 'full_name', 'John Doe')
         """
         try:
-            # Validate parameter name
-            if param_name not in self.USER_PARAMETERS:
-                raise ValueError(
-                    f"Invalid parameter: {param_name}. Run 'guacaman user modify' without arguments to see allowed parameters."
-                )
-
-            # Validate parameter value based on type
-            param_type = self.USER_PARAMETERS[param_name]["type"]
-            if param_type == "tinyint":
-                if param_value not in ("0", "1"):
-                    raise ValueError(f"Parameter {param_name} must be 0 or 1")
-                param_value = int(param_value)
-
-            # Get user entity_id
-            self.cursor.execute(
-                """
-                SELECT entity_id FROM guacamole_entity
-                WHERE name = %s AND type = 'USER'
-            """,
-                (username,),
-            )
-            result = self.cursor.fetchone()
-            if not result:
-                raise ValueError(f"User '{username}' not found")
-            entity_id = result[0]
-
-            # Update the parameter
-            query = f"""
-                UPDATE guacamole_user
-                SET {param_name} = %s
-                WHERE entity_id = %s
-            """
-            self.cursor.execute(query, (param_value, entity_id))
-
-            if self.cursor.rowcount == 0:
-                raise ValueError(f"Failed to update user parameter: {param_name}")
-
-            return True
-
+            return users_repo.modify_user_parameter(self.cursor, username, param_name, param_value)
         except mysql.connector.Error as e:
             self.logger.error(f"Error modifying user parameter: {self._scrub_credentials(str(e))}")
             raise
@@ -986,67 +896,8 @@ class GuacamoleDB:
             ...     db.delete_existing_user('olduser')
         """
         try:
-            if not self.user_exists(username):
-                raise ValueError(f"User '{username}' not found")
-
             self.debug_print(f"Deleting user: {username}")
-            # Delete user group permissions first
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_user_group_permission
-                WHERE entity_id IN (
-                    SELECT entity_id FROM guacamole_entity
-                    WHERE name = %s AND type = 'USER'
-                )
-            """,
-                (username,),
-            )
-
-            # Delete user group memberships
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_user_group_member
-                WHERE member_entity_id IN (
-                    SELECT entity_id FROM guacamole_entity
-                    WHERE name = %s AND type = 'USER'
-                )
-            """,
-                (username,),
-            )
-
-            # Delete user permissions
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_connection_permission
-                WHERE entity_id IN (
-                    SELECT entity_id FROM guacamole_entity
-                    WHERE name = %s AND type = 'USER'
-                )
-            """,
-                (username,),
-            )
-
-            # Delete user
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_user
-                WHERE entity_id IN (
-                    SELECT entity_id FROM guacamole_entity
-                    WHERE name = %s AND type = 'USER'
-                )
-            """,
-                (username,),
-            )
-
-            # Delete entity
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_entity
-                WHERE name = %s AND type = 'USER'
-            """,
-                (username,),
-            )
-
+            users_repo.delete_user(self.cursor, username)
         except mysql.connector.Error as e:
             self.logger.error(f"Failed to delete user '{username}': {self._scrub_credentials(str(e))}")
             raise
@@ -1316,46 +1167,8 @@ class GuacamoleDB:
             ...     db.create_user('newuser', 'securepassword')
         """
         try:
-            # Generate random 32-byte salt
-            salt = os.urandom(32)
-
-            # Convert salt to uppercase hex string as Guacamole expects
-            salt_hex = binascii.hexlify(salt).upper()
-
-            # Create password hash using Guacamole's method: SHA256(password + hex(salt))
-            digest = hashlib.sha256(password.encode("utf-8") + salt_hex).digest()
-
-            # Get binary representations
-            password_hash = digest  # SHA256 hash of (password + hex(salt))
-            password_salt = salt  # Original raw bytes salt
-
-            # Create entity
-            self.cursor.execute(
-                """
-                INSERT INTO guacamole_entity (name, type)
-                VALUES (%s, 'USER')
-            """,
-                (username,),
-            )
-
-            # Create user with proper binary data
-            self.cursor.execute(
-                """
-                INSERT INTO guacamole_user
-                    (entity_id, password_hash, password_salt, password_date)
-                SELECT
-                    entity_id,
-                    %s,
-                    %s,
-                    NOW()
-            FROM guacamole_entity
-            WHERE name = %s AND type = 'USER'
-            """,
-                (password_hash, password_salt, username),
-            )
-
+            users_repo.create_user(self.cursor, username, password)
             self.logger.info(f"User '{username}' created successfully")
-
         except mysql.connector.Error as e:
             self.logger.error(f"Failed to create user '{username}': {self._scrub_credentials(str(e))}")
             raise

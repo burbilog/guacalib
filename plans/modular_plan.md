@@ -402,54 +402,54 @@ This conflation makes the code:
 
 **Walking Skeleton:** First end-to-end domain extraction to validate approach.
 
-- [ ] **5.1. Create users_repo.py**
-  - [ ] 5.1.1. Create `guacalib/users_repo.py` with module docstring
-  - [ ] 5.1.2. Extract SQL functions (preserve exact logic):
+- [x] **5.1. Create users_repo.py**
+  - [x] 5.1.1. Create `guacalib/users_repo.py` with module docstring
+  - [x] 5.1.2. Extract SQL functions (preserve exact logic):
     - `user_exists(cursor, username)` (lines 517-548)
     - `create_user(cursor, username, password, ...)` (lines 1353-1419)
     - `delete_user(cursor, username)` (lines 1018-1106)
     - `modify_user_parameter(cursor, username, parameter, value)` (lines 944-1016)
     - `change_user_password(cursor, username, new_password)` (lines 875-942)
     - `list_users(cursor)` (lines 382-411)
-  - [ ] 5.1.3. Add type hints to all function signatures
-  - [ ] 5.1.4. Import USER_PARAMETERS from db_user_parameters.py
+  - [x] 5.1.3. Add type hints to all function signatures
+  - [x] 5.1.4. Import USER_PARAMETERS from db_user_parameters.py
 
   **Acceptance Criteria:**
-  - All user SQL operations in users_repo.py
-  - Functions accept cursor as first parameter (stateless)
-  - No GuacamoleDB class dependencies
+  - ✅ All user SQL operations in users_repo.py
+  - ✅ Functions accept cursor as first parameter (stateless)
+  - ✅ No GuacamoleDB class dependencies
 
-- [ ] **5.2. Update GuacamoleDB to delegate**
-  - [ ] 5.2.1. Add import: `from . import users_repo`
-  - [ ] 5.2.2. Update methods to delegate:
+- [x] **5.2. Update GuacamoleDB to delegate**
+  - [x] 5.2.1. Add import: `from . import users_repo`
+  - [x] 5.2.2. Update methods to delegate:
     ```python
     def user_exists(self, username):
         return users_repo.user_exists(self.cursor, username)
     ```
-  - [ ] 5.2.3. Preserve all method signatures (backwards compatibility)
+  - [x] 5.2.3. Preserve all method signatures (backwards compatibility)
 
   **Acceptance Criteria:**
-  - GuacamoleDB methods are thin wrappers (≤3 lines each)
-  - No user SQL logic remains in db.py
+  - ✅ GuacamoleDB methods are thin wrappers (≤3 lines each)
+  - ✅ No user SQL logic remains in db.py
 
-- [ ] **5.3. Validate extraction**
-  - [ ] 5.3.1. Run full bats test suite
-  - [ ] 5.3.2. Test user operations: create, modify, delete, list
-  - [ ] 5.3.3. Verify CLI handlers unchanged: `git diff guacalib/cli_handle_user.py`
+- [x] **5.3. Validate extraction**
+  - [x] 5.3.1. Run full bats test suite
+  - [x] 5.3.2. Test user operations: create, modify, delete, list
+  - [x] 5.3.3. Verify CLI handlers unchanged: `git diff guacalib/cli_handle_user.py`
 
   **Acceptance Criteria:**
-  - All 132 bats test cases pass (100% green)
-  - User operations identical to pre-refactor
+  - ✅ All 132 bats test cases pass (100% green)
+  - ✅ User operations identical to pre-refactor
 
-- [ ] **5.4. Commit changes**
-  - [ ] 5.4.1. Git commit: "refactor: extract users repository to users_repo.py"
-  - [ ] 5.4.2. Document lines moved: ~450 lines to users_repo.py
+- [x] **5.4. Commit changes**
+  - [x] 5.4.1. Git commit: "refactor: extract users repository to users_repo.py"
+  - [x] 5.4.2. Document lines moved: ~450 lines to users_repo.py
 
   **Success Metrics:**
-  - Lines in db.py: -450
-  - New file: users_repo.py (~450 lines)
-  - Tests passing: 132/132
-  - Walking skeleton validated ✅
+  - ✅ Lines in db.py: -450
+  - ✅ New file: users_repo.py (~450 lines)
+  - ✅ Tests passing: 132/132
+  - ✅ Walking skeleton validated ✅
 
 ---
 
