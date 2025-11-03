@@ -16,6 +16,7 @@ from .db_user_parameters import USER_PARAMETERS
 from .logging_config import get_logger
 from . import db_utils
 from . import users_repo
+from . import usergroups_repo
 
 # Custom type definitions
 ConnectionConfig = Dict[str, str]
@@ -425,15 +426,7 @@ class GuacamoleDB:
             ...     print(f"Found groups: {', '.join(groups)}")
         """
         try:
-            self.cursor.execute(
-                """
-                SELECT name
-                FROM guacamole_entity
-                WHERE type = 'USER_GROUP'
-                ORDER BY name
-            """
-            )
-            return [row[0] for row in self.cursor.fetchall()]
+            return usergroups_repo.list_usergroups(self.cursor)
         except mysql.connector.Error as e:
             self.logger.error(f"Failed to list usergroups: {self._scrub_credentials(str(e))}")
             raise
@@ -459,14 +452,7 @@ class GuacamoleDB:
             ...         print("Admin group exists")
         """
         try:
-            self.cursor.execute(
-                """
-                SELECT COUNT(*) FROM guacamole_entity
-                WHERE name = %s AND type = 'USER_GROUP'
-            """,
-                (group_name,),
-            )
-            return self.cursor.fetchone()[0] > 0
+            return usergroups_repo.usergroup_exists(self.cursor, group_name)
         except mysql.connector.Error as e:
             self.logger.error(f"Error checking usergroup existence: {self._scrub_credentials(str(e))}")
             raise
@@ -905,54 +891,7 @@ class GuacamoleDB:
     def delete_existing_usergroup(self, group_name: str) -> None:
         try:
             self.debug_print(f"Deleting usergroup: {group_name}")
-            # Delete group memberships
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_user_group_member 
-                WHERE user_group_id IN (
-                    SELECT user_group_id FROM guacamole_user_group 
-                    WHERE entity_id IN (
-                        SELECT entity_id FROM guacamole_entity 
-                        WHERE name = %s AND type = 'USER_GROUP'
-                    )
-                )
-            """,
-                (group_name,),
-            )
-
-            # Delete group permissions
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_connection_permission 
-                WHERE entity_id IN (
-                    SELECT entity_id FROM guacamole_entity 
-                    WHERE name = %s AND type = 'USER_GROUP'
-                )
-            """,
-                (group_name,),
-            )
-
-            # Delete user group
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_user_group 
-                WHERE entity_id IN (
-                    SELECT entity_id FROM guacamole_entity 
-                    WHERE name = %s AND type = 'USER_GROUP'
-                )
-            """,
-                (group_name,),
-            )
-
-            # Delete entity
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_entity 
-                WHERE name = %s AND type = 'USER_GROUP'
-            """,
-                (group_name,),
-            )
-
+            usergroups_repo.delete_usergroup(self.cursor, group_name)
         except mysql.connector.Error as e:
             self.logger.error(f"Error deleting existing usergroup: {self._scrub_credentials(str(e))}")
             raise
@@ -1190,26 +1129,7 @@ class GuacamoleDB:
             ...     db.create_usergroup('developers')
         """
         try:
-            # Create entity
-            self.cursor.execute(
-                """
-                INSERT INTO guacamole_entity (name, type)
-                VALUES (%s, 'USER_GROUP')
-            """,
-                (group_name,),
-            )
-
-            # Create group
-            self.cursor.execute(
-                """
-                INSERT INTO guacamole_user_group (entity_id, disabled)
-                SELECT entity_id, FALSE
-                FROM guacamole_entity
-                WHERE name = %s AND type = 'USER_GROUP'
-            """,
-                (group_name,),
-            )
-
+            usergroups_repo.create_usergroup(self.cursor, group_name)
         except mysql.connector.Error as e:
             self.logger.error(f"Error creating usergroup: {self._scrub_credentials(str(e))}")
             raise
