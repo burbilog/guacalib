@@ -19,6 +19,7 @@ from . import users_repo
 from . import usergroups_repo
 from . import connections_repo
 from . import conngroups_repo
+from . import permissions_repo
 
 # Custom type definitions
 ConnectionConfig = Dict[str, str]
@@ -640,17 +641,7 @@ class GuacamoleDB:
     def get_connection_user_permissions(self, connection_name: str) -> List[str]:
         """Get list of users with direct permissions to a connection"""
         try:
-            self.cursor.execute(
-                """
-                SELECT e.name
-                FROM guacamole_connection c
-                JOIN guacamole_connection_permission cp ON c.connection_id = cp.connection_id
-                JOIN guacamole_entity e ON cp.entity_id = e.entity_id
-                WHERE c.connection_name = %s AND e.type = 'USER'
-            """,
-                (connection_name,),
-            )
-            return [row[0] for row in self.cursor.fetchall()]
+            return permissions_repo.get_connection_user_permissions(self.cursor, connection_name)
         except mysql.connector.Error as e:
             self.logger.error(f"Error getting connection user permissions: {self._scrub_credentials(str(e))}")
             raise
@@ -939,47 +930,7 @@ class GuacamoleDB:
 
     def add_user_to_usergroup(self, username: str, group_name: str) -> None:
         try:
-            # Get the group ID
-            group_id = self.get_usergroup_id(group_name)
-
-            # Get the user's entity ID
-            self.cursor.execute(
-                """
-                SELECT entity_id 
-                FROM guacamole_entity 
-                WHERE name = %s AND type = 'USER'
-            """,
-                (username,),
-            )
-            user_entity_id = self.cursor.fetchone()[0]
-
-            # Add user to group
-            self.cursor.execute(
-                """
-                INSERT INTO guacamole_user_group_member 
-                (user_group_id, member_entity_id)
-                VALUES (%s, %s)
-            """,
-                (group_id, user_entity_id),
-            )
-
-            # Grant group permissions to user
-            self.cursor.execute(
-                """
-                INSERT INTO guacamole_user_group_permission
-                (entity_id, affected_user_group_id, permission)
-                SELECT %s, %s, 'READ'
-                FROM dual
-                WHERE NOT EXISTS (
-                    SELECT 1 FROM guacamole_user_group_permission
-                    WHERE entity_id = %s 
-                    AND affected_user_group_id = %s 
-                    AND permission = 'READ'
-                )
-            """,
-                (user_entity_id, group_id, user_entity_id, group_id),
-            )
-
+            permissions_repo.add_user_to_usergroup(self.cursor, username, group_name)
             self.debug_print(
                 f"Successfully added user '{username}' to usergroup '{group_name}'"
             )
@@ -990,50 +941,7 @@ class GuacamoleDB:
 
     def remove_user_from_usergroup(self, username: str, group_name: str) -> None:
         try:
-            # Get the group ID
-            group_id = self.get_usergroup_id(group_name)
-
-            # Get the user's entity ID
-            self.cursor.execute(
-                """
-                SELECT entity_id 
-                FROM guacamole_entity 
-                WHERE name = %s AND type = 'USER'
-            """,
-                (username,),
-            )
-            user_entity_id = self.cursor.fetchone()[0]
-
-            # Check if user is actually in the group
-            self.cursor.execute(
-                """
-                SELECT COUNT(*) 
-                FROM guacamole_user_group_member
-                WHERE user_group_id = %s AND member_entity_id = %s
-            """,
-                (group_id, user_entity_id),
-            )
-            if self.cursor.fetchone()[0] == 0:
-                raise ValueError(f"User '{username}' is not in group '{group_name}'")
-
-            # Remove user from group
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_user_group_member
-                WHERE user_group_id = %s AND member_entity_id = %s
-            """,
-                (group_id, user_entity_id),
-            )
-
-            # Revoke group permissions from user
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_user_group_permission
-                WHERE entity_id = %s AND affected_user_group_id = %s
-            """,
-                (user_entity_id, group_id),
-            )
-
+            permissions_repo.remove_user_from_usergroup(self.cursor, username, group_name)
             self.debug_print(
                 f"Successfully removed user '{username}' from usergroup '{group_name}'"
             )
@@ -1202,30 +1110,15 @@ class GuacamoleDB:
         try:
             if group_path:
                 self.debug_print(f"Processing group path: {group_path}")
+            permissions_repo.grant_connection_permission(
+                self.cursor, entity_name, entity_type, connection_id, group_path
+            )
+            if group_path:
                 parent_group_id = self.get_connection_group_id(group_path)
-
                 self.debug_print(
                     f"Assigning connection {connection_id} to parent group {parent_group_id}"
                 )
-                self.cursor.execute(
-                    """
-                    UPDATE guacamole_connection
-                    SET parent_id = %s
-                    WHERE connection_id = %s
-                """,
-                    (parent_group_id, connection_id),
-                )
-
             self.debug_print(f"Granting permission to {entity_type}:{entity_name}")
-            self.cursor.execute(
-                """
-                INSERT INTO guacamole_connection_permission (entity_id, connection_id, permission)
-                SELECT entity.entity_id, %s, 'READ'
-                FROM guacamole_entity entity
-                WHERE entity.name = %s AND entity.type = %s
-            """,
-                (connection_id, entity_name, entity_type),
-            )
 
         except mysql.connector.Error as e:
             self.logger.error(f"Error granting connection permission: {self._scrub_credentials(str(e))}")
@@ -1566,56 +1459,9 @@ class GuacamoleDB:
     ) -> bool:
         """Grant connection permission to a specific user"""
         try:
-            # Get connection ID
-            self.cursor.execute(
-                """
-                SELECT connection_id FROM guacamole_connection
-                WHERE connection_name = %s
-            """,
-                (connection_name,),
+            return permissions_repo.grant_connection_permission_to_user(
+                self.cursor, username, connection_name
             )
-            result = self.cursor.fetchone()
-            if not result:
-                raise ValueError(f"Connection '{connection_name}' not found")
-            connection_id = result[0]
-
-            # Get user entity ID
-            self.cursor.execute(
-                """
-                SELECT entity_id FROM guacamole_entity
-                WHERE name = %s AND type = 'USER'
-            """,
-                (username,),
-            )
-            result = self.cursor.fetchone()
-            if not result:
-                raise ValueError(f"User '{username}' not found")
-            entity_id = result[0]
-
-            # Check if permission already exists
-            self.cursor.execute(
-                """
-                SELECT 1 FROM guacamole_connection_permission
-                WHERE entity_id = %s AND connection_id = %s
-            """,
-                (entity_id, connection_id),
-            )
-            if self.cursor.fetchone():
-                raise ValueError(
-                    f"User '{username}' already has permission for connection '{connection_name}'"
-                )
-
-            # Grant permission
-            self.cursor.execute(
-                """
-                INSERT INTO guacamole_connection_permission
-                (entity_id, connection_id, permission)
-                VALUES (%s, %s, 'READ')
-            """,
-                (entity_id, connection_id),
-            )
-
-            return True
 
         except mysql.connector.Error as e:
             self.logger.error(f"Error granting connection permission: {self._scrub_credentials(str(e))}")
@@ -1626,55 +1472,9 @@ class GuacamoleDB:
     ) -> bool:
         """Revoke connection permission from a specific user"""
         try:
-            # Get connection ID
-            self.cursor.execute(
-                """
-                SELECT connection_id FROM guacamole_connection
-                WHERE connection_name = %s
-            """,
-                (connection_name,),
+            return permissions_repo.revoke_connection_permission_from_user(
+                self.cursor, username, connection_name
             )
-            result = self.cursor.fetchone()
-            if not result:
-                raise ValueError(f"Connection '{connection_name}' not found")
-            connection_id = result[0]
-
-            # Get user entity ID
-            self.cursor.execute(
-                """
-                SELECT entity_id FROM guacamole_entity
-                WHERE name = %s AND type = 'USER'
-            """,
-                (username,),
-            )
-            result = self.cursor.fetchone()
-            if not result:
-                raise ValueError(f"User '{username}' not found")
-            entity_id = result[0]
-
-            # Check if permission exists
-            self.cursor.execute(
-                """
-                SELECT 1 FROM guacamole_connection_permission
-                WHERE entity_id = %s AND connection_id = %s
-            """,
-                (entity_id, connection_id),
-            )
-            if not self.cursor.fetchone():
-                raise ValueError(
-                    f"User '{username}' has no permission for connection '{connection_name}'"
-                )
-
-            # Revoke permission
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_connection_permission
-                WHERE entity_id = %s AND connection_id = %s
-            """,
-                (entity_id, connection_id),
-            )
-
-            return True
 
         except mysql.connector.Error as e:
             self.logger.error(f"Error revoking connection permission: {self._scrub_credentials(str(e))}")
@@ -2153,31 +1953,13 @@ class GuacamoleDB:
                         f"Updating existing permission '{permission_type}' to 'READ' for user '{actual_username}'"
                     )
 
-            # Grant permission (INSERT or UPDATE if unexpected permission exists)
-            if existing_permission and existing_permission[0] != "READ":
-                self.cursor.execute(
-                    """
-                    UPDATE guacamole_connection_group_permission
-                    SET permission = 'READ'
-                    WHERE entity_id = %s AND connection_group_id = %s
-                """,
-                    (entity_id, connection_group_id),
-                )
-                self.debug_print(
-                    f"Updated permission to 'READ' for user '{actual_username}' on connection group '{actual_conngroup_name}'"
-                )
-            else:
-                self.cursor.execute(
-                    """
-                    INSERT INTO guacamole_connection_group_permission
-                    (entity_id, connection_group_id, permission)
-                    VALUES (%s, %s, 'READ')
-                """,
-                    (entity_id, connection_group_id),
-                )
-                self.debug_print(
-                    f"Granted 'READ' permission to user '{actual_username}' for connection group '{actual_conngroup_name}'"
-                )
+            # Grant permission
+            permissions_repo.grant_connection_group_permission_to_user(
+                self.cursor, username, conngroup_name
+            )
+            self.debug_print(
+                f"Granted 'READ' permission to user '{actual_username}' for connection group '{actual_conngroup_name}'"
+            )
 
             return True
         except mysql.connector.Error as e:
@@ -2195,78 +1977,9 @@ class GuacamoleDB:
             raise ValueError("Connection group name must be a non-empty string")
 
         try:
-            # Get connection group ID
-            self.cursor.execute(
-                """
-                SELECT connection_group_id, connection_group_name FROM guacamole_connection_group
-                WHERE connection_group_name = %s
-                LIMIT 1
-            """,
-                (conngroup_name,),
+            return permissions_repo.revoke_connection_group_permission_from_user(
+                self.cursor, username, conngroup_name
             )
-            result = self.cursor.fetchone()
-            if not result:
-                self.debug_print(
-                    f"Connection group lookup failed for: {conngroup_name}"
-                )
-                raise ValueError(f"Connection group '{conngroup_name}' not found")
-            connection_group_id, actual_conngroup_name = result
-
-            # Get user entity ID
-            self.cursor.execute(
-                """
-                SELECT entity_id, name FROM guacamole_entity
-                WHERE name = %s AND type = 'USER'
-                LIMIT 1
-            """,
-                (username,),
-            )
-            result = self.cursor.fetchone()
-            if not result:
-                self.debug_print(f"User lookup failed for: {username}")
-                raise ValueError(f"User '{username}' not found")
-            entity_id, actual_username = result
-
-            # Check if permission exists and get its type
-            self.cursor.execute(
-                """
-                SELECT permission FROM guacamole_connection_group_permission
-                WHERE entity_id = %s AND connection_group_id = %s
-                LIMIT 1
-            """,
-                (entity_id, connection_group_id),
-            )
-            existing_permission = self.cursor.fetchone()
-            if not existing_permission:
-                raise ValueError(
-                    f"User '{actual_username}' has no permission for connection group '{actual_conngroup_name}'"
-                )
-
-            permission_type = existing_permission[0]
-            self.debug_print(
-                f"Revoking '{permission_type}' permission from user '{actual_username}' for connection group '{actual_conngroup_name}'"
-            )
-
-            # Revoke permission
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_connection_group_permission
-                WHERE entity_id = %s AND connection_group_id = %s
-                LIMIT 1
-            """,
-                (entity_id, connection_group_id),
-            )
-
-            # Verify deletion was successful
-            if self.cursor.rowcount == 0:
-                raise ValueError(
-                    f"Failed to revoke permission - no rows affected. Permission may have been removed by another operation."
-                )
-
-            self.debug_print(
-                f"Successfully revoked '{permission_type}' permission from user '{actual_username}' for connection group '{actual_conngroup_name}'"
-            )
-            return True
         except mysql.connector.Error as e:
             error_msg = f"Database error revoking connection group permission for user '{username}' on group '{conngroup_name}': {e}"
             self.logger.error(self._scrub_credentials(error_msg))
@@ -2374,31 +2087,13 @@ class GuacamoleDB:
                         f"Updating existing permission '{permission_type}' to 'READ' for user '{actual_username}'"
                     )
 
-            # Grant permission (INSERT or UPDATE if unexpected permission exists)
-            if existing_permission and existing_permission[0] != "READ":
-                self.cursor.execute(
-                    """
-                    UPDATE guacamole_connection_group_permission
-                    SET permission = 'READ'
-                    WHERE entity_id = %s AND connection_group_id = %s
-                """,
-                    (entity_id, actual_conngroup_id),
-                )
-                self.debug_print(
-                    f"Updated permission to 'READ' for user '{actual_username}' on connection group ID '{actual_conngroup_id}'"
-                )
-            else:
-                self.cursor.execute(
-                    """
-                    INSERT INTO guacamole_connection_group_permission
-                    (entity_id, connection_group_id, permission)
-                    VALUES (%s, %s, 'READ')
-                """,
-                    (entity_id, actual_conngroup_id),
-                )
-                self.debug_print(
-                    f"Granted 'READ' permission to user '{actual_username}' for connection group ID '{actual_conngroup_id}'"
-                )
+            # Grant permission
+            permissions_repo.grant_connection_group_permission_to_user_by_id(
+                self.cursor, username, conngroup_id
+            )
+            self.debug_print(
+                f"Granted 'READ' permission to user '{actual_username}' for connection group ID '{actual_conngroup_id}'"
+            )
 
             return True
         except mysql.connector.Error as e:
@@ -2473,21 +2168,9 @@ class GuacamoleDB:
             )
 
             # Revoke permission
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_connection_group_permission
-                WHERE entity_id = %s AND connection_group_id = %s
-                LIMIT 1
-            """,
-                (entity_id, actual_conngroup_id),
+            permissions_repo.revoke_connection_group_permission_from_user_by_id(
+                self.cursor, username, conngroup_id
             )
-
-            # Verify deletion was successful
-            if self.cursor.rowcount == 0:
-                raise ValueError(
-                    f"Failed to revoke permission - no rows affected. Permission may have been removed by another operation."
-                )
-
             self.debug_print(
                 f"Successfully revoked '{permission_type}' permission from user '{actual_username}' for connection group ID '{actual_conngroup_id}'"
             )
