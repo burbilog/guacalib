@@ -453,33 +453,42 @@ This conflation makes the code:
 
 ---
 
-### **Phase 6 - Extract UserGroups Repository** (Est: 2 hours)
+### **Phase 6 - Extract UserGroups Repository** (Est: 2 hours) ✅ (COMPLETED)
 **Outcome:** User group CRUD operations moved to `usergroups_repo.py`.
 
-- [ ] **6.1. Create usergroups_repo.py**
-  - [ ] 6.1.1. Create `guacalib/usergroups_repo.py` with module docstring
-  - [ ] 6.1.2. Extract SQL functions:
+- [x] **6.1. Create usergroups_repo.py**
+  - [x] 6.1.1. Create `guacalib/usergroups_repo.py` with module docstring
+  - [x] 6.1.2. Extract SQL functions:
     - `usergroup_exists(cursor, usergroup_name)` (lines 444-475)
     - `create_usergroup(cursor, usergroup_name, ...)` (lines 1421-1460)
     - `delete_usergroup(cursor, usergroup_name)` (lines 1108-1161)
     - `list_usergroups(cursor)` (lines 413-442)
-  - [ ] 6.1.3. Add type hints
+  - [x] 6.1.3. Add type hints
 
-- [ ] **6.2. Update GuacamoleDB to delegate**
-  - [ ] 6.2.1. Add import: `from . import usergroups_repo`
-  - [ ] 6.2.2. Update methods to delegate (thin wrappers)
+- [x] **6.2. Update GuacamoleDB to delegate**
+  - [x] 6.2.1. Add import: `from . import usergroups_repo`
+  - [x] 6.2.2. Update methods to delegate (thin wrappers)
 
-- [ ] **6.3. Validate extraction**
-  - [ ] 6.3.1. Run full bats test suite
-  - [ ] 6.3.2. Test usergroup operations
+- [x] **6.3. Validate extraction**
+  - [x] 6.3.1. Run full bats test suite
+  - [x] 6.3.2. Test usergroup operations
 
-- [ ] **6.4. Commit changes**
-  - [ ] 6.4.1. Git commit: "refactor: extract usergroups repository"
+- [x] **6.4. Commit changes**
+  - [x] 6.4.1. Git commit: "refactor: extract usergroups repository"
 
   **Success Metrics:**
-  - Lines in db.py: -350
-  - New file: usergroups_repo.py (~350 lines)
-  - Tests passing: 132/132
+  - Lines in db.py: -145 ✅
+  - New file: usergroups_repo.py (180 lines) ✅
+  - Tests passing: 132/132 ✅
+
+  **Results:**
+  - ✅ All usergroup SQL operations extracted with complete documentation and type hints
+  - ✅ All GuacamoleDB methods now delegate to usergroups_repo functions
+  - ✅ 100% backwards compatibility maintained
+  - ✅ Zero breaking changes for CLI handlers
+  - ✅ All 12 usergroup bats tests passing
+  - ✅ CLI functionality validated
+  - ✅ Commit hash: 75f9768
 
 ---
 
