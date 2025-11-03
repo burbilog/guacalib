@@ -18,6 +18,7 @@ from . import db_utils
 from . import users_repo
 from . import usergroups_repo
 from . import connections_repo
+from . import conngroups_repo
 
 # Custom type definitions
 ConnectionConfig = Dict[str, str]
@@ -865,59 +866,23 @@ class GuacamoleDB:
     ) -> bool:
         """Delete a connection group and update references to it"""
         try:
-            # Use resolver to get group_id and validate inputs
-            resolved_group_id = self.resolve_conngroup_id(group_name, group_id)
-
             # Get group name for logging if we only have ID
-            if group_name is None:
-                group_name = self.get_connection_group_name_by_id(resolved_group_id)
+            group_name_display = None
+            if group_name is None and group_id is not None:
+                group_name_display = self.get_connection_group_name_by_id(group_id)
 
             self.debug_print(
-                f"Attempting to delete connection group: {group_name} (ID: {resolved_group_id})"
+                f"Attempting to delete connection group: {group_name_display or group_name} (ID: {group_id})"
             )
 
-            # Update any child groups to have NULL parent
-            self.debug_print("Updating child groups to have NULL parent...")
-            self.cursor.execute(
-                """
-                UPDATE guacamole_connection_group
-                SET parent_id = NULL
-                WHERE parent_id = %s
-            """,
-                (resolved_group_id,),
-            )
-
-            # Update any connections to have NULL parent
-            self.debug_print("Updating connections to have NULL parent...")
-            self.cursor.execute(
-                """
-                UPDATE guacamole_connection
-                SET parent_id = NULL
-                WHERE parent_id = %s
-            """,
-                (resolved_group_id,),
-            )
-
-            # Delete the group
-            self.debug_print("Deleting connection group...")
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_connection_group
-                WHERE connection_group_id = %s
-            """,
-                (resolved_group_id,),
-            )
+            result = conngroups_repo.delete_connection_group(self.cursor, group_name, group_id)
 
             # Transaction will be committed by context manager
-            self.debug_print(f"Successfully deleted connection group '{group_name}'")
-            return True
+            self.debug_print(f"Successfully deleted connection group '{group_name_display or group_name}'")
+            return result
 
         except mysql.connector.Error as e:
             self.logger.error(f"Error deleting connection group: {self._scrub_credentials(str(e))}")
-            raise
-
-        except mysql.connector.Error as e:
-            self.logger.error(f"Error deleting existing connection: {self._scrub_credentials(str(e))}")
             raise
 
     def create_user(self, username: str, password: str) -> None:
@@ -1182,13 +1147,7 @@ class GuacamoleDB:
     ) -> bool:
         """Check if a connection group with the given name or ID exists"""
         try:
-            # Use resolver to validate inputs and get group_id
-            resolved_group_id = self.resolve_conngroup_id(group_name, group_id)
-            # If resolver succeeds, connection group exists
-            return True
-        except ValueError:
-            # If resolver fails with "not found", connection group doesn't exist
-            return False
+            return conngroups_repo.connection_group_exists(self.cursor, group_name, group_id)
         except mysql.connector.Error as e:
             self.logger.error(f"Error checking connection group existence: {self._scrub_credentials(str(e))}")
             raise
@@ -1566,27 +1525,7 @@ class GuacamoleDB:
             >>> db._check_connection_group_cycle(1, 3)  # Returns True
             >>> db._check_connection_group_cycle(4, None)  # Returns False
         """
-        if parent_id is None:
-            return False
-
-        current_parent = parent_id
-        while current_parent is not None:
-            if current_parent == group_id:
-                return True
-
-            # Get next parent
-            self.cursor.execute(
-                """
-                SELECT parent_id 
-                FROM guacamole_connection_group
-                WHERE connection_group_id = %s
-            """,
-                (current_parent,),
-            )
-            result = self.cursor.fetchone()
-            current_parent = result[0] if result else None
-
-        return False
+        return conngroups_repo.check_connection_group_cycle(self.cursor, group_id, parent_id)
 
     def create_connection_group(
         self, group_name: str, parent_group_name: Optional[str] = None
@@ -1617,55 +1556,7 @@ class GuacamoleDB:
             ...     db.create_connection_group("Web Servers", "Production Servers")
         """
         try:
-            parent_group_id = None
-            if parent_group_name:
-                # Get parent group ID if specified
-                self.cursor.execute(
-                    """
-                    SELECT connection_group_id 
-                    FROM guacamole_connection_group
-                    WHERE connection_group_name = %s
-                """,
-                    (parent_group_name,),
-                )
-                result = self.cursor.fetchone()
-                if not result:
-                    raise ValueError(
-                        f"Parent connection group '{parent_group_name}' not found"
-                    )
-                parent_group_id = result[0]
-
-                # Check for cycles - since this is a new group, we can't be creating a cycle
-                # but we should still validate the parent exists and is valid
-                if self._check_connection_group_cycle(None, parent_group_id):
-                    raise ValueError(
-                        f"Parent connection group '{parent_group_name}' is invalid"
-                    )
-
-            # Create the new connection group
-            self.cursor.execute(
-                """
-                INSERT INTO guacamole_connection_group 
-                (connection_group_name, parent_id)
-                VALUES (%s, %s)
-            """,
-                (group_name, parent_group_id),
-            )
-
-            # Verify the group was created
-            self.cursor.execute(
-                """
-                SELECT connection_group_id 
-                FROM guacamole_connection_group
-                WHERE connection_group_name = %s
-            """,
-                (group_name,),
-            )
-            if not self.cursor.fetchone():
-                raise ValueError("Failed to create connection group - no ID returned")
-
-            return True
-
+            return conngroups_repo.create_connection_group(self.cursor, group_name, parent_group_name)
         except mysql.connector.Error as e:
             self.logger.error(f"Error creating connection group: {self._scrub_credentials(str(e))}")
             raise
