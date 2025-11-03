@@ -17,6 +17,7 @@ from .logging_config import get_logger
 from . import db_utils
 from . import users_repo
 from . import usergroups_repo
+from . import connections_repo
 
 # Custom type definitions
 ConnectionConfig = Dict[str, str]
@@ -662,130 +663,9 @@ class GuacamoleDB:
     ) -> bool:
         """Modify a connection parameter in either guacamole_connection or guacamole_connection_parameter table"""
         try:
-            # Validate parameter name
-            if param_name not in self.CONNECTION_PARAMETERS:
-                raise ValueError(
-                    f"Invalid parameter: {param_name}. Run 'guacaman conn modify' without arguments to see allowed parameters."
-                )
-
-            # Use resolver to get connection_id and validate inputs
-            resolved_connection_id = self.resolve_connection_id(
-                connection_name, connection_id
+            return connections_repo.modify_connection_parameter(
+                self.cursor, connection_name, connection_id, param_name, param_value
             )
-
-            param_info = self.CONNECTION_PARAMETERS[param_name]
-            param_table = param_info["table"]
-
-            # Update the parameter based on which table it belongs to
-            if param_table == "connection":
-                # Validate parameter value based on type
-                if param_info["type"] == "int":
-                    try:
-                        param_value = int(param_value)
-                    except ValueError:
-                        raise ValueError(f"Parameter {param_name} must be an integer")
-
-                # Update in guacamole_connection table
-                query = f"""
-                    UPDATE guacamole_connection 
-                    SET {param_name} = %s
-                    WHERE connection_id = %s
-                """
-                self.cursor.execute(query, (param_value, resolved_connection_id))
-
-            elif param_table == "parameter":
-                # Special handling for read-only parameter
-                if param_name == "read-only":
-                    # Validate boolean value
-                    if param_value.lower() not in ("true", "false"):
-                        raise ValueError(
-                            "Parameter read-only must be 'true' or 'false'"
-                        )
-
-                    # For read-only, we either add with 'true' or remove the parameter
-                    if param_value.lower() == "true":
-                        # Check if parameter already exists
-                        self.cursor.execute(
-                            """
-                            SELECT parameter_value FROM guacamole_connection_parameter
-                            WHERE connection_id = %s AND parameter_name = %s
-                        """,
-                            (resolved_connection_id, param_name),
-                        )
-
-                        if self.cursor.fetchone():
-                            # Update existing parameter
-                            self.cursor.execute(
-                                """
-                                UPDATE guacamole_connection_parameter
-                                SET parameter_value = 'true'
-                                WHERE connection_id = %s AND parameter_name = %s
-                            """,
-                                (resolved_connection_id, param_name),
-                            )
-                        else:
-                            # Insert new parameter
-                            self.cursor.execute(
-                                """
-                                INSERT INTO guacamole_connection_parameter
-                                (connection_id, parameter_name, parameter_value)
-                                VALUES (%s, %s, 'true')
-                            """,
-                                (resolved_connection_id, param_name),
-                            )
-                    else:  # param_value.lower() == 'false'
-                        # Remove the parameter if it exists
-                        self.cursor.execute(
-                            """
-                            DELETE FROM guacamole_connection_parameter
-                            WHERE connection_id = %s AND parameter_name = %s
-                        """,
-                            (resolved_connection_id, param_name),
-                        )
-                else:
-                    # Special handling for color-depth
-                    if param_name == "color-depth":
-                        if param_value not in ("8", "16", "24", "32"):
-                            raise ValueError(
-                                "color-depth must be one of: 8, 16, 24, 32"
-                            )
-
-                    # Regular parameter handling
-                    # Check if parameter already exists
-                    self.cursor.execute(
-                        """
-                        SELECT parameter_value FROM guacamole_connection_parameter
-                        WHERE connection_id = %s AND parameter_name = %s
-                    """,
-                        (resolved_connection_id, param_name),
-                    )
-
-                    if self.cursor.fetchone():
-                        # Update existing parameter
-                        self.cursor.execute(
-                            """
-                            UPDATE guacamole_connection_parameter
-                            SET parameter_value = %s
-                            WHERE connection_id = %s AND parameter_name = %s
-                        """,
-                            (param_value, resolved_connection_id, param_name),
-                        )
-                    else:
-                        # Insert new parameter
-                        self.cursor.execute(
-                            """
-                            INSERT INTO guacamole_connection_parameter
-                            (connection_id, parameter_name, parameter_value)
-                            VALUES (%s, %s, %s)
-                        """,
-                            (resolved_connection_id, param_name, param_value),
-                        )
-
-            if self.cursor.rowcount == 0:
-                raise ValueError(f"Failed to update connection parameter: {param_name}")
-
-            return True
-
         except mysql.connector.Error as e:
             self.logger.error(f"Error modifying connection parameter: {self._scrub_credentials(str(e))}")
             raise
@@ -962,61 +842,19 @@ class GuacamoleDB:
     ) -> None:
         """Delete a connection and all its associated data"""
         try:
-            # Use resolver to get connection_id and validate inputs
-            resolved_connection_id = self.resolve_connection_id(
-                connection_name, connection_id
-            )
-
             # Get connection name for logging if we only have ID
-            if connection_name is None:
-                connection_name = self.get_connection_name_by_id(resolved_connection_id)
+            log_name = connection_name
+            if connection_name is None and connection_id:
+                log_name = self.get_connection_name_by_id(connection_id)
 
             self.debug_print(
-                f"Attempting to delete connection: {connection_name} (ID: {resolved_connection_id})"
+                f"Attempting to delete connection: {log_name} (ID: {connection_id})"
             )
 
-            # Delete connection history
-            self.debug_print("Deleting connection history...")
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_connection_history
-                WHERE connection_id = %s
-            """,
-                (resolved_connection_id,),
-            )
-
-            # Delete connection parameters
-            self.debug_print("Deleting connection parameters...")
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_connection_parameter
-                WHERE connection_id = %s
-            """,
-                (resolved_connection_id,),
-            )
-
-            # Delete connection permissions
-            self.debug_print("Deleting connection permissions...")
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_connection_permission
-                WHERE connection_id = %s
-            """,
-                (resolved_connection_id,),
-            )
-
-            # Finally delete the connection
-            self.debug_print("Deleting connection...")
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_connection
-                WHERE connection_id = %s
-            """,
-                (resolved_connection_id,),
-            )
+            connections_repo.delete_connection(self.cursor, connection_name, connection_id)
 
             # Transaction will be committed by context manager
-            self.debug_print(f"Successfully deleted connection '{connection_name}'")
+            self.debug_print(f"Successfully deleted connection '{log_name}'")
 
         except mysql.connector.Error as e:
             self.logger.error(f"Error deleting existing connection: {self._scrub_credentials(str(e))}")
@@ -1334,15 +1172,7 @@ class GuacamoleDB:
             ...         print("Connection exists")
         """
         try:
-            # Use resolver to validate inputs and get connection_id
-            resolved_connection_id = self.resolve_connection_id(
-                connection_name, connection_id
-            )
-            # If resolver succeeds, connection exists
-            return True
-        except ValueError:
-            # If resolver fails with "not found", connection doesn't exist
-            return False
+            return connections_repo.connection_exists(self.cursor, connection_name, connection_id)
         except mysql.connector.Error as e:
             self.logger.error(f"Error checking connection existence: {self._scrub_credentials(str(e))}")
             raise
@@ -1399,52 +1229,10 @@ class GuacamoleDB:
             ...     )
             ...     print(f"Created connection with ID: {conn_id}")
         """
-        if not all([connection_name, hostname, port]):
-            raise ValueError("Missing required connection parameters")
-
-        if self.connection_exists(connection_name):
-            raise ValueError(f"Connection '{connection_name}' already exists")
-
         try:
-            # Create connection
-            self.cursor.execute(
-                """
-                INSERT INTO guacamole_connection
-                (connection_name, protocol, parent_id)
-                VALUES (%s, %s, %s)
-            """,
-                (connection_name, connection_type, parent_group_id),
+            return connections_repo.create_connection(
+                self.cursor, connection_type, connection_name, hostname, port, vnc_password, parent_group_id
             )
-
-            # Get connection_id
-            self.cursor.execute(
-                """
-                SELECT connection_id FROM guacamole_connection
-                WHERE connection_name = %s
-            """,
-                (connection_name,),
-            )
-            connection_id = self.cursor.fetchone()[0]
-
-            # Create connection parameters
-            params = [
-                ("hostname", hostname),
-                ("port", port),
-                ("password", vnc_password),
-            ]
-
-            for param_name, param_value in params:
-                self.cursor.execute(
-                    """
-                    INSERT INTO guacamole_connection_parameter
-                    (connection_id, parameter_name, parameter_value)
-                    VALUES (%s, %s, %s)
-                """,
-                    (connection_id, param_name, param_value),
-                )
-
-            return connection_id
-
         except mysql.connector.Error as e:
             self.logger.error(f"Error creating VNC connection: {self._scrub_credentials(str(e))}")
             raise
