@@ -1,4 +1,5 @@
 mysql-connector-python>=8.0.0
 configparser>=5.0.0
+sshtunnel>=0.4.0
 black
 pdoc

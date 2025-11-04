@@ -104,6 +104,84 @@ with GuacamoleDB() as db:
 
 All four variables must be set for environment-based configuration to be used.
 
+### Option 3: SSH Tunnel for Remote MySQL Access
+
+For secure access to remote MySQL databases, guacalib supports SSH tunneling. This allows you to connect to a MySQL database through an SSH server, encrypting all database traffic.
+
+**Configuration File Method:**
+
+Add SSH tunnel settings to your `.guacaman.ini` file:
+```ini
+[mysql]
+host = remote-mysql-server.example.com
+user = guacamole_user
+password = your_password
+database = guacamole_db
+
+# SSH tunnel configuration
+ssh_tunnel_enabled = true
+ssh_tunnel_host = ssh-gateway.example.com
+ssh_tunnel_port = 22
+ssh_tunnel_user = ssh_username
+
+# Option 1: Password authentication
+ssh_tunnel_password = ssh_password
+
+# Option 2: SSH key authentication (recommended)
+# ssh_tunnel_private_key = /home/user/.ssh/id_rsa
+# ssh_tunnel_private_key_passphrase = key_passphrase
+```
+
+**Environment Variables Method:**
+
+```bash
+# MySQL configuration
+export GUACALIB_HOST=remote-mysql-server.example.com
+export GUACALIB_USER=guacamole_user
+export GUACALIB_PASSWORD=your_password
+export GUACALIB_DATABASE=guacamole_db
+
+# SSH tunnel configuration
+export GUACALIB_SSH_TUNNEL_ENABLED=true
+export GUACALIB_SSH_TUNNEL_HOST=ssh-gateway.example.com
+export GUACALIB_SSH_TUNNEL_PORT=22
+export GUACALIB_SSH_TUNNEL_USER=ssh_username
+
+# Option 1: Password authentication
+export GUACALIB_SSH_TUNNEL_PASSWORD=ssh_password
+
+# Option 2: SSH key authentication (recommended)
+# export GUACALIB_SSH_TUNNEL_PRIVATE_KEY=/home/user/.ssh/id_rsa
+# export GUACALIB_SSH_TUNNEL_PRIVATE_KEY_PASSPHRASE=key_passphrase
+```
+
+**SSH Tunnel Environment Variables:**
+- `GUACALIB_SSH_TUNNEL_ENABLED`: Enable SSH tunnel (true/false)
+- `GUACALIB_SSH_TUNNEL_HOST`: SSH server hostname
+- `GUACALIB_SSH_TUNNEL_PORT`: SSH server port (default: 22)
+- `GUACALIB_SSH_TUNNEL_USER`: SSH username
+- `GUACALIB_SSH_TUNNEL_PASSWORD`: SSH password (optional)
+- `GUACALIB_SSH_TUNNEL_PRIVATE_KEY`: Path to SSH private key file (optional)
+- `GUACALIB_SSH_TUNNEL_PRIVATE_KEY_PASSPHRASE`: Private key passphrase (optional)
+
+**Usage Example:**
+```python
+from guacalib import GuacamoleDB
+
+# SSH tunnel will be automatically established if configured
+with GuacamoleDB('~/.guacaman.ini') as db:
+    users = db.list_users()
+    # SSH tunnel is active during this block
+# SSH tunnel is automatically closed when exiting the context
+```
+
+**Notes:**
+- SSH tunnel is established automatically when entering the context manager
+- The tunnel is closed automatically when exiting the context manager
+- You must provide either `ssh_tunnel_password` or `ssh_tunnel_private_key` (not both)
+- SSH key authentication is recommended for better security
+- The tunnel forwards the MySQL connection securely through the SSH server
+
 ## Library Documentation
 
 The `guacalib` library includes comprehensive API documentation with Google-style docstrings throughout the codebase. You can:

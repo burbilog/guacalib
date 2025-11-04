@@ -4,3 +4,18 @@ host = localhost
 user = guacamole_user
 password = your_password
 database = guacamole_db
+
+# Optional: SSH tunnel configuration for secure remote MySQL access
+# Uncomment and configure these settings to tunnel MySQL connection over SSH
+# ssh_tunnel_enabled = true
+# ssh_tunnel_host = ssh.example.com
+# ssh_tunnel_port = 22
+# ssh_tunnel_user = ssh_username
+
+# SSH authentication - use either password OR private key (not both)
+# Option 1: Password authentication
+# ssh_tunnel_password = ssh_password
+
+# Option 2: SSH key authentication (recommended)
+# ssh_tunnel_private_key = /home/user/.ssh/id_rsa
+# ssh_tunnel_private_key_passphrase = key_passphrase

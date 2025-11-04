@@ -9,12 +9,14 @@ import binascii
 from typing import Optional, Union, Dict, List, Tuple, Any, Type, Callable
 
 from mysql.connector.connection import MySQLConnection
+from sshtunnel import SSHTunnelForwarder
 
 from .db_connection_parameters import CONNECTION_PARAMETERS
 from .db_user_parameters import USER_PARAMETERS
 
 # Custom type definitions
 ConnectionConfig = Dict[str, str]
+SSHTunnelConfig = Dict[str, Union[str, int, bool]]
 ConnectionParameters = Dict[str, Union[str, int, bool]]
 UserParameters = Dict[str, Dict[str, Union[str, str, str]]]
 UserInfo = Tuple[str, List[str]]
@@ -85,9 +87,15 @@ class GuacamoleDB:
                password, and database keys.
 
             Environment variables take precedence over configuration file settings.
+
+            SSH tunnel configuration is optional and can be specified in the config file
+            or via environment variables. When enabled, the MySQL connection will be
+            tunneled through SSH for secure remote access.
         """
         self.debug = debug
+        self.ssh_tunnel = None
         self.db_config = self.read_config(config_file)
+        self.ssh_tunnel_config = self.read_ssh_tunnel_config(config_file)
         self.conn = self.connect_db()
         self.cursor = self.conn.cursor()
 
@@ -118,7 +126,7 @@ class GuacamoleDB:
         """Exit the runtime context and handle database connection cleanup.
 
         Commits transactions if no exception occurred, rolls back if there was
-        an exception, and closes database connections.
+        an exception, and closes database connections and SSH tunnel.
 
         Args:
             exc_type: Exception type if an exception occurred, None otherwise.
@@ -136,6 +144,12 @@ class GuacamoleDB:
                     self.conn.rollback()
             finally:
                 self.conn.close()
+        if self.ssh_tunnel:
+            try:
+                self.ssh_tunnel.stop()
+                self.debug_print("SSH tunnel closed")
+            except Exception as e:
+                self.debug_print(f"Error closing SSH tunnel: {e}")
 
     @staticmethod
     def read_config(config_file: str) -> ConnectionConfig:
@@ -205,7 +219,9 @@ class GuacamoleDB:
         config = configparser.ConfigParser()
         if not os.path.exists(config_file):
             print(f"Error: Config file not found: {config_file}")
-            print("Please set environment variables or create a config file at ~/.guacaman.ini")
+            print(
+                "Please set environment variables or create a config file at ~/.guacaman.ini"
+            )
             print("\nOption 1: Set environment variables:")
             print("export GUACALIB_HOST=your_mysql_host")
             print("export GUACALIB_USER=your_mysql_user")
@@ -244,30 +260,253 @@ class GuacamoleDB:
             print(f"Error reading config file {config_file}: {str(e)}")
             sys.exit(1)
 
+    @staticmethod
+    def read_ssh_tunnel_config(config_file: str) -> Optional[SSHTunnelConfig]:
+        """Read SSH tunnel configuration from environment variables or file.
+
+        First checks for SSH tunnel environment variables. If all required environment
+        variables are present, they are used. Otherwise, falls back to reading from
+        configuration file if SSH tunnel is enabled there.
+
+        Args:
+            config_file: Path to the configuration file.
+
+        Returns:
+            Dictionary containing SSH tunnel parameters if SSH tunnel is enabled,
+            None otherwise. The dictionary may include keys: 'enabled', 'host', 'port',
+            'user', 'password', 'private_key', 'private_key_passphrase'.
+
+        Note:
+            Environment variables take precedence over configuration file settings.
+
+            Environment variables:
+            - GUACALIB_SSH_TUNNEL_ENABLED: Enable SSH tunnel (true/false)
+            - GUACALIB_SSH_TUNNEL_HOST: SSH server hostname
+            - GUACALIB_SSH_TUNNEL_PORT: SSH server port (default: 22)
+            - GUACALIB_SSH_TUNNEL_USER: SSH username
+            - GUACALIB_SSH_TUNNEL_PASSWORD: SSH password (optional)
+            - GUACALIB_SSH_TUNNEL_PRIVATE_KEY: Path to SSH private key (optional)
+            - GUACALIB_SSH_TUNNEL_PRIVATE_KEY_PASSPHRASE: Private key passphrase (optional)
+
+            Configuration file format:
+            [mysql]
+            ...
+            ssh_tunnel_enabled = true
+            ssh_tunnel_host = ssh.example.com
+            ssh_tunnel_port = 22
+            ssh_tunnel_user = ssh_username
+            ssh_tunnel_password = ssh_password
+            ssh_tunnel_private_key = /path/to/key
+            ssh_tunnel_private_key_passphrase = passphrase
+        """
+        # Try environment variables first
+        env_enabled = os.environ.get("GUACALIB_SSH_TUNNEL_ENABLED", "").lower()
+        if env_enabled in ("true", "1", "yes"):
+            # Validate and parse port
+            port_str = os.environ.get("GUACALIB_SSH_TUNNEL_PORT", "22")
+            try:
+                port = int(port_str)
+                if port < 1 or port > 65535:
+                    print(
+                        f"Error: Invalid SSH tunnel port: {port}. Must be between 1 and 65535."
+                    )
+                    sys.exit(1)
+            except ValueError:
+                print(f"Error: Invalid SSH tunnel port: {port_str}. Must be a number.")
+                sys.exit(1)
+
+            ssh_config = {
+                "enabled": True,
+                "host": os.environ.get("GUACALIB_SSH_TUNNEL_HOST"),
+                "port": port,
+                "user": os.environ.get("GUACALIB_SSH_TUNNEL_USER"),
+                "password": os.environ.get("GUACALIB_SSH_TUNNEL_PASSWORD"),
+                "private_key": os.environ.get("GUACALIB_SSH_TUNNEL_PRIVATE_KEY"),
+                "private_key_passphrase": os.environ.get(
+                    "GUACALIB_SSH_TUNNEL_PRIVATE_KEY_PASSPHRASE"
+                ),
+            }
+
+            # Validate required fields
+            if not ssh_config["host"] or not ssh_config["user"]:
+                print("Error: SSH tunnel enabled but missing required configuration")
+                print("Required: GUACALIB_SSH_TUNNEL_HOST, GUACALIB_SSH_TUNNEL_USER")
+                sys.exit(1)
+
+            # Must have either password or private key
+            if not ssh_config["password"] and not ssh_config["private_key"]:
+                print("Error: SSH tunnel requires either password or private key")
+                sys.exit(1)
+
+            return ssh_config
+
+        # Try config file
+        if not os.path.exists(config_file):
+            return None
+
+        config = configparser.ConfigParser()
+        try:
+            config.read(config_file)
+            if "mysql" not in config:
+                return None
+
+            # Check if SSH tunnel is enabled in config
+            enabled = config["mysql"].get("ssh_tunnel_enabled", "false").lower()
+            if enabled not in ("true", "1", "yes"):
+                return None
+
+            # Validate and parse port
+            port_str = config["mysql"].get("ssh_tunnel_port", "22")
+            try:
+                port = int(port_str)
+                if port < 1 or port > 65535:
+                    print(
+                        f"Error: Invalid SSH tunnel port in config: {port}. Must be between 1 and 65535."
+                    )
+                    sys.exit(1)
+            except ValueError:
+                print(
+                    f"Error: Invalid SSH tunnel port in config: {port_str}. Must be a number."
+                )
+                sys.exit(1)
+
+            ssh_config = {
+                "enabled": True,
+                "host": config["mysql"].get("ssh_tunnel_host"),
+                "port": port,
+                "user": config["mysql"].get("ssh_tunnel_user"),
+                "password": config["mysql"].get("ssh_tunnel_password"),
+                "private_key": config["mysql"].get("ssh_tunnel_private_key"),
+                "private_key_passphrase": config["mysql"].get(
+                    "ssh_tunnel_private_key_passphrase"
+                ),
+            }
+
+            # Validate required fields
+            if not ssh_config["host"] or not ssh_config["user"]:
+                print("Error: SSH tunnel enabled but missing required configuration")
+                print("Required: ssh_tunnel_host, ssh_tunnel_user")
+                sys.exit(1)
+
+            # Must have either password or private key
+            if not ssh_config["password"] and not ssh_config["private_key"]:
+                print("Error: SSH tunnel requires either password or private key")
+                sys.exit(1)
+
+            return ssh_config
+
+        except Exception as e:
+            print(f"Error reading SSH tunnel config from {config_file}: {str(e)}")
+            return None
+
     def connect_db(self) -> MySQLConnection:
         """Establish MySQL database connection using loaded configuration.
 
         Creates a MySQL connection using the configuration loaded by read_config().
-        Sets UTF8MB4 charset and collation for proper Unicode support.
+        Sets UTF8MB4 charset and collation for proper Unicode support. If SSH tunnel
+        is configured, establishes the tunnel first and connects through it.
 
         Returns:
             MySQLConnection object for database operations.
 
         Raises:
-            SystemExit: If database connection fails.
+            SystemExit: If database connection or SSH tunnel setup fails.
             mysql.connector.Error: For various MySQL connection errors.
+            paramiko.SSHException: For SSH tunnel authentication or connection errors.
+            Exception: For other SSH tunnel or configuration errors.
 
         Note:
             Uses UTF8MB4 charset to support full Unicode including emoji and
             special characters. Connection parameters are loaded from the
             configuration file during initialization.
+
+            If SSH tunnel is enabled, the connection will be made through the tunnel
+            using a local port forwarding. The tunnel is automatically started and
+            the database host/port are adjusted accordingly. Any errors during SSH
+            tunnel setup or MySQL connection will result in proper cleanup and
+            a SystemExit with an error message.
         """
         try:
-            return mysql.connector.connect(
-                **self.db_config, charset="utf8mb4", collation="utf8mb4_general_ci"
-            )
+            # Set up SSH tunnel if configured
+            if self.ssh_tunnel_config:
+                self.debug_print("Setting up SSH tunnel...")
+
+                # Prepare SSH tunnel parameters
+                # Validate and parse MySQL port
+                mysql_port_str = self.db_config.get("port", "3306")
+                try:
+                    mysql_port = int(mysql_port_str)
+                    if mysql_port < 1 or mysql_port > 65535:
+                        raise ValueError(
+                            f"MySQL port {mysql_port} out of valid range (1-65535)"
+                        )
+                except (ValueError, TypeError) as e:
+                    print(f"Error: Invalid MySQL port: {mysql_port_str}. {e}")
+                    sys.exit(1)
+
+                ssh_kwargs = {
+                    "ssh_address_or_host": (
+                        self.ssh_tunnel_config["host"],
+                        self.ssh_tunnel_config["port"],
+                    ),
+                    "ssh_username": self.ssh_tunnel_config["user"],
+                    "remote_bind_address": (self.db_config["host"], mysql_port),
+                }
+
+                # Add authentication method
+                if self.ssh_tunnel_config.get("private_key"):
+                    ssh_kwargs["ssh_pkey"] = self.ssh_tunnel_config["private_key"]
+                    if self.ssh_tunnel_config.get("private_key_passphrase"):
+                        ssh_kwargs["ssh_private_key_password"] = self.ssh_tunnel_config[
+                            "private_key_passphrase"
+                        ]
+                elif self.ssh_tunnel_config.get("password"):
+                    ssh_kwargs["ssh_password"] = self.ssh_tunnel_config["password"]
+
+                # Create and start the SSH tunnel
+                self.ssh_tunnel = SSHTunnelForwarder(**ssh_kwargs)
+                self.ssh_tunnel.start()
+
+                self.debug_print(
+                    f"SSH tunnel established: localhost:{self.ssh_tunnel.local_bind_port} -> "
+                    f"{self.ssh_tunnel_config['host']}:{self.ssh_tunnel_config['port']} -> "
+                    f"{self.db_config['host']}:{self.db_config.get('port', 3306)}"
+                )
+
+                # Connect to MySQL through the tunnel
+                db_config = self.db_config.copy()
+                db_config["host"] = "127.0.0.1"
+                db_config["port"] = self.ssh_tunnel.local_bind_port
+
+                return mysql.connector.connect(
+                    **db_config, charset="utf8mb4", collation="utf8mb4_general_ci"
+                )
+            else:
+                # Direct connection without tunnel
+                return mysql.connector.connect(
+                    **self.db_config, charset="utf8mb4", collation="utf8mb4_general_ci"
+                )
         except mysql.connector.Error as e:
-            print(f"Error connecting to database: {e}")
+            # MySQL connection error
+            if self.ssh_tunnel:
+                try:
+                    self.ssh_tunnel.stop()
+                except Exception as tunnel_error:
+                    self.debug_print(
+                        f"Error stopping SSH tunnel during cleanup: {tunnel_error}"
+                    )
+            print(f"Error connecting to MySQL database: {e}")
+            sys.exit(1)
+        except Exception as e:
+            # SSH tunnel or other configuration error
+            if self.ssh_tunnel:
+                try:
+                    self.ssh_tunnel.stop()
+                except Exception as tunnel_error:
+                    self.debug_print(
+                        f"Error stopping SSH tunnel during cleanup: {tunnel_error}"
+                    )
+            print(f"Error establishing connection (SSH tunnel or configuration): {e}")
             sys.exit(1)
 
     def list_users(self) -> List[str]:
