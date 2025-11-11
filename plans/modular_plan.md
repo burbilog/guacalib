@@ -1,6 +1,6 @@
 # Incremental Refactoring Plan for `GuacamoleDB`
 
-> **Status**: ✅ **READY FOR EXECUTION** (Revision 5 - Repository Pattern Committed)
+> **Status**: 🔄 **PHASES 1-10 COMPLETED, PHASE 11 PLANNED** (Revision 6 - Complete SQL Extraction)
 > **Last Updated**: 2025-10-24
 > **Approach**: Evidence-driven, incremental repository extraction following YAGNI and KISS principles
 
@@ -783,6 +783,11 @@ from guacalib import GuacamoleDB
 - ✅ Repository pattern successfully implemented
 - ✅ Mixed responsibilities resolved (P4) ✅
 
+### **Phase 11 (Complete Remaining SQL Extraction)**
+- 🔄 **PLANNED** - Extract remaining embedded SQL functions from facade
+- **Remaining functions identified**: Complex permission operations, advanced ID resolvers, cross-domain reporting
+- **Target**: Complete modularization with truly thin facade (orchestration only)
+
 ---
 
 ## Definition of Done (Per Phase)
@@ -1065,4 +1070,111 @@ Benefits:
 - **All tests passing**: 132/132 bats test cases green, cleanup script functioning properly
 - **Commit hash**: c4992d6
 
-**This plan is now READY FOR EXECUTION with clear commitment to repository extraction, evidence-driven approach, and incremental delivery.**
+---
+
+### **Phase 11 - Complete Remaining SQL Extraction** (Est: 3 hours) 🔄 **PLANNED**
+**Outcome:** Extract remaining embedded SQL functions from facade to appropriate modules.
+
+**Problem Identified:** Phase 10 analysis revealed gaps in repository extraction:
+- **Complex permission functions** still contain embedded SQL in facade
+- **Advanced ID resolution helpers** not fully centralized
+- **Cross-domain reporting functions** still in facade (arguably appropriate)
+- **Mixed completion**: Basic CRUD extracted, but complex domain logic remains
+
+- [ ] **11.1. Identify remaining SQL functions in db.py**
+  - [ ] 11.1.1. Document all functions with embedded SQL queries
+  - [ ] 11.1.2. Categorize by domain (permissions, reporting, advanced resolution)
+  - [ ] 11.1.3. Prioritize extraction based on complexity and domain boundaries
+
+  **Acceptance Criteria:**
+  - 📋 Complete inventory of remaining SQL functions in facade
+  - 📋 Classification by type (CRUD vs complex vs cross-domain)
+  - 📋 Extraction priority matrix created
+
+- [ ] **11.2. Extract remaining permission functions to permissions_repo.py**
+  - [ ] 11.2.1. Move connection group permission functions:
+    - `grant_connection_group_permission_to_user()` (lines 1869-1968)
+    - `revoke_connection_group_permission_from_user()` (lines 1970-1986)
+    - `grant_connection_group_permission_to_user_by_id()` (lines 1999-2102)
+    - `revoke_connection_group_permission_from_user_by_id()` (lines 2104-2181)
+  - [ ] 11.2.2. Update GuacamoleDB methods to delegate to repositories
+  - [ ] 11.2.3. Preserve all method signatures and error handling
+
+  **Acceptance Criteria:**
+  - 📋 All permission SQL operations moved to permissions_repo.py
+  - 📋 GuacamoleDB permission methods become thin wrappers (≤3 lines)
+  - 📋 Complex permission validation logic preserved in repository
+
+- [ ] **11.3. Centralize advanced ID resolution helpers**
+  - [ ] 11.3.1. Move missing resolvers to db_utils.py:
+    - `get_connection_group_id_by_name()` (lines 530-570)
+    - `get_usergroup_id()` (lines 463-501)
+  - [ ] 11.3.2. Update GuacamoleDB methods to delegate to db_utils
+  - [ ] 11.3.3. Consider specialized resolver module for complex hierarchy operations
+
+  **Acceptance Criteria:**
+  - 📋 All ID resolution logic centralized in db_utils.py
+  - 📋 GuacamoleDB resolver methods become thin wrappers
+  - 📋 No duplicate resolver logic between facade and utilities
+
+- [ ] **11.4. Consider cross-domain reporting functions**
+  - [ ] 11.4.1. Evaluate if complex reporting functions should stay in facade:
+    - `list_connections_with_conngroups_and_parents()` (lines 1176-1249)
+    - `list_usergroups_with_users_and_connections()` (lines 1316-1395)
+    - `list_connection_groups()` (lines 1542-1577)
+    - `debug_connection_permissions()` (lines 1773-1867)
+  - [ ] 11.4.2. Document decision: keep in facade (orchestration) vs create reporting module
+  - [ ] 11.4.3. If moved, create `reporting_repo.py` for complex cross-domain queries
+
+  **Acceptance Criteria:**
+  - 📋 Decision documented for cross-domain function placement
+  - 📋 Either extracted to reporting module or justified in facade
+  - 📋 All cross-domain queries follow stateless repository pattern
+
+- [ ] **11.5. Validate complete extraction**
+  - [ ] 11.5.1. Run full bats test suite (all 132 test cases)
+  - [ ] 11.5.2. Test complex permission operations
+  - [ ] 11.5.3. Test advanced ID resolution scenarios
+  - [ ] 11.5.4. Verify CLI handlers unchanged (git diff)
+
+  **Acceptance Criteria:**
+  - 📋 All 132 bats test cases pass (100% green)
+  - 📋 Complex permission operations work identically
+  - 📋 ID resolution maintains full functionality
+  - 📋 Zero breaking changes for CLI handlers
+
+- [ ] **11.6. Commit changes**
+  - [ ] 11.6.1. Git commit: "complete: Phase 11 final SQL extraction"
+  - [ ] 11.6.2. Update metrics: total lines moved from facade to repositories
+
+  **Success Metrics:**
+  - 📋 Remaining SQL functions: 0 (all moved to appropriate repositories)
+  - 📋 Enhanced permissions_repo.py: +~300 lines (complex permission functions)
+  - 📋 Enhanced db_utils.py: +~100 lines (advanced resolvers)
+  - 📋 Tests passing: 132/132
+  - 📋 Facade truly thin: orchestration and cross-domain coordination only
+
+**Results:** 📋 **(To be determined after implementation)**
+
+---
+
+---
+
+## Plan Revision History
+
+### **Revision 6 (2025-11-10)** - Complete SQL Extraction Planned
+- **Gap analysis completed**: Identified remaining embedded SQL functions in facade after Phases 1-10
+- **Phase 11 planned**: Complete extraction of remaining SQL functions to appropriate repositories
+- **Target functions identified**:
+  - Complex permission operations (connection group permissions by ID/name)
+  - Advanced ID resolution helpers (get_connection_group_id_by_name, get_usergroup_id)
+  - Cross-domain reporting functions (complex multi-table queries)
+- **Repository enhancement planned**:
+  - permissions_repo.py: Add ~300 lines of complex permission functions
+  - db_utils.py: Add ~100 lines of advanced resolvers
+  - Optional: reporting_repo.py for cross-domain queries
+- **Success criteria defined**: All embedded SQL eliminated, truly thin facade achieved
+- **Risk level**: 🟢 **Very Low** - Final cleanup phase, all patterns validated
+- **Status**: 🔄 **PLANNED** - Ready for execution with comprehensive checkboxes and acceptance criteria
+
+### **Revision 5 (2025-10-24)** - Repository Pattern Committed
