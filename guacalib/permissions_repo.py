@@ -436,6 +436,12 @@ def grant_connection_group_permission_to_user(cursor, username: str, conngroup_n
         ... )
         >>> print(f"Permission granted: {success}")
     """
+    # Input validation
+    if not username or not isinstance(username, str):
+        raise ValueError("Username must be a non-empty string")
+    if not conngroup_name or not isinstance(conngroup_name, str):
+        raise ValueError("Connection group name must be a non-empty string")
+
     # Get connection group ID
     cursor.execute(
         """
@@ -512,6 +518,12 @@ def revoke_connection_group_permission_from_user(cursor, username: str, conngrou
         ... )
         >>> print(f"Permission revoked: {success}")
     """
+    # Input validation
+    if not username or not isinstance(username, str):
+        raise ValueError("Username must be a non-empty string")
+    if not conngroup_name or not isinstance(conngroup_name, str):
+        raise ValueError("Connection group name must be a non-empty string")
+
     # Get connection group ID
     cursor.execute(
         """
@@ -590,6 +602,16 @@ def grant_connection_group_permission_to_user_by_id(cursor, username: str, conng
         ... )
         >>> print(f"Permission granted: {success}")
     """
+    # Input validation
+    if not username or not isinstance(username, str):
+        raise ValueError("Username must be a non-empty string")
+    if (
+        conngroup_id is None
+        or not isinstance(conngroup_id, int)
+        or conngroup_id <= 0
+    ):
+        raise ValueError("Connection group ID must be a positive integer")
+
     # Validate connection group ID
     cursor.execute(
         """
@@ -666,6 +688,16 @@ def revoke_connection_group_permission_from_user_by_id(cursor, username: str, co
         ... )
         >>> print(f"Permission revoked: {success}")
     """
+    # Input validation
+    if not username or not isinstance(username, str):
+        raise ValueError("Username must be a non-empty string")
+    if (
+        conngroup_id is None
+        or not isinstance(conngroup_id, int)
+        or conngroup_id <= 0
+    ):
+        raise ValueError("Connection group ID must be a positive integer")
+
     # Validate connection group ID
     cursor.execute(
         """
