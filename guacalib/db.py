@@ -993,171 +993,37 @@ class GuacamoleDB:
             jane.smith: ['users']
             guest: []
         """
-        query = """
-            SELECT DISTINCT 
-                e1.name as username,
-                GROUP_CONCAT(e2.name) as groupnames
-            FROM guacamole_entity e1
-            JOIN guacamole_user u ON e1.entity_id = u.entity_id
-            LEFT JOIN guacamole_user_group_member ugm 
-                ON e1.entity_id = ugm.member_entity_id
-            LEFT JOIN guacamole_user_group ug
-                ON ugm.user_group_id = ug.user_group_id
-            LEFT JOIN guacamole_entity e2
-                ON ug.entity_id = e2.entity_id
-            WHERE e1.type = 'USER'
-            GROUP BY e1.name
-        """
-        self.cursor.execute(query)
-        results = self.cursor.fetchall()
-
-        users_groups = {}
-        for row in results:
-            username = row[0]
-            groupnames = row[1].split(",") if row[1] else []
-            users_groups[username] = groupnames
-
-        return users_groups
+        return reporting_repo.list_users_with_usergroups(self.cursor)
 
     def list_connections_with_conngroups_and_parents(self) -> List[ConnectionInfo]:
         """List all connections with their groups, parent group, and user permissions"""
-        try:
-            # Get basic connection info with groups
-            self.cursor.execute(
-                """
-                SELECT 
-                    c.connection_id,
-                    c.connection_name,
-                    c.protocol,
-                    MAX(CASE WHEN p1.parameter_name = 'hostname' THEN p1.parameter_value END) AS hostname,
-                    MAX(CASE WHEN p2.parameter_name = 'port' THEN p2.parameter_value END) AS port,
-                    GROUP_CONCAT(DISTINCT CASE WHEN e.type = 'USER_GROUP' THEN e.name END) AS groups,
-                    cg.connection_group_name AS parent
-                FROM guacamole_connection c
-                LEFT JOIN guacamole_connection_parameter p1 
-                    ON c.connection_id = p1.connection_id AND p1.parameter_name = 'hostname'
-                LEFT JOIN guacamole_connection_parameter p2 
-                    ON c.connection_id = p2.connection_id AND p2.parameter_name = 'port'
-                LEFT JOIN guacamole_connection_permission cp 
-                    ON c.connection_id = cp.connection_id
-                LEFT JOIN guacamole_entity e 
-                    ON cp.entity_id = e.entity_id AND e.type = 'USER_GROUP'
-                LEFT JOIN guacamole_connection_group cg
-                    ON c.parent_id = cg.connection_group_id
-                GROUP BY c.connection_id
-                ORDER BY c.connection_name
-            """
-            )
-
-            connections_info = self.cursor.fetchall()
-
-            # Create a mapping of connection names to connection IDs
-            connection_map = {
-                name: conn_id for conn_id, name, _, _, _, _, _ in connections_info
-            }
-
-            # Now prepare the result array
-            result = []
-            for conn_info in connections_info:
-                conn_id, name, protocol, host, port, groups, parent = conn_info
-
-                # Get user permissions for this connection - THIS IS THE KEY CHANGE
-                self.cursor.execute(
-                    """
-                    SELECT e.name
-                    FROM guacamole_connection_permission cp
-                    JOIN guacamole_entity e ON cp.entity_id = e.entity_id
-                    WHERE cp.connection_id = %s AND e.type = 'USER'
-                """,
-                    (conn_id,),
-                )
-
-                user_permissions = [row[0] for row in self.cursor.fetchall()]
-
-                # Append user permissions to the connection info (include connection_id)
-                result.append(
-                    (
-                        conn_id,
-                        name,
-                        protocol,
-                        host,
-                        port,
-                        groups,
-                        parent,
-                        user_permissions,
-                    )
-                )
-
-            return result
-
-        except mysql.connector.Error as e:
-            self.logger.error(f"Error listing connections: {self._scrub_credentials(str(e))}")
-            raise
+        return reporting_repo.list_connections_with_conngroups_and_parents(self.cursor)
 
     def get_connection_by_id(self, connection_id: int) -> Optional[ConnectionInfo]:
-        """Get a specific connection by its ID"""
-        try:
-            # Get basic connection info with groups
-            self.cursor.execute(
-                """
-                SELECT 
-                    c.connection_id,
-                    c.connection_name,
-                    c.protocol,
-                    MAX(CASE WHEN p1.parameter_name = 'hostname' THEN p1.parameter_value END) AS hostname,
-                    MAX(CASE WHEN p2.parameter_name = 'port' THEN p2.parameter_value END) AS port,
-                    GROUP_CONCAT(DISTINCT CASE WHEN e.type = 'USER_GROUP' THEN e.name END) AS groups,
-                    cg.connection_group_name AS parent
-                FROM guacamole_connection c
-                LEFT JOIN guacamole_connection_parameter p1 
-                    ON c.connection_id = p1.connection_id AND p1.parameter_name = 'hostname'
-                LEFT JOIN guacamole_connection_parameter p2 
-                    ON c.connection_id = p2.connection_id AND p2.parameter_name = 'port'
-                LEFT JOIN guacamole_connection_permission cp 
-                    ON c.connection_id = cp.connection_id
-                LEFT JOIN guacamole_entity e 
-                    ON cp.entity_id = e.entity_id AND e.type = 'USER_GROUP'
-                LEFT JOIN guacamole_connection_group cg
-                    ON c.parent_id = cg.connection_group_id
-                WHERE c.connection_id = %s
-                GROUP BY c.connection_id
-            """,
-                (connection_id,),
-            )
+        """Get a specific connection by its ID with comprehensive information.
 
-            connection_info = self.cursor.fetchone()
-            if not connection_info:
-                return None
+        Retrieves detailed information about a single connection including
+        its parameters, groups, parent group, and user permissions.
 
-            conn_id, name, protocol, host, port, groups, parent = connection_info
+        Args:
+            connection_id: The database ID of the connection to retrieve.
 
-            # Get user permissions for this connection
-            self.cursor.execute(
-                """
-                SELECT e.name
-                FROM guacamole_connection_permission cp
-                JOIN guacamole_entity e ON cp.entity_id = e.entity_id
-                WHERE cp.connection_id = %s AND e.type = 'USER'
-            """,
-                (conn_id,),
-            )
+        Returns:
+            Optional tuple with connection information or None if not found:
+            (connection_id, name, protocol, hostname, port, groups, parent, user_permissions)
 
-            user_permissions = [row[0] for row in self.cursor.fetchall()]
+        Raises:
+            mysql.connector.Error: If database query fails.
 
-            return (
-                conn_id,
-                name,
-                protocol,
-                host,
-                port,
-                groups,
-                parent,
-                user_permissions,
-            )
-
-        except mysql.connector.Error as e:
-            self.logger.error(f"Error getting connection by ID: {self._scrub_credentials(str(e))}")
-            raise
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     connection = db.get_connection_by_id(42)
+            ...     if connection:
+            ...         print(f"Found: {connection[1]} ({connection[2]})")
+            ...     else:
+            ...         print("Connection not found")
+        """
+        return reporting_repo.get_connection_by_id(self.cursor, connection_id)
 
     def list_usergroups_with_users_and_connections(self):
         """List all user groups with their associated users and connections.
@@ -1185,60 +1051,7 @@ class GuacamoleDB:
             Admin users: ['admin1', 'admin2']
             Admin connections: ['server1', 'server2']
         """
-        try:
-            # Get users per group with IDs
-            self.cursor.execute(
-                """
-                SELECT
-                    e.name as groupname,
-                    ug.user_group_id,
-                    GROUP_CONCAT(DISTINCT ue.name) as users
-                FROM guacamole_entity e
-                LEFT JOIN guacamole_user_group ug ON e.entity_id = ug.entity_id
-                LEFT JOIN guacamole_user_group_member ugm ON ug.user_group_id = ugm.user_group_id
-                LEFT JOIN guacamole_entity ue ON ugm.member_entity_id = ue.entity_id AND ue.type = 'USER'
-                WHERE e.type = 'USER_GROUP'
-                GROUP BY e.name, ug.user_group_id
-            """
-            )
-            groups_users = {
-                (row[0], row[1]): row[2].split(",") if row[2] else []
-                for row in self.cursor.fetchall()
-            }
-
-            # Get connections per group with IDs
-            self.cursor.execute(
-                """
-                SELECT
-                    e.name as groupname,
-                    ug.user_group_id,
-                    GROUP_CONCAT(DISTINCT c.connection_name) as connections
-                FROM guacamole_entity e
-                LEFT JOIN guacamole_user_group ug ON e.entity_id = ug.entity_id
-                LEFT JOIN guacamole_connection_permission cp ON e.entity_id = cp.entity_id
-                LEFT JOIN guacamole_connection c ON cp.connection_id = c.connection_id
-                WHERE e.type = 'USER_GROUP'
-                GROUP BY e.name, ug.user_group_id
-            """
-            )
-            groups_connections = {
-                (row[0], row[1]): row[2].split(",") if row[2] else []
-                for row in self.cursor.fetchall()
-            }
-
-            # Combine results
-            result = {}
-            for group_key in set(groups_users.keys()).union(groups_connections.keys()):
-                group_name, group_id = group_key
-                result[group_name] = {
-                    "id": group_id,
-                    "users": groups_users.get(group_key, []),
-                    "connections": groups_connections.get(group_key, []),
-                }
-            return result
-        except mysql.connector.Error as e:
-            self.logger.error(f"Error listing groups with users and connections: {self._scrub_credentials(str(e))}")
-            raise
+        return reporting_repo.list_usergroups_with_users_and_connections(self.cursor)
 
     def _check_connection_group_cycle(self, group_id: int, parent_id: Optional[int]) -> bool:
         """Check if setting a parent connection group would create a cycle.
@@ -1337,85 +1150,61 @@ class GuacamoleDB:
             self.cursor, group_name, group_id, new_parent_name
         )
 
-    def list_connection_groups(self) -> Dict[str, Dict[str, Union[int, List[str]]]]:
-        """List all connection groups with their connections and parent groups"""
-        try:
-            self.cursor.execute(
-                """
-                SELECT 
-                    cg.connection_group_id,
-                    cg.connection_group_name,
-                    cg.parent_id,
-                    p.connection_group_name as parent_name,
-                    GROUP_CONCAT(DISTINCT c.connection_name) as connections
-                FROM guacamole_connection_group cg
-                LEFT JOIN guacamole_connection_group p ON cg.parent_id = p.connection_group_id
-                LEFT JOIN guacamole_connection c ON cg.connection_group_id = c.parent_id
-                GROUP BY cg.connection_group_id
-                ORDER BY cg.connection_group_name
-            """
-            )
+    def list_connection_groups(self) -> Dict[str, Dict[str, Any]]:
+        """List all connection groups with their connections and parent groups.
 
-            groups = {}
-            for row in self.cursor.fetchall():
-                group_id = row[0]
-                group_name = row[1]
-                parent_id = row[2]
-                parent_name = row[3]
-                connections = row[4].split(",") if row[4] else []
+        Retrieves a comprehensive view of all connection groups in the system,
+        including their associated connections and hierarchical parent relationships.
 
-                groups[group_name] = {
-                    "id": group_id,
-                    "parent": parent_name if parent_name else "ROOT",
-                    "connections": connections,
-                }
-            return groups
-        except mysql.connector.Error as e:
-            self.logger.error(f"Error listing groups: {self._scrub_credentials(str(e))}")
-            raise
+        Returns:
+            Dict mapping group names to dictionaries with:
+            - id (int): The group ID
+            - parent (str): The parent group name or "ROOT"
+            - connections (list): List of connection names
+
+        Raises:
+            mysql.connector.Error: If database query fails.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     groups = db.list_connection_groups()
+            ...     for group_name, data in groups.items():
+            ...         print(f"{group_name}: {data['connections']}")
+        """
+        return reporting_repo.list_connection_groups(self.cursor)
+
+
 
     def get_connection_group_by_id(
         self, group_id: int
-    ) -> Optional[Dict[str, Dict[str, Union[int, List[str]]]]]:
-        """Get a specific connection group by its ID"""
-        try:
-            self.cursor.execute(
-                """
-                SELECT 
-                    cg.connection_group_id,
-                    cg.connection_group_name,
-                    cg.parent_id,
-                    p.connection_group_name as parent_name,
-                    GROUP_CONCAT(DISTINCT c.connection_name) as connections
-                FROM guacamole_connection_group cg
-                LEFT JOIN guacamole_connection_group p ON cg.parent_id = p.connection_group_id
-                LEFT JOIN guacamole_connection c ON cg.connection_group_id = c.parent_id
-                WHERE cg.connection_group_id = %s
-                GROUP BY cg.connection_group_id
-            """,
-                (group_id,),
-            )
+    ) -> Optional[Dict[str, Any]]:
+        """Get a specific connection group by its ID with comprehensive information.
 
-            row = self.cursor.fetchone()
-            if not row:
-                return None
+        Retrieves detailed information about a single connection group including
+        its parent group and associated connections.
 
-            group_id = row[0]
-            group_name = row[1]
-            parent_id = row[2]
-            parent_name = row[3]
-            connections = row[4].split(",") if row[4] else []
+        Args:
+            group_id: The database ID of the connection group to retrieve.
 
-            return {
-                group_name: {
-                    "id": group_id,
-                    "parent": parent_name if parent_name else "ROOT",
-                    "connections": connections,
-                }
-            }
-        except mysql.connector.Error as e:
-            self.logger.error(f"Error getting connection group by ID: {self._scrub_credentials(str(e))}")
-            raise
+        Returns:
+            Optional dictionary with group information or None if not found:
+            - id (int): The group ID
+            - name (str): The group name
+            - parent (str): The parent group name or "ROOT"
+            - connections (list): List of connection names
+
+        Raises:
+            mysql.connector.Error: If database query fails.
+
+        Example:
+            >>> with GuacamoleDB() as db:
+            ...     group = db.get_connection_group_by_id(42)
+            ...     if group:
+            ...         print(f"Found: {group['name']} with {len(group['connections'])} connections")
+            ...     else:
+            ...         print("Group not found")
+        """
+        return reporting_repo.get_connection_group_by_id(self.cursor, group_id)
 
     def get_connection_name_by_id(self, connection_id: int) -> Optional[str]:
         """Get connection name by ID"""

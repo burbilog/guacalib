@@ -4,6 +4,7 @@ from typing import Any
 
 from guacalib.db import GuacamoleDB
 from guacalib.logging_config import get_logger
+from guacalib import conngroups_repo
 
 
 def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
@@ -83,7 +84,7 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
 
         # Use the appropriate groups variable
         if hasattr(args, "id") and args.id is not None:
-            groups = groups_result  # type: ignore  # We know it's not None here
+            groups = groups_result if 'groups_result' in locals() else groups  # Use specific result if available
 
         logger.info(f"Retrieved {len(groups)} connection groups")
         print("conngroups:")
@@ -231,8 +232,8 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
                 logger.debug(f"Setting parent connection group: {args.parent}")
                 guacdb.debug_print(f"Setting parent connection group: {args.parent}")
                 if hasattr(args, "id") and args.id is not None:
-                    guacdb.modify_connection_group_parent(
-                        group_id=args.id, new_parent_name=args.parent
+                    conngroups_repo.modify_connection_group_parent(
+                        cursor=guacdb.cursor, group_name=group_name, new_parent_name=args.parent
                     )
                 else:
                     guacdb.modify_connection_group_parent(
