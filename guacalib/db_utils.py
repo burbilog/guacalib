@@ -14,7 +14,9 @@ from typing import Optional, Dict, List
 import mysql.connector
 
 
-def validate_positive_id(id_value: Optional[int], entity_type: str = "entity") -> Optional[int]:
+def validate_positive_id(
+    id_value: Optional[int], entity_type: str = "entity"
+) -> Optional[int]:
     """Validate that ID is a positive integer.
 
     Args:
@@ -28,9 +30,7 @@ def validate_positive_id(id_value: Optional[int], entity_type: str = "entity") -
         ValueError: If ID is not a positive integer.
     """
     if id_value is not None and id_value <= 0:
-        raise ValueError(
-            f"{entity_type} ID must be a positive integer greater than 0"
-        )
+        raise ValueError(f"{entity_type} ID must be a positive integer greater than 0")
     return id_value
 
 
@@ -121,7 +121,9 @@ def get_usergroup_name_by_id(cursor, group_id: int) -> str:
     return result[0]
 
 
-def resolve_connection_id(cursor, connection_name: Optional[str] = None, connection_id: Optional[int] = None) -> int:
+def resolve_connection_id(
+    cursor, connection_name: Optional[str] = None, connection_id: Optional[int] = None
+) -> int:
     """Validate inputs and resolve to connection_id with centralized validation.
 
     This is a core utility method that handles the common pattern of accepting
@@ -160,9 +162,7 @@ def resolve_connection_id(cursor, connection_name: Optional[str] = None, connect
     # If ID provided, validate and return it
     if connection_id is not None:
         if connection_id <= 0:
-            raise ValueError(
-                "Connection ID must be a positive integer greater than 0"
-            )
+            raise ValueError("Connection ID must be a positive integer greater than 0")
 
         # Verify the connection exists
         try:
@@ -198,7 +198,9 @@ def resolve_connection_id(cursor, connection_name: Optional[str] = None, connect
             raise ValueError(f"Database error while resolving connection name: {e}")
 
 
-def resolve_conngroup_id(cursor, group_name: Optional[str] = None, group_id: Optional[int] = None) -> int:
+def resolve_conngroup_id(
+    cursor, group_name: Optional[str] = None, group_id: Optional[int] = None
+) -> int:
     """Validate inputs and resolve to connection_group_id with centralized validation.
 
     Args:
@@ -238,9 +240,7 @@ def resolve_conngroup_id(cursor, group_name: Optional[str] = None, group_id: Opt
                 raise ValueError(f"Connection group with ID {group_id} not found")
             return group_id
         except mysql.connector.Error as e:
-            raise ValueError(
-                f"Database error while resolving connection group ID: {e}"
-            )
+            raise ValueError(f"Database error while resolving connection group ID: {e}")
 
     # If name provided, resolve to ID
     if group_name is not None:
@@ -262,7 +262,9 @@ def resolve_conngroup_id(cursor, group_name: Optional[str] = None, group_id: Opt
             )
 
 
-def resolve_usergroup_id(cursor, group_name: Optional[str] = None, group_id: Optional[int] = None) -> int:
+def resolve_usergroup_id(
+    cursor, group_name: Optional[str] = None, group_id: Optional[int] = None
+) -> int:
     """Validate inputs and resolve to user_group_id with centralized validation.
 
     Args:
@@ -284,9 +286,7 @@ def resolve_usergroup_id(cursor, group_name: Optional[str] = None, group_id: Opt
     # If ID provided, validate and return it
     if group_id is not None:
         if group_id <= 0:
-            raise ValueError(
-                "Usergroup ID must be a positive integer greater than 0"
-            )
+            raise ValueError("Usergroup ID must be a positive integer greater than 0")
 
         # Verify the usergroup exists
         try:

@@ -36,7 +36,7 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
                  * User permissions (--permit, --deny)
                  * Supports both name and ID-based identification
     """
-    logger = get_logger('cli_handle_conngroup')
+    logger = get_logger("cli_handle_conngroup")
     if args.conngroup_command == "new":
         try:
             # Check if group already exists
@@ -65,7 +65,9 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
         # Validate --id if provided
         if hasattr(args, "id") and args.id is not None:
             if args.id <= 0:
-                logger.error("Connection group ID must be a positive integer greater than 0")
+                logger.error(
+                    "Connection group ID must be a positive integer greater than 0"
+                )
                 print(
                     "Error: Connection group ID must be a positive integer greater than 0"
                 )
@@ -84,7 +86,9 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
 
         # Use the appropriate groups variable
         if hasattr(args, "id") and args.id is not None:
-            groups = groups_result if 'groups_result' in locals() else groups  # Use specific result if available
+            groups = (
+                groups_result if "groups_result" in locals() else groups
+            )  # Use specific result if available
 
         logger.info(f"Retrieved {len(groups)} connection groups")
         print("conngroups:")
@@ -147,9 +151,13 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
             if hasattr(args, "id") and args.id is not None:
                 # Delete by ID using resolver
                 group_name_display = guacdb.get_connection_group_name_by_id(args.id)
-                logger.debug(f"Deleting connection group '{group_name_display}' by ID: {args.id}")
+                logger.debug(
+                    f"Deleting connection group '{group_name_display}' by ID: {args.id}"
+                )
                 guacdb.delete_connection_group(group_id=args.id)
-                logger.info(f"Successfully deleted connection group '{group_name_display}'")
+                logger.info(
+                    f"Successfully deleted connection group '{group_name_display}'"
+                )
                 print(f"Successfully deleted connection group '{group_name_display}'")
             else:
                 # Delete by name using resolver
@@ -233,14 +241,18 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
                 guacdb.debug_print(f"Setting parent connection group: {args.parent}")
                 if hasattr(args, "id") and args.id is not None:
                     conngroups_repo.modify_connection_group_parent(
-                        cursor=guacdb.cursor, group_name=group_name, new_parent_name=args.parent
+                        cursor=guacdb.cursor,
+                        group_name=group_name,
+                        new_parent_name=args.parent,
                     )
                 else:
                     guacdb.modify_connection_group_parent(
                         group_name=args.name, new_parent_name=args.parent
                     )
                 guacdb.conn.commit()  # Explicitly commit the transaction
-                logger.info(f"Successfully set parent group for '{group_name}' to '{args.parent}'")
+                logger.info(
+                    f"Successfully set parent group for '{group_name}' to '{args.parent}'"
+                )
                 print(
                     f"Successfully set parent group for '{group_name}' to '{args.parent}'"
                 )
@@ -255,7 +267,9 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
                     connection_name=args.addconn_by_name, group_name=group_name
                 )
                 connection_modified = True
-                logger.info(f"Added connection '{args.addconn_by_name}' to group '{group_name}'")
+                logger.info(
+                    f"Added connection '{args.addconn_by_name}' to group '{group_name}'"
+                )
                 print(
                     f"Added connection '{args.addconn_by_name}' to group '{group_name}'"
                 )
@@ -285,7 +299,9 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
                     connection_name=args.rmconn_by_name, group_name=None
                 )
                 connection_modified = True
-                logger.info(f"Removed connection '{args.rmconn_by_name}' from group '{group_name}'")
+                logger.info(
+                    f"Removed connection '{args.rmconn_by_name}' from group '{group_name}'"
+                )
                 print(
                     f"Removed connection '{args.rmconn_by_name}' from group '{group_name}'"
                 )
@@ -303,7 +319,9 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
                     connection_id=args.rmconn_by_id, group_name=None
                 )
                 connection_modified = True
-                logger.info(f"Removed connection '{conn_name}' from group '{group_name}'")
+                logger.info(
+                    f"Removed connection '{conn_name}' from group '{group_name}'"
+                )
                 print(f"Removed connection '{conn_name}' from group '{group_name}'")
 
             # Handle permission grant/revoke
@@ -324,7 +342,9 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
                         guacdb.grant_connection_group_permission_to_user_by_id(
                             username, args.id
                         )
-                        logger.info(f"Successfully granted permission to user '{username}' for connection group ID '{args.id}'")
+                        logger.info(
+                            f"Successfully granted permission to user '{username}' for connection group ID '{args.id}'"
+                        )
                         print(
                             f"Successfully granted permission to user '{username}' for connection group ID '{args.id}'"
                         )
@@ -332,7 +352,9 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
                         guacdb.grant_connection_group_permission_to_user(
                             username, args.name
                         )
-                        logger.info(f"Successfully granted permission to user '{username}' for connection group '{group_name}'")
+                        logger.info(
+                            f"Successfully granted permission to user '{username}' for connection group '{group_name}'"
+                        )
                         print(
                             f"Successfully granted permission to user '{username}' for connection group '{group_name}'"
                         )
@@ -379,7 +401,9 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
                         guacdb.revoke_connection_group_permission_from_user_by_id(
                             username, args.id
                         )
-                        logger.info(f"Successfully revoked permission from user '{username}' for connection group ID '{args.id}'")
+                        logger.info(
+                            f"Successfully revoked permission from user '{username}' for connection group ID '{args.id}'"
+                        )
                         print(
                             f"Successfully revoked permission from user '{username}' for connection group ID '{args.id}'"
                         )
@@ -387,7 +411,9 @@ def handle_conngroup_command(args: Any, guacdb: GuacamoleDB) -> None:
                         guacdb.revoke_connection_group_permission_from_user(
                             username, args.name
                         )
-                        logger.info(f"Successfully revoked permission from user '{username}' for connection group '{group_name}'")
+                        logger.info(
+                            f"Successfully revoked permission from user '{username}' for connection group '{group_name}'"
+                        )
                         print(
                             f"Successfully revoked permission from user '{username}' for connection group '{group_name}'"
                         )

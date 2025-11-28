@@ -19,7 +19,7 @@ def handle_user_command(args: Any, guacdb: GuacamoleDB) -> None:
     Raises:
         SystemExit: Always exits with status 1 if an unknown command is provided.
     """
-    logger = get_logger('cli_handle_user')
+    logger = get_logger("cli_handle_user")
 
     command_handlers = {
         "new": handle_user_new,
@@ -59,7 +59,7 @@ def handle_user_new(args: Any, guacdb: GuacamoleDB) -> None:
         will still be created but the function will raise a RuntimeError to indicate
         partial failure.
     """
-    logger = get_logger('cli_handle_user')
+    logger = get_logger("cli_handle_user")
 
     logger.debug(f"Creating new user: {args.name}")
     if guacdb.user_exists(args.name):
@@ -82,12 +82,16 @@ def handle_user_new(args: Any, guacdb: GuacamoleDB) -> None:
                 logger.debug(f"Added user '{args.name}' to usergroup '{group}'")
                 guacdb.debug_print(f"Added user '{args.name}' to usergroup '{group}'")
             except Exception as e:
-                logger.error(f"Failed to add user '{args.name}' to group '{group}': {e}")
+                logger.error(
+                    f"Failed to add user '{args.name}' to group '{group}': {e}"
+                )
                 print(f"[-] Failed to add to group '{group}': {e}")
                 success = False
 
         if not success:
-            logger.warning(f"User '{args.name}' created but some group assignments failed")
+            logger.warning(
+                f"User '{args.name}' created but some group assignments failed"
+            )
             raise RuntimeError("Failed to add to one or more groups")
 
         logger.info(f"User '{args.name}' assigned to groups: {', '.join(groups)}")
@@ -138,7 +142,7 @@ def handle_user_delete(args: Any, guacdb: GuacamoleDB) -> None:
     Raises:
         SystemExit: Always exits with status 1 if user deletion fails.
     """
-    logger = get_logger('cli_handle_user')
+    logger = get_logger("cli_handle_user")
 
     logger.debug(f"Deleting user: {args.name}")
     try:
@@ -201,7 +205,7 @@ def handle_user_modify(args: Any, guacdb: GuacamoleDB) -> None:
         parameters defined in guacdb.USER_PARAMETERS. If called without valid
         modification options, displays a comprehensive help table.
     """
-    logger = get_logger('cli_handle_user')
+    logger = get_logger("cli_handle_user")
 
     if not args.name or (not args.set and not args.password):
         logger.debug("Displaying user modify help (no valid options provided)")
@@ -260,14 +264,18 @@ def handle_user_modify(args: Any, guacdb: GuacamoleDB) -> None:
 
             logger.debug(f"Setting parameter '{param_name}' for user '{args.name}'")
             guacdb.modify_user(args.name, param_name, param_value)
-            logger.info(f"Parameter '{param_name}' set to '{param_value}' for user '{args.name}'")
+            logger.info(
+                f"Parameter '{param_name}' set to '{param_value}' for user '{args.name}'"
+            )
             modified_operations.append(f"{param_name}={param_value}")
             guacdb.debug_print(
                 f"Successfully modified user '{args.name}': {param_name}={param_value}"
             )
 
         if modified_operations:
-            logger.info(f"User '{args.name}' modified successfully: {', '.join(modified_operations)}")
+            logger.info(
+                f"User '{args.name}' modified successfully: {', '.join(modified_operations)}"
+            )
 
     except ValueError as e:
         logger.error(f"Failed to modify user '{args.name}': {e}")

@@ -41,7 +41,7 @@ def handle_conn_command(args: Any, guacdb: GuacamoleDB) -> None:
     Raises:
         SystemExit: Always exits with status 1 if an unknown command is provided.
     """
-    logger = get_logger('cli_handle_conn')
+    logger = get_logger("cli_handle_conn")
 
     command_handlers = {
         "new": handle_conn_new,
@@ -157,7 +157,7 @@ def handle_conn_new(args: Any, guacdb: GuacamoleDB) -> None:
         attempts to grant connection access to all listed groups. Partial failures
         in group assignment will raise an exception but the connection will still be created.
     """
-    logger = get_logger('cli_handle_conn')
+    logger = get_logger("cli_handle_conn")
 
     logger.debug(f"Creating new connection: {args.name} (type: {args.type})")
     try:
@@ -166,7 +166,9 @@ def handle_conn_new(args: Any, guacdb: GuacamoleDB) -> None:
         connection_id = guacdb.create_connection(
             args.type, args.name, args.hostname, args.port, args.password
         )
-        logger.info(f"Connection '{args.name}' created successfully with ID: {connection_id}")
+        logger.info(
+            f"Connection '{args.name}' created successfully with ID: {connection_id}"
+        )
         guacdb.debug_print(f"Successfully created connection '{args.name}'")
 
         if connection_id and args.usergroup:
@@ -182,17 +184,25 @@ def handle_conn_new(args: Any, guacdb: GuacamoleDB) -> None:
                         connection_id,
                         group_path=None,  # No path nesting
                     )
-                    logger.debug(f"Granted access to group '{group}' for connection '{args.name}'")
+                    logger.debug(
+                        f"Granted access to group '{group}' for connection '{args.name}'"
+                    )
                     guacdb.debug_print(f"Granted access to group '{group}'")
                 except Exception as e:
-                    logger.error(f"Failed to grant access to group '{group}' for connection '{args.name}': {e}")
+                    logger.error(
+                        f"Failed to grant access to group '{group}' for connection '{args.name}': {e}"
+                    )
                     print(f"[-] Failed to grant access to group '{group}': {e}")
                     success = False
 
             if success:
-                logger.info(f"Connection '{args.name}' granted access to groups: {', '.join(groups)}")
+                logger.info(
+                    f"Connection '{args.name}' granted access to groups: {', '.join(groups)}"
+                )
             else:
-                logger.warning(f"Connection '{args.name}' created but some group permissions failed")
+                logger.warning(
+                    f"Connection '{args.name}' created but some group permissions failed"
+                )
                 raise RuntimeError("Failed to grant access to one or more groups")
 
     except Exception as e:
@@ -215,7 +225,7 @@ def handle_conn_delete(args: Any, guacdb: GuacamoleDB) -> None:
     Raises:
         SystemExit: Always exits with status 1 if connection deletion fails or validation errors occur.
     """
-    logger = get_logger('cli_handle_conn')
+    logger = get_logger("cli_handle_conn")
 
     # Validate exactly one selector provided
     from .cli import validate_selector
@@ -235,7 +245,9 @@ def handle_conn_delete(args: Any, guacdb: GuacamoleDB) -> None:
             # Delete by ID using resolver
             connection_name = guacdb.get_connection_name_by_id(args.id)
             guacdb.delete_existing_connection(connection_id=args.id)
-            logger.info(f"Connection '{connection_name}' (ID {args.id}) deleted successfully")
+            logger.info(
+                f"Connection '{connection_name}' (ID {args.id}) deleted successfully"
+            )
         else:
             # Delete by name using resolver
             guacdb.delete_existing_connection(connection_name=args.name)
@@ -245,7 +257,9 @@ def handle_conn_delete(args: Any, guacdb: GuacamoleDB) -> None:
         print(f"Error: {e}")
         sys.exit(1)
     except Exception as e:
-        logger.error(f"Unexpected error deleting connection {connection_identifier}: {e}")
+        logger.error(
+            f"Unexpected error deleting connection {connection_identifier}: {e}"
+        )
         print(f"Error deleting connection: {e}")
         sys.exit(1)
 
@@ -321,7 +335,7 @@ def handle_conn_modify(args: Any, guacdb: GuacamoleDB) -> None:
         - --permit and --deny modify individual user permissions
         - Displays comprehensive help including all available connection parameters
     """
-    logger = get_logger('cli_handle_conn')
+    logger = get_logger("cli_handle_conn")
 
     # Check if no modification options provided - show help
     if not args.set and args.parent is None and not args.permit and not args.deny:
@@ -383,9 +397,13 @@ def handle_conn_modify(args: Any, guacdb: GuacamoleDB) -> None:
 
         # Handle permission modifications (these methods expect connection_name)
         if args.permit:
-            logger.debug(f"Granting permission to user '{args.permit}' for connection '{connection_name}'")
+            logger.debug(
+                f"Granting permission to user '{args.permit}' for connection '{connection_name}'"
+            )
             guacdb.grant_connection_permission_to_user(args.permit, connection_name)
-            logger.info(f"Granted permission to user '{args.permit}' for connection '{connection_name}'")
+            logger.info(
+                f"Granted permission to user '{args.permit}' for connection '{connection_name}'"
+            )
             modified_operations.append(f"permit:{args.permit}")
             print(
                 f"Successfully granted permission to user '{args.permit}' for connection '{connection_name}'"
@@ -393,9 +411,13 @@ def handle_conn_modify(args: Any, guacdb: GuacamoleDB) -> None:
             guacdb.debug_connection_permissions(connection_name)
 
         if args.deny:
-            logger.debug(f"Revoking permission from user '{args.deny}' for connection '{connection_name}'")
+            logger.debug(
+                f"Revoking permission from user '{args.deny}' for connection '{connection_name}'"
+            )
             guacdb.revoke_connection_permission_from_user(args.deny, connection_name)
-            logger.info(f"Revoked permission from user '{args.deny}' for connection '{connection_name}'")
+            logger.info(
+                f"Revoked permission from user '{args.deny}' for connection '{connection_name}'"
+            )
             modified_operations.append(f"deny:{args.deny}")
             print(
                 f"Successfully revoked permission from user '{args.deny}' for connection '{connection_name}'"
@@ -406,7 +428,9 @@ def handle_conn_modify(args: Any, guacdb: GuacamoleDB) -> None:
             try:
                 # Convert empty string to None to unset parent group
                 parent_group = args.parent if args.parent != "" else None
-                logger.debug(f"Setting parent group to '{parent_group}' for connection '{connection_name}'")
+                logger.debug(
+                    f"Setting parent group to '{parent_group}' for connection '{connection_name}'"
+                )
                 if hasattr(args, "id") and args.id is not None:
                     guacdb.modify_connection_parent_group(
                         connection_id=args.id, group_name=parent_group
@@ -415,13 +439,17 @@ def handle_conn_modify(args: Any, guacdb: GuacamoleDB) -> None:
                     guacdb.modify_connection_parent_group(
                         connection_name=args.name, group_name=parent_group
                     )
-                logger.info(f"Parent group set to '{args.parent}' for connection '{connection_name}'")
+                logger.info(
+                    f"Parent group set to '{args.parent}' for connection '{connection_name}'"
+                )
                 modified_operations.append(f"parent:{args.parent}")
                 print(
                     f"Successfully set parent group to '{args.parent}' for connection '{connection_name}'"
                 )
             except Exception as e:
-                logger.error(f"Failed to set parent group for connection '{connection_name}': {e}")
+                logger.error(
+                    f"Failed to set parent group for connection '{connection_name}': {e}"
+                )
                 print(f"Error setting parent group: {e}")
                 sys.exit(1)
 
@@ -435,7 +463,9 @@ def handle_conn_modify(args: Any, guacdb: GuacamoleDB) -> None:
                 sys.exit(1)
 
             param, value = param_value.split("=", 1)
-            logger.debug(f"Setting parameter '{param}={value}' for connection '{connection_name}'")
+            logger.debug(
+                f"Setting parameter '{param}={value}' for connection '{connection_name}'"
+            )
             guacdb.debug_print(
                 f"Modifying connection '{connection_name}': setting {param}={value}"
             )
@@ -449,18 +479,24 @@ def handle_conn_modify(args: Any, guacdb: GuacamoleDB) -> None:
                     guacdb.modify_connection(
                         connection_name=args.name, param_name=param, param_value=value
                     )
-                logger.info(f"Parameter '{param}' updated to '{value}' for connection '{connection_name}'")
+                logger.info(
+                    f"Parameter '{param}' updated to '{value}' for connection '{connection_name}'"
+                )
                 modified_operations.append(f"{param}={value}")
                 print(
                     f"Successfully updated {param} for connection '{connection_name}'"
                 )
             except ValueError as e:
-                logger.error(f"Failed to set parameter '{param}' for connection '{connection_name}': {e}")
+                logger.error(
+                    f"Failed to set parameter '{param}' for connection '{connection_name}': {e}"
+                )
                 print(f"Error: {str(e)}")
                 sys.exit(1)
 
         if modified_operations:
-            logger.info(f"Connection '{connection_name}' modified successfully: {', '.join(modified_operations)}")
+            logger.info(
+                f"Connection '{connection_name}' modified successfully: {', '.join(modified_operations)}"
+            )
 
     except ValueError as e:
         logger.error(f"Failed to modify connection '{connection_name}': {e}")

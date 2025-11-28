@@ -21,7 +21,9 @@ from .db_connection_parameters import CONNECTION_PARAMETERS
 from .db_utils import get_connection_name_by_id, resolve_conngroup_id
 
 
-def connection_exists(cursor, connection_name: Optional[str] = None, connection_id: Optional[int] = None) -> bool:
+def connection_exists(
+    cursor, connection_name: Optional[str] = None, connection_id: Optional[int] = None
+) -> bool:
     """Check if a connection exists in the Guacamole database.
 
     Args:
@@ -155,7 +157,9 @@ def create_connection(
     return connection_id
 
 
-def delete_connection(cursor, connection_name: Optional[str] = None, connection_id: Optional[int] = None) -> None:
+def delete_connection(
+    cursor, connection_name: Optional[str] = None, connection_id: Optional[int] = None
+) -> None:
     """Delete a connection and all its associated data.
 
     Removes a connection completely from the system, including its parameters,
@@ -327,9 +331,7 @@ def modify_connection_parameter(
         if param_name == "read-only":
             # Validate boolean value
             if param_value.lower() not in ("true", "false"):
-                raise ValueError(
-                    "Parameter read-only must be 'true' or 'false'"
-                )
+                raise ValueError("Parameter read-only must be 'true' or 'false'")
 
             # For read-only, we either add with 'true' or remove the parameter
             if param_value.lower() == "true":
@@ -375,9 +377,7 @@ def modify_connection_parameter(
             # Special handling for color-depth
             if param_name == "color-depth":
                 if param_value not in ("8", "16", "24", "32"):
-                    raise ValueError(
-                        "color-depth must be one of: 8, 16, 24, 32"
-                    )
+                    raise ValueError("color-depth must be one of: 8, 16, 24, 32")
 
             # Regular parameter handling
             # Check if parameter already exists
@@ -447,7 +447,9 @@ def modify_connection_parent_group(
     """
     # Validate exactly one connection identifier provided
     if (connection_name is None) == (connection_id is None):
-        raise ValueError("Exactly one of connection_name or connection_id must be provided")
+        raise ValueError(
+            "Exactly one of connection_name or connection_id must be provided"
+        )
 
     try:
         # Resolve connection ID and validate connection exists
@@ -504,9 +506,13 @@ def modify_connection_parent_group(
         # Check if we're trying to set to same group
         if group_id == current_parent_id:
             if group_id is None:
-                raise ValueError(f"Connection '{connection_name}' already has no parent group")
+                raise ValueError(
+                    f"Connection '{connection_name}' already has no parent group"
+                )
             else:
-                raise ValueError(f"Connection '{connection_name}' is already in group '{group_name}'")
+                raise ValueError(
+                    f"Connection '{connection_name}' is already in group '{group_name}'"
+                )
 
         # Update parent ID
         cursor.execute(
@@ -519,7 +525,9 @@ def modify_connection_parent_group(
         )
 
         if cursor.rowcount == 0:
-            raise ValueError(f"Failed to update parent group for connection '{connection_name}'")
+            raise ValueError(
+                f"Failed to update parent group for connection '{connection_name}'"
+            )
 
         return True
 

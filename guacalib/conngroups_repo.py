@@ -19,7 +19,9 @@ import mysql.connector
 from . import db_utils
 
 
-def connection_group_exists(cursor, group_name: Optional[str] = None, group_id: Optional[int] = None) -> bool:
+def connection_group_exists(
+    cursor, group_name: Optional[str] = None, group_id: Optional[int] = None
+) -> bool:
     """Check if a connection group exists in the Guacamole database.
 
     Args:
@@ -69,7 +71,9 @@ def connection_group_exists(cursor, group_name: Optional[str] = None, group_id: 
         raise
 
 
-def create_connection_group(cursor, group_name: str, parent_group_name: Optional[str] = None) -> bool:
+def create_connection_group(
+    cursor, group_name: str, parent_group_name: Optional[str] = None
+) -> bool:
     """Create a new connection group in the Guacamole database.
 
     Creates a new connection group with the specified name and optionally
@@ -109,9 +113,7 @@ def create_connection_group(cursor, group_name: str, parent_group_name: Optional
         )
         result = cursor.fetchone()
         if not result:
-            raise ValueError(
-                f"Parent connection group '{parent_group_name}' not found"
-            )
+            raise ValueError(f"Parent connection group '{parent_group_name}' not found")
         parent_group_id = result[0]
 
         # Check for cycles - since this is a new group, we can't be creating a cycle
@@ -146,7 +148,9 @@ def create_connection_group(cursor, group_name: str, parent_group_name: Optional
     return True
 
 
-def delete_connection_group(cursor, group_name: Optional[str] = None, group_id: Optional[int] = None) -> bool:
+def delete_connection_group(
+    cursor, group_name: Optional[str] = None, group_id: Optional[int] = None
+) -> bool:
     """Delete a connection group and update references to it.
 
     Removes a connection group while maintaining database integrity by updating
@@ -229,7 +233,9 @@ def delete_connection_group(cursor, group_name: Optional[str] = None, group_id: 
     return True
 
 
-def check_connection_group_cycle(cursor, group_id: int, parent_id: Optional[int]) -> bool:
+def check_connection_group_cycle(
+    cursor, group_id: int, parent_id: Optional[int]
+) -> bool:
     """Check if setting a parent connection group would create a cycle.
 
     Validates whether assigning a parent group to a connection group would
@@ -351,7 +357,9 @@ def modify_connection_group_parent(
             )
             result = cursor.fetchone()
             if not result:
-                raise ValueError(f"Connection group with ID {resolved_group_id} not found")
+                raise ValueError(
+                    f"Connection group with ID {resolved_group_id} not found"
+                )
             group_name = result[0]
 
         # Handle NULL parent (empty string or None)
@@ -368,12 +376,16 @@ def modify_connection_group_parent(
             )
             result = cursor.fetchone()
             if not result:
-                raise ValueError(f"Parent connection group '{new_parent_name}' not found")
+                raise ValueError(
+                    f"Parent connection group '{new_parent_name}' not found"
+                )
             new_parent_id = result[0]
 
             # Check for cycles using cycle detection helper
             if check_connection_group_cycle(cursor, resolved_group_id, new_parent_id):
-                raise ValueError("Setting parent would create a cycle in connection groups")
+                raise ValueError(
+                    "Setting parent would create a cycle in connection groups"
+                )
 
         # Update the parent
         cursor.execute(

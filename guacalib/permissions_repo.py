@@ -210,7 +210,9 @@ def remove_user_from_usergroup(cursor, username: str, group_name: str) -> None:
     )
 
 
-def grant_connection_permission(cursor, entity_name: str, entity_type: str, connection_id: int, group_path=None) -> None:
+def grant_connection_permission(
+    cursor, entity_name: str, entity_type: str, connection_id: int, group_path=None
+) -> None:
     """Grant connection permission to an entity.
 
     Grants READ permission to an entity (user or user group) for accessing
@@ -267,7 +269,9 @@ def grant_connection_permission(cursor, entity_name: str, entity_type: str, conn
     )
 
 
-def grant_connection_permission_to_user(cursor, username: str, connection_name: str) -> bool:
+def grant_connection_permission_to_user(
+    cursor, username: str, connection_name: str
+) -> bool:
     """Grant connection permission to a specific user.
 
     Args:
@@ -339,7 +343,9 @@ def grant_connection_permission_to_user(cursor, username: str, connection_name: 
     return True
 
 
-def revoke_connection_permission_from_user(cursor, username: str, connection_name: str) -> bool:
+def revoke_connection_permission_from_user(
+    cursor, username: str, connection_name: str
+) -> bool:
     """Revoke connection permission from a specific user.
 
     Args:
@@ -410,7 +416,9 @@ def revoke_connection_permission_from_user(cursor, username: str, connection_nam
     return True
 
 
-def grant_connection_group_permission_to_user(cursor, username: str, conngroup_name: str) -> bool:
+def grant_connection_group_permission_to_user(
+    cursor, username: str, conngroup_name: str
+) -> bool:
     """Grant connection group permission to a specific user.
 
     Grants READ permission to a user for accessing a connection group.
@@ -495,7 +503,9 @@ def grant_connection_group_permission_to_user(cursor, username: str, conngroup_n
     return True
 
 
-def revoke_connection_group_permission_from_user(cursor, username: str, conngroup_name: str) -> bool:
+def revoke_connection_group_permission_from_user(
+    cursor, username: str, conngroup_name: str
+) -> bool:
     """Revoke connection group permission from a specific user.
 
     Args:
@@ -576,7 +586,9 @@ def revoke_connection_group_permission_from_user(cursor, username: str, conngrou
     return True
 
 
-def grant_connection_group_permission_to_user_by_id(cursor, username: str, conngroup_id: int) -> bool:
+def grant_connection_group_permission_to_user_by_id(
+    cursor, username: str, conngroup_id: int
+) -> bool:
     """Grant connection group permission to a user using connection group ID.
 
     Grants READ permission to a user for accessing a connection group specified by ID.
@@ -605,11 +617,7 @@ def grant_connection_group_permission_to_user_by_id(cursor, username: str, conng
     # Input validation
     if not username or not isinstance(username, str):
         raise ValueError("Username must be a non-empty string")
-    if (
-        conngroup_id is None
-        or not isinstance(conngroup_id, int)
-        or conngroup_id <= 0
-    ):
+    if conngroup_id is None or not isinstance(conngroup_id, int) or conngroup_id <= 0:
         raise ValueError("Connection group ID must be a positive integer")
 
     # Validate connection group ID
@@ -665,7 +673,9 @@ def grant_connection_group_permission_to_user_by_id(cursor, username: str, conng
     return True
 
 
-def revoke_connection_group_permission_from_user_by_id(cursor, username: str, conngroup_id: int) -> bool:
+def revoke_connection_group_permission_from_user_by_id(
+    cursor, username: str, conngroup_id: int
+) -> bool:
     """Revoke connection group permission from a user using connection group ID.
 
     Args:
@@ -691,11 +701,7 @@ def revoke_connection_group_permission_from_user_by_id(cursor, username: str, co
     # Input validation
     if not username or not isinstance(username, str):
         raise ValueError("Username must be a non-empty string")
-    if (
-        conngroup_id is None
-        or not isinstance(conngroup_id, int)
-        or conngroup_id <= 0
-    ):
+    if conngroup_id is None or not isinstance(conngroup_id, int) or conngroup_id <= 0:
         raise ValueError("Connection group ID must be a positive integer")
 
     # Validate connection group ID

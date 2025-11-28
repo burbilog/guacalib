@@ -73,9 +73,7 @@ def debug_connection_permissions(cursor, connection_name: str) -> None:
 
         permissions = cursor.fetchall()
         if not permissions:
-            logger.debug(
-                f"No permissions found for connection '{connection_name}'"
-            )
+            logger.debug(f"No permissions found for connection '{connection_name}'")
         else:
             logger.debug(f"Found {len(permissions)} permissions:")
             for perm in permissions:
@@ -483,9 +481,9 @@ def list_usergroups_with_users_and_connections(cursor) -> Dict[str, Dict[str, An
             connections = groups_connections.get((group_name, group_id), [])
 
             result[group_name] = {
-                'id': group_id,
-                'users': users,
-                'connections': connections
+                "id": group_id,
+                "users": users,
+                "connections": connections,
             }
 
         return result
@@ -544,9 +542,9 @@ def list_connection_groups(cursor) -> Dict[str, Dict[str, Any]]:
             connections_list = connections.split(",") if connections else []
 
             groups_dict[group_name] = {
-                'id': group_id,
-                'parent': parent_name if parent_name else "ROOT",
-                'connections': [conn for conn in connections_list if conn.strip()]
+                "id": group_id,
+                "parent": parent_name if parent_name else "ROOT",
+                "connections": [conn for conn in connections_list if conn.strip()],
             }
 
         return groups_dict
@@ -610,10 +608,10 @@ def get_connection_group_by_id(cursor, group_id: int) -> Optional[Dict[str, Any]
         connections_list = connections.split(",") if connections else []
 
         return {
-            'id': group_id_val,
-            'name': group_name,
-            'parent': parent_name if parent_name else "ROOT",
-            'connections': [conn for conn in connections_list if conn.strip()]
+            "id": group_id_val,
+            "name": group_name,
+            "parent": parent_name if parent_name else "ROOT",
+            "connections": [conn for conn in connections_list if conn.strip()],
         }
 
     except mysql.connector.Error as e:

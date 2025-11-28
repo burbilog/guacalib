@@ -236,7 +236,9 @@ def delete_user(cursor, username: str) -> None:
     )
 
 
-def modify_user_parameter(cursor, username: str, param_name: str, param_value: Union[str, int]) -> bool:
+def modify_user_parameter(
+    cursor, username: str, param_name: str, param_value: Union[str, int]
+) -> bool:
     """Modify a user parameter in the Guacamole database.
 
     Updates user account parameters such as disabled status, expiration dates,

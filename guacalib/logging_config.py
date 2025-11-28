@@ -54,18 +54,18 @@ def setup_logging(debug: bool = False, force_reconfigure: bool = False) -> None:
         >>> setup_logging()
     """
     # Phase 4: Check for environment variable overrides
-    env_log_level = os.environ.get('GUACALIB_LOG_LEVEL', '').upper()
-    env_log_format = os.environ.get('GUACALIB_LOG_FORMAT', '')
+    env_log_level = os.environ.get("GUACALIB_LOG_LEVEL", "").upper()
+    env_log_format = os.environ.get("GUACALIB_LOG_FORMAT", "")
 
     # Determine logging level with environment variable support
     if env_log_level:
         # Map environment variable to logging level
         level_mapping = {
-            'DEBUG': logging.DEBUG,
-            'INFO': logging.INFO,
-            'WARNING': logging.WARNING,
-            'ERROR': logging.ERROR,
-            'CRITICAL': logging.CRITICAL,
+            "DEBUG": logging.DEBUG,
+            "INFO": logging.INFO,
+            "WARNING": logging.WARNING,
+            "ERROR": logging.ERROR,
+            "CRITICAL": logging.CRITICAL,
         }
 
         if env_log_level in level_mapping:
@@ -73,14 +73,17 @@ def setup_logging(debug: bool = False, force_reconfigure: bool = False) -> None:
         else:
             # Invalid environment variable - fallback to debug parameter
             # and print warning to stderr (since logging isn't configured yet)
-            print(f"Warning: Invalid GUACALIB_LOG_LEVEL '{env_log_level}'. Using debug={debug} instead.", file=sys.stderr)
+            print(
+                f"Warning: Invalid GUACALIB_LOG_LEVEL '{env_log_level}'. Using debug={debug} instead.",
+                file=sys.stderr,
+            )
             level = logging.DEBUG if debug else logging.WARNING
     else:
         # No environment variable override - use debug parameter
         level = logging.DEBUG if debug else logging.WARNING
 
     # Get the guacalib root logger
-    logger = logging.getLogger('guacalib')
+    logger = logging.getLogger("guacalib")
 
     # Check if already configured to avoid duplicate handlers
     if logger.handlers and not force_reconfigure:
@@ -106,23 +109,26 @@ def setup_logging(debug: bool = False, force_reconfigure: bool = False) -> None:
             formatter = logging.Formatter(env_log_format)
         except (ValueError, TypeError) as e:
             # Invalid format string - fallback to debug mode
-            print(f"Warning: Invalid GUACALIB_LOG_FORMAT '{env_log_format}'. Using debug={debug} format instead. Error: {e}", file=sys.stderr)
+            print(
+                f"Warning: Invalid GUACALIB_LOG_FORMAT '{env_log_format}'. Using debug={debug} format instead. Error: {e}",
+                file=sys.stderr,
+            )
             if debug:
                 formatter = logging.Formatter(
-                    '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S'
+                    "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+                    datefmt="%Y-%m-%d %H:%M:%S",
                 )
             else:
-                formatter = logging.Formatter('%(levelname)s: %(message)s')
+                formatter = logging.Formatter("%(levelname)s: %(message)s")
     else:
         # Use default format based on debug mode
         if debug:
             formatter = logging.Formatter(
-                '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                datefmt='%Y-%m-%d %H:%M:%S'
+                "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
             )
         else:
-            formatter = logging.Formatter('%(levelname)s: %(message)s')
+            formatter = logging.Formatter("%(levelname)s: %(message)s")
 
     handler.setFormatter(formatter)
     logger.addHandler(handler)
@@ -151,4 +157,4 @@ def get_logger(name: str) -> logging.Logger:
         - Handles parameters appropriately
         - Follows single-responsibility principle
     """
-    return logging.getLogger(f'guacalib.{name}')
+    return logging.getLogger(f"guacalib.{name}")
