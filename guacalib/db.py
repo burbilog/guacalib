@@ -20,6 +20,7 @@ from . import usergroups_repo
 from . import connections_repo
 from . import conngroups_repo
 from . import permissions_repo
+from . import reporting_repo
 
 # Custom type definitions
 ConnectionConfig = Dict[str, str]
@@ -576,67 +577,9 @@ class GuacamoleDB:
         group_name: Optional[str] = None,
     ) -> bool:
         """Set parent connection group for a connection"""
-        try:
-            # Use resolver to get connection_id and validate inputs
-            resolved_connection_id = self.resolve_connection_id(
-                connection_name, connection_id
-            )
-
-            group_id = (
-                self.get_connection_group_id_by_name(group_name) if group_name else None
-            )
-
-            # Get current parent
-            self.cursor.execute(
-                """
-                SELECT parent_id 
-                FROM guacamole_connection 
-                WHERE connection_id = %s
-            """,
-                (resolved_connection_id,),
-            )
-            result = self.cursor.fetchone()
-            if not result:
-                raise ValueError(
-                    f"Connection with ID {resolved_connection_id} not found"
-                )
-            current_parent_id = result[0]
-
-            # Get connection name for error messages if we only have ID
-            if connection_name is None:
-                connection_name = self.get_connection_name_by_id(resolved_connection_id)
-
-            # Check if we're trying to set to same group
-            if group_id == current_parent_id:
-                if group_id is None:
-                    raise ValueError(
-                        f"Connection '{connection_name}' already has no parent group"
-                    )
-                else:
-                    raise ValueError(
-                        f"Connection '{connection_name}' is already in group '{group_name}'"
-                    )
-
-            # Update parent ID
-            self.cursor.execute(
-                """
-                UPDATE guacamole_connection
-                SET parent_id = %s
-                WHERE connection_id = %s
-            """,
-                (group_id, resolved_connection_id),
-            )
-
-            if self.cursor.rowcount == 0:
-                raise ValueError(
-                    f"Failed to update parent group for connection '{connection_name}'"
-                )
-
-            return True
-
-        except mysql.connector.Error as e:
-            self.logger.error(f"Error modifying connection parent group: {self._scrub_credentials(str(e))}")
-            raise
+        return connections_repo.modify_connection_parent_group(
+            self.cursor, connection_name, connection_id, group_name
+        )
 
     def get_connection_user_permissions(self, connection_name: str) -> List[str]:
         """Get list of users with direct permissions to a connection"""
@@ -770,64 +713,7 @@ class GuacamoleDB:
 
     def delete_existing_usergroup_by_id(self, group_id: int) -> None:
         """Delete a usergroup by ID and all its associated data"""
-        try:
-            # Validate and resolve the group ID
-            resolved_group_id = self.resolve_usergroup_id(group_id=group_id)
-            group_name = self.get_usergroup_name_by_id(resolved_group_id)
-
-            self.debug_print(
-                f"Attempting to delete usergroup: {group_name} (ID: {resolved_group_id})"
-            )
-
-            # Delete group memberships
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_user_group_member 
-                WHERE user_group_id = %s
-            """,
-                (resolved_group_id,),
-            )
-
-            # Delete group permissions
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_connection_permission 
-                WHERE entity_id IN (
-                    SELECT entity_id FROM guacamole_user_group 
-                    WHERE user_group_id = %s
-                )
-            """,
-                (resolved_group_id,),
-            )
-
-            # Delete user group
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_user_group 
-                WHERE user_group_id = %s
-            """,
-                (resolved_group_id,),
-            )
-
-            # Delete entity
-            self.cursor.execute(
-                """
-                DELETE FROM guacamole_entity 
-                WHERE entity_id IN (
-                    SELECT entity_id FROM guacamole_user_group 
-                    WHERE user_group_id = %s
-                )
-            """,
-                (resolved_group_id,),
-            )
-
-        except mysql.connector.Error as e:
-            self.logger.error(f"Error deleting existing usergroup: {self._scrub_credentials(str(e))}")
-            raise
-        except ValueError as e:
-            self.logger.error(f"Error: {e}")
-            print(f"Error: {e}")
-            raise
+        return usergroups_repo.delete_existing_usergroup_by_id(self.cursor, group_id)
 
     def delete_existing_connection(
         self, connection_name: Optional[str] = None, connection_id: Optional[int] = None
@@ -975,47 +861,7 @@ class GuacamoleDB:
             ...     print(f"Group ID: {group_id}")
             Group ID: 42
         """
-        try:
-            groups = group_path.split("/")
-            parent_group_id = None
-
-            self.debug_print(f"Resolving group path: {group_path}")
-
-            for group_name in groups:
-                # CORRECTED SQL - use connection_group_name directly
-                sql = """
-                    SELECT connection_group_id 
-                    FROM guacamole_connection_group
-                    WHERE connection_group_name = %s
-                """
-                params = [group_name]
-
-                if parent_group_id is not None:
-                    sql += " AND parent_id = %s"
-                    params.append(parent_group_id)
-                else:
-                    sql += " AND parent_id IS NULL"
-
-                sql += " ORDER BY connection_group_id LIMIT 1"
-
-                self.debug_print(f"Executing SQL:\n{sql}\nWith params: {params}")
-
-                self.cursor.execute(sql, tuple(params))
-
-                result = self.cursor.fetchone()
-                if not result:
-                    raise ValueError(
-                        f"Group '{group_name}' not found in path '{group_path}'"
-                    )
-
-                parent_group_id = result[0]
-                self.debug_print(f"Found group ID {parent_group_id} for '{group_name}'")
-
-            return parent_group_id
-
-        except mysql.connector.Error as e:
-            self.logger.error(f"Error resolving group path: {self._scrub_credentials(str(e))}")
-            raise
+        return db_utils.resolve_connection_group_path(self.cursor, group_path)
 
     def connection_exists(
         self, connection_name: Optional[str] = None, connection_id: Optional[int] = None
@@ -1487,57 +1333,9 @@ class GuacamoleDB:
         new_parent_name: Optional[str] = None,
     ) -> bool:
         """Set parent connection group for a connection group with cycle detection"""
-        try:
-            # Use resolver to get group_id and validate inputs
-            resolved_group_id = self.resolve_conngroup_id(group_name, group_id)
-
-            # Get group name for error messages if we only have ID
-            if group_name is None:
-                group_name = self.get_connection_group_name_by_id(resolved_group_id)
-
-            # Handle NULL parent (empty string)
-            new_parent_id = None
-            if new_parent_name:
-                # Get new parent ID
-                self.cursor.execute(
-                    """
-                    SELECT connection_group_id 
-                    FROM guacamole_connection_group
-                    WHERE connection_group_name = %s
-                """,
-                    (new_parent_name,),
-                )
-                result = self.cursor.fetchone()
-                if not result:
-                    raise ValueError(
-                        f"Parent connection group '{new_parent_name}' not found"
-                    )
-                new_parent_id = result[0]
-
-                # Check for cycles using helper method
-                if self._check_connection_group_cycle(resolved_group_id, new_parent_id):
-                    raise ValueError(
-                        f"Setting parent would create a cycle in connection groups"
-                    )
-
-            # Update the parent
-            self.cursor.execute(
-                """
-                UPDATE guacamole_connection_group
-                SET parent_id = %s
-                WHERE connection_group_id = %s
-            """,
-                (new_parent_id, resolved_group_id),
-            )
-
-            if self.cursor.rowcount == 0:
-                raise ValueError(f"Failed to update parent group for '{group_name}'")
-
-            return True
-
-        except mysql.connector.Error as e:
-            self.logger.error(f"Error modifying connection group parent: {self._scrub_credentials(str(e))}")
-            raise
+        return conngroups_repo.modify_connection_group_parent(
+            self.cursor, group_name, group_id, new_parent_name
+        )
 
     def list_connection_groups(self) -> Dict[str, Dict[str, Union[int, List[str]]]]:
         """List all connection groups with their connections and parent groups"""
@@ -1747,28 +1545,7 @@ class GuacamoleDB:
             users: ['john.doe', 'jane.smith']
             guests: []
         """
-        query = """
-            SELECT 
-                e.name as groupname,
-                GROUP_CONCAT(DISTINCT ue.name) as usernames
-            FROM guacamole_entity e
-            LEFT JOIN guacamole_user_group ug ON e.entity_id = ug.entity_id
-            LEFT JOIN guacamole_user_group_member ugm ON ug.user_group_id = ugm.user_group_id
-            LEFT JOIN guacamole_entity ue ON ugm.member_entity_id = ue.entity_id AND ue.type = 'USER'
-            WHERE e.type = 'USER_GROUP'
-            GROUP BY e.name
-            ORDER BY e.name
-        """
-        self.cursor.execute(query)
-        results = self.cursor.fetchall()
-
-        groups_users = {}
-        for row in results:
-            groupname = row[0]
-            usernames = row[1].split(",") if row[1] else []
-            groups_users[groupname] = usernames
-
-        return groups_users
+        return reporting_repo.list_groups_with_users(self.cursor)
 
     def debug_connection_permissions(self, connection_name: str) -> None:
         """Debug function to check and display permissions for a connection.
@@ -1781,90 +1558,18 @@ class GuacamoleDB:
             connection_name: The name of the connection to debug.
 
         Returns:
-            None (outputs debug information to stdout).
+            None (outputs debug information to logger).
 
         Raises:
             mysql.connector.Error: If database query fails.
+            ValueError: If connection is not found.
 
         Example:
             >>> with GuacamoleDB() as db:
             ...     db.debug_connection_permissions("my-server")
-            [DEBUG] Checking permissions for connection 'my-server'
-            [DEBUG] Connection ID: 42
-            [DEBUG] Found 2 permissions:
-            [DEBUG]   Entity ID: 15, Name: john.doe, Type: USER, Permission: READ
-            [DEBUG]   Entity ID: 20, Name: admin-group, Type: USER_GROUP, Permission: READ
-            [DEBUG] Found 1 user permissions:
-            [DEBUG]   User: john.doe
-            [DEBUG] End of debug info
+            # Outputs debug information via logger
         """
-        try:
-            self.logger.debug(f"Checking permissions for connection '{connection_name}'")
-
-            # Get connection ID
-            self.cursor.execute(
-                """
-                SELECT connection_id FROM guacamole_connection
-                WHERE connection_name = %s
-            """,
-                (connection_name,),
-            )
-            result = self.cursor.fetchone()
-            if not result:
-                self.logger.debug(f"Connection '{connection_name}' not found")
-                return
-            connection_id = result[0]
-            self.logger.debug(f"Connection ID: {connection_id}")
-
-            # Check all permissions
-            self.cursor.execute(
-                """
-                SELECT cp.entity_id, e.name, e.type, cp.permission
-                FROM guacamole_connection_permission cp
-                JOIN guacamole_entity e ON cp.entity_id = e.entity_id
-                WHERE cp.connection_id = %s
-            """,
-                (connection_id,),
-            )
-
-            permissions = self.cursor.fetchall()
-            if not permissions:
-                self.logger.debug(
-                    f"No permissions found for connection '{connection_name}'"
-                )
-            else:
-                self.logger.debug(f"Found {len(permissions)} permissions:")
-                for perm in permissions:
-                    entity_id, name, entity_type, permission = perm
-                    self.logger.debug(
-                        f"  Entity ID: {entity_id}, Name: {name}, Type: {entity_type}, Permission: {permission}"
-                    )
-
-            # Specifically check user permissions
-            self.cursor.execute(
-                """
-                SELECT e.name
-                FROM guacamole_connection_permission cp
-                JOIN guacamole_entity e ON cp.entity_id = e.entity_id
-                WHERE cp.connection_id = %s AND e.type = 'USER'
-            """,
-                (connection_id,),
-            )
-
-            user_permissions = self.cursor.fetchall()
-            if not user_permissions:
-                self.logger.debug(
-                    f"No user permissions found for connection '{connection_name}'"
-                )
-            else:
-                self.logger.debug(f"Found {len(user_permissions)} user permissions:")
-                for perm in user_permissions:
-                    self.logger.debug(f"  User: {perm[0]}")
-
-            self.logger.debug("End of debug info")
-
-        except mysql.connector.Error as e:
-            self.logger.debug(f"Error debugging permissions: {self._scrub_credentials(str(e))}")
+        return reporting_repo.debug_connection_permissions(self.cursor, connection_name)
 
     def grant_connection_group_permission_to_user(
         self, username: str, conngroup_name: str

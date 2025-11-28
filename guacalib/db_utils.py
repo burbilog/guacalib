@@ -321,3 +321,65 @@ def resolve_usergroup_id(cursor, group_name: Optional[str] = None, group_id: Opt
             return result[0]
         except mysql.connector.Error as e:
             raise ValueError(f"Database error while resolving usergroup name: {e}")
+
+
+def resolve_connection_group_path(cursor, group_path: str) -> int:
+    """Resolve nested connection group path to connection group ID.
+
+    Resolves a hierarchical path (e.g., "parent/child/grandchild") to the
+    database ID of the final group in the path. This method traverses the
+    hierarchy to find the exact group at the specified path.
+
+    Args:
+        cursor: Database cursor for executing queries.
+        group_path: Slash-separated path to the connection group.
+                   Examples: "Production", "Production/Web", "Servers/Linux"
+
+    Returns:
+        The database ID of the connection group at the specified path.
+
+    Raises:
+        ValueError: If the group path cannot be resolved or any group in the
+                   path doesn't exist, or if database error occurs.
+
+    Example:
+        >>> cursor = db.cursor()
+        >>> group_id = resolve_connection_group_path(cursor, "Production/Web Servers")
+        >>> print(f"Group ID: {group_id}")
+        Group ID: 42
+    """
+    try:
+        groups = group_path.split("/")
+        parent_group_id = None
+
+        for group_name in groups:
+            # Use connection_group_name directly with parent hierarchy
+            sql = """
+                SELECT connection_group_id
+                FROM guacamole_connection_group
+                WHERE connection_group_name = %s
+            """
+            params = [group_name]
+
+            if parent_group_id is not None:
+                sql += " AND parent_id = %s"
+                params.append(parent_group_id)
+            else:
+                sql += " AND parent_id IS NULL"
+
+            sql += " ORDER BY connection_group_id LIMIT 1"
+
+            cursor.execute(sql, tuple(params))
+
+            result = cursor.fetchone()
+            if not result:
+                raise ValueError(
+                    f"Group '{group_name}' not found in path '{group_path}'"
+                )
+
+            parent_group_id = result[0]
+
+        return parent_group_id
+
+    except mysql.connector.Error as e:
+        raise ValueError(f"Database error resolving group path: {e}")

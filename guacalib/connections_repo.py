@@ -10,6 +10,7 @@ Functions:
     create_connection: Create a new connection with parameters
     delete_connection: Delete a connection and all associated data
     modify_connection_parameter: Modify a specific connection parameter
+    modify_connection_parent_group: Set parent connection group for a connection
 
 All functions are designed to be stateless and accept a cursor as the first parameter.
 """
@@ -17,6 +18,7 @@ All functions are designed to be stateless and accept a cursor as the first para
 import mysql.connector
 from typing import Union, Optional
 from .db_connection_parameters import CONNECTION_PARAMETERS
+from .db_utils import get_connection_name_by_id, resolve_conngroup_id
 
 
 def connection_exists(cursor, connection_name: Optional[str] = None, connection_id: Optional[int] = None) -> bool:
@@ -412,3 +414,114 @@ def modify_connection_parameter(
         raise ValueError(f"Failed to update connection parameter: {param_name}")
 
     return True
+
+
+def modify_connection_parent_group(
+    cursor,
+    connection_name: Optional[str] = None,
+    connection_id: Optional[int] = None,
+    group_name: Optional[str] = None,
+) -> bool:
+    """Set parent connection group for a connection.
+
+    Args:
+        cursor: Database cursor for executing queries.
+        connection_name: The name of the connection to modify. Optional.
+        connection_id: The ID of the connection to modify. Optional.
+        group_name: The name of the parent group to set. Optional (None for root level).
+
+    Returns:
+        True if successful.
+
+    Raises:
+        ValueError: If connection doesn't exist, group doesn't exist, or setting to same group.
+        mysql.connector.Error: If database operation fails.
+
+    Note:
+        Exactly one of connection_name or connection_id must be provided.
+
+    Example:
+        >>> cursor = db.cursor()
+        >>> modify_connection_parent_group(cursor, connection_name="my-server", group_name="Production")
+        >>> modify_connection_parent_group(cursor, connection_id=42, group_name=None)
+    """
+    # Validate exactly one connection identifier provided
+    if (connection_name is None) == (connection_id is None):
+        raise ValueError("Exactly one of connection_name or connection_id must be provided")
+
+    try:
+        # Resolve connection ID and validate connection exists
+        if connection_id is not None:
+            # Validate connection ID exists
+            cursor.execute(
+                """
+                SELECT connection_id FROM guacamole_connection
+                WHERE connection_id = %s
+            """,
+                (connection_id,),
+            )
+            result = cursor.fetchone()
+            if not result:
+                raise ValueError(f"Connection with ID {connection_id} not found")
+            resolved_connection_id = connection_id
+        else:
+            # Resolve connection by name
+            cursor.execute(
+                """
+                SELECT connection_id FROM guacamole_connection
+                WHERE connection_name = %s
+            """,
+                (connection_name,),
+            )
+            result = cursor.fetchone()
+            if not result:
+                raise ValueError(f"Connection '{connection_name}' not found")
+            resolved_connection_id = result[0]
+
+        # Resolve group ID if group_name provided
+        group_id = None
+        if group_name:
+            group_id = resolve_conngroup_id(cursor, group_name=group_name)
+
+        # Get current parent
+        cursor.execute(
+            """
+            SELECT parent_id
+            FROM guacamole_connection
+            WHERE connection_id = %s
+        """,
+            (resolved_connection_id,),
+        )
+        result = cursor.fetchone()
+        if not result:
+            raise ValueError(f"Connection with ID {resolved_connection_id} not found")
+        current_parent_id = result[0]
+
+        # Get connection name for error messages if we only have ID
+        if connection_name is None:
+            connection_name = get_connection_name_by_id(cursor, resolved_connection_id)
+
+        # Check if we're trying to set to same group
+        if group_id == current_parent_id:
+            if group_id is None:
+                raise ValueError(f"Connection '{connection_name}' already has no parent group")
+            else:
+                raise ValueError(f"Connection '{connection_name}' is already in group '{group_name}'")
+
+        # Update parent ID
+        cursor.execute(
+            """
+            UPDATE guacamole_connection
+            SET parent_id = %s
+            WHERE connection_id = %s
+        """,
+            (group_id, resolved_connection_id),
+        )
+
+        if cursor.rowcount == 0:
+            raise ValueError(f"Failed to update parent group for connection '{connection_name}'")
+
+        return True
+
+    except mysql.connector.Error as e:
+        raise ValueError(f"Database error modifying connection parent group: {e}")

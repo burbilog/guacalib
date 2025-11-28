@@ -275,3 +275,120 @@ def check_connection_group_cycle(cursor, group_id: int, parent_id: Optional[int]
         current_parent = result[0] if result else None
 
     return False
+
+
+def modify_connection_group_parent(
+    cursor,
+    group_name: Optional[str] = None,
+    group_id: Optional[int] = None,
+    new_parent_name: Optional[str] = None,
+) -> bool:
+    """Set parent connection group for a connection group with cycle detection.
+
+    Args:
+        cursor: Database cursor for executing queries.
+        group_name: The name of the connection group to modify. Optional.
+        group_id: The ID of the connection group to modify. Optional.
+        new_parent_name: The name of the new parent group. Optional (None for root level).
+
+    Returns:
+        True if successful.
+
+    Raises:
+        ValueError: If group doesn't exist, parent group doesn't exist,
+                   or setting parent would create a cycle.
+        mysql.connector.Error: If database operation fails.
+
+    Note:
+        Exactly one of group_name or group_id must be provided.
+
+    Example:
+        >>> cursor = db.cursor()
+        >>> modify_connection_group_parent(cursor, group_name="Production", new_parent_name="Infrastructure")
+        >>> modify_connection_group_parent(cursor, group_id=42, new_parent_name=None)
+    """
+    # Validate exactly one group identifier provided
+    if (group_name is None) == (group_id is None):
+        raise ValueError("Exactly one of group_name or group_id must be provided")
+
+    try:
+        # Resolve group ID and validate group exists
+        if group_id is not None:
+            # Validate group ID exists
+            cursor.execute(
+                """
+                SELECT connection_group_id FROM guacamole_connection_group
+                WHERE connection_group_id = %s
+            """,
+                (group_id,),
+            )
+            result = cursor.fetchone()
+            if not result:
+                raise ValueError(f"Connection group with ID {group_id} not found")
+            resolved_group_id = group_id
+        else:
+            # Resolve group by name
+            cursor.execute(
+                """
+                SELECT connection_group_id FROM guacamole_connection_group
+                WHERE connection_group_name = %s
+            """,
+                (group_name,),
+            )
+            result = cursor.fetchone()
+            if not result:
+                raise ValueError(f"Connection group '{group_name}' not found")
+            resolved_group_id = result[0]
+
+        # Get group name for error messages if we only have ID
+        if group_name is None:
+            cursor.execute(
+                """
+                SELECT connection_group_name FROM guacamole_connection_group
+                WHERE connection_group_id = %s
+            """,
+                (resolved_group_id,),
+            )
+            result = cursor.fetchone()
+            if not result:
+                raise ValueError(f"Connection group with ID {resolved_group_id} not found")
+            group_name = result[0]
+
+        # Handle NULL parent (empty string or None)
+        new_parent_id = None
+        if new_parent_name:
+            # Get new parent ID
+            cursor.execute(
+                """
+                SELECT connection_group_id
+                FROM guacamole_connection_group
+                WHERE connection_group_name = %s
+            """,
+                (new_parent_name,),
+            )
+            result = cursor.fetchone()
+            if not result:
+                raise ValueError(f"Parent connection group '{new_parent_name}' not found")
+            new_parent_id = result[0]
+
+            # Check for cycles using cycle detection helper
+            if check_connection_group_cycle(cursor, resolved_group_id, new_parent_id):
+                raise ValueError("Setting parent would create a cycle in connection groups")
+
+        # Update the parent
+        cursor.execute(
+            """
+            UPDATE guacamole_connection_group
+            SET parent_id = %s
+            WHERE connection_group_id = %s
+        """,
+            (new_parent_id, resolved_group_id),
+        )
+
+        if cursor.rowcount == 0:
+            raise ValueError(f"Failed to update parent group for '{group_name}'")
+
+        return True
+
+    except mysql.connector.Error as e:
+        raise ValueError(f"Database error modifying connection group parent: {e}")

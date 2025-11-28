@@ -10,12 +10,14 @@ Functions:
     create_usergroup: Create a new user group with default settings
     delete_usergroup: Delete a user group and all associated data
     list_usergroups: List all user groups in the database
+    delete_existing_usergroup_by_id: Delete a usergroup by ID and all associated data
 
 All functions are designed to be stateless and accept a cursor as the first parameter.
 """
 
 from typing import List
 import mysql.connector
+from .db_utils import get_usergroup_name_by_id
 
 
 def usergroup_exists(cursor, group_name: str) -> bool:
@@ -193,3 +195,79 @@ def delete_usergroup(cursor, group_name: str) -> None:
     """,
         (group_name,),
     )
+
+
+def delete_existing_usergroup_by_id(cursor, group_id: int) -> None:
+    """Delete a usergroup by ID and all its associated data.
+
+    Performs a cascade delete operation that removes:
+    - Group memberships
+    - Connection permissions
+    - User group record
+    - Entity record
+
+    Args:
+        cursor: Database cursor for executing queries.
+        group_id: The database ID of the user group to delete.
+
+    Raises:
+        ValueError: If usergroup with the specified ID is not found.
+        mysql.connector.Error: If database operations fail.
+
+    Note:
+        This is a destructive operation that cannot be undone. The user group and
+        all their associated permissions and memberships are permanently removed.
+        Deletions are performed in the correct order to respect foreign key constraints.
+
+    Example:
+        >>> cursor = db.cursor()
+        >>> delete_existing_usergroup_by_id(cursor, 42)
+    """
+    try:
+        # Get group name for validation and logging
+        group_name = get_usergroup_name_by_id(cursor, group_id)
+
+        # Delete group memberships
+        cursor.execute(
+            """
+            DELETE FROM guacamole_user_group_member
+            WHERE user_group_id = %s
+        """,
+            (group_id,),
+        )
+
+        # Delete group permissions
+        cursor.execute(
+            """
+            DELETE FROM guacamole_connection_permission
+            WHERE entity_id IN (
+                SELECT entity_id FROM guacamole_user_group
+                WHERE user_group_id = %s
+            )
+        """,
+            (group_id,),
+        )
+
+        # Delete user group
+        cursor.execute(
+            """
+            DELETE FROM guacamole_user_group
+            WHERE user_group_id = %s
+        """,
+            (group_id,),
+        )
+
+        # Delete entity
+        cursor.execute(
+            """
+            DELETE FROM guacamole_entity
+            WHERE entity_id IN (
+                SELECT entity_id FROM guacamole_user_group
+                WHERE user_group_id = %s
+            )
+        """,
+            (group_id,),
+        )
+
+    except mysql.connector.Error as e:
+        raise ValueError(f"Database error deleting usergroup: {e}")
