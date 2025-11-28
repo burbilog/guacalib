@@ -383,3 +383,87 @@ def resolve_connection_group_path(cursor, group_path: str) -> int:
 
     except mysql.connector.Error as e:
         raise ValueError(f"Database error resolving group path: {e}")
+
+
+def get_usergroup_id(cursor, group_name: str) -> int:
+    """Get user group ID by name from the database.
+
+    Args:
+        cursor: Database cursor for executing queries
+        group_name: Name of the user group to look up
+
+    Returns:
+        The database ID of the user group
+
+    Raises:
+        Exception: If the user group with the specified name is not found
+        mysql.connector.Error: If database query fails
+    """
+    cursor.execute(
+        """
+        SELECT user_group_id
+        FROM guacamole_user_group g
+        JOIN guacamole_entity e ON g.entity_id = e.entity_id
+        WHERE e.name = %s AND e.type = 'USER_GROUP'
+    """,
+        (group_name,),
+    )
+    result = cursor.fetchone()
+    if result:
+        return result[0]
+    else:
+        raise Exception(f"Usergroup '{group_name}' not found")
+
+
+def get_connection_group_id_by_name(cursor, group_name: str) -> Optional[int]:
+    """Get connection group ID by name from the database.
+
+    Args:
+        cursor: Database cursor for executing queries
+        group_name: Name of the connection group to look up
+
+    Returns:
+        The database ID of the connection group, or None if group_name is empty
+
+    Raises:
+        ValueError: If the connection group with the specified name is not found
+        mysql.connector.Error: If database query fails
+    """
+    if not group_name:  # Handle empty group name as explicit NULL
+        return None
+
+    cursor.execute(
+        """
+        SELECT connection_group_id
+        FROM guacamole_connection_group
+        WHERE connection_group_name = %s
+    """,
+        (group_name,),
+    )
+    result = cursor.fetchone()
+    if not result:
+        raise ValueError(f"Connection group '{group_name}' not found")
+    return result[0]
+
+
+def usergroup_exists_by_id(cursor, group_id: int) -> bool:
+    """Check if a user group exists by ID.
+
+    Args:
+        cursor: Database cursor for executing queries
+        group_id: The user group ID to check
+
+    Returns:
+        True if the user group exists, False otherwise
+
+    Raises:
+        mysql.connector.Error: If database query fails
+    """
+    cursor.execute(
+        """
+        SELECT user_group_id FROM guacamole_user_group
+        WHERE user_group_id = %s
+    """,
+        (group_id,),
+    )
+    return cursor.fetchone() is not None

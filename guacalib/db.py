@@ -464,8 +464,7 @@ class GuacamoleDB:
     def get_usergroup_id(self, group_name: str) -> int:
         """Get the database ID for a user group by name.
 
-        Queries the guacamole_user_group and guacamole_entity tables to find
-        the internal database ID for a user group.
+        Delegates to db_utils.get_usergroup_id() for centralized ID resolution.
 
         Args:
             group_name: The name of the user group.
@@ -474,7 +473,7 @@ class GuacamoleDB:
             The user group ID from the database.
 
         Raises:
-            ValueError: If the user group is not found.
+            Exception: If the user group is not found.
             mysql.connector.Error: If database query fails.
 
         Example:
@@ -483,20 +482,7 @@ class GuacamoleDB:
             ...     print(f"Admin group ID: {group_id}")
         """
         try:
-            self.cursor.execute(
-                """
-                SELECT user_group_id
-                FROM guacamole_user_group g
-                JOIN guacamole_entity e ON g.entity_id = e.entity_id
-                WHERE e.name = %s AND e.type = 'USER_GROUP'
-            """,
-                (group_name,),
-            )
-            result = self.cursor.fetchone()
-            if result:
-                return result[0]
-            else:
-                raise Exception(f"Usergroup '{group_name}' not found")
+            return db_utils.get_usergroup_id(self.cursor, group_name)
         except mysql.connector.Error as e:
             self.logger.error(f"Error getting usergroup ID: {self._scrub_credentials(str(e))}")
             raise
@@ -551,22 +537,8 @@ class GuacamoleDB:
             Group ID: 42
         """
         try:
-            if not group_name:  # Handle empty group name as explicit NULL
-                return None
-
-            self.cursor.execute(
-                """
-                SELECT connection_group_id 
-                FROM guacamole_connection_group
-                WHERE connection_group_name = %s
-            """,
-                (group_name,),
-            )
-            result = self.cursor.fetchone()
-            if not result:
-                raise ValueError(f"Connection group '{group_name}' not found")
-            return result[0]
-        except mysql.connector.Error as e:
+            return db_utils.get_connection_group_id_by_name(self.cursor, group_name)
+        except (mysql.connector.Error, ValueError) as e:
             self.logger.error(f"Error getting connection group ID: {self._scrub_credentials(str(e))}")
             raise
 
@@ -1276,14 +1248,7 @@ class GuacamoleDB:
     def usergroup_exists_by_id(self, group_id: int) -> bool:
         """Check if a usergroup exists by ID"""
         try:
-            self.cursor.execute(
-                """
-                SELECT user_group_id FROM guacamole_user_group
-                WHERE user_group_id = %s
-            """,
-                (group_id,),
-            )
-            return self.cursor.fetchone() is not None
+            return db_utils.usergroup_exists_by_id(self.cursor, group_id)
         except mysql.connector.Error as e:
             raise ValueError(f"Database error while checking usergroup existence: {e}")
 
