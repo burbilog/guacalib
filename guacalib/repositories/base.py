@@ -168,6 +168,9 @@ class BaseGuacamoleRepository:
                 "private_key_passphrase": os.environ.get(
                     "GUACALIB_SSH_TUNNEL_PRIVATE_KEY_PASSPHRASE"
                 ),
+                "remote_port": int(
+                    os.environ.get("GUACALIB_SSH_TUNNEL_REMOTE_PORT", "3306")
+                ),
             }
 
             # Validate required fields
@@ -218,6 +221,7 @@ class BaseGuacamoleRepository:
                 or ssh_section.get("ssh_tunnel_private_key"),
                 "private_key_passphrase": ssh_section.get("private_key_passphrase")
                 or ssh_section.get("ssh_tunnel_private_key_passphrase"),
+                "remote_port": int(ssh_section.get("remote_port", "3306")),
             }
 
             # Validate required fields

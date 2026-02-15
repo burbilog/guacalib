@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """SSH tunnel management for Guacamole database connections."""
 
+# Default MySQL port
+DEFAULT_MYSQL_PORT = 3306
+
 # SSH tunnel support
 try:
     from sshtunnel import SSHTunnelForwarder
@@ -22,6 +25,7 @@ def create_ssh_tunnel(ssh_tunnel_config, db_config, debug_print=None):
             - password: SSH password (optional, if using key)
             - private_key: Path to SSH private key (optional, if using password)
             - private_key_passphrase: Passphrase for encrypted key (optional)
+            - remote_port: Remote MySQL port (optional, defaults to 3306)
         db_config: Database configuration dictionary (will be modified)
         debug_print: Optional debug print function
 
@@ -40,6 +44,9 @@ def create_ssh_tunnel(ssh_tunnel_config, db_config, debug_print=None):
 
     db_config = db_config.copy()
 
+    # Get remote MySQL port from config or use default
+    remote_port = ssh_tunnel_config.get("remote_port", DEFAULT_MYSQL_PORT)
+
     # Build SSH tunnel configuration
     tunnel_config = {
         "ssh_address_or_host": (
@@ -47,7 +54,7 @@ def create_ssh_tunnel(ssh_tunnel_config, db_config, debug_print=None):
             ssh_tunnel_config["port"],
         ),
         "ssh_username": ssh_tunnel_config["user"],
-        "remote_bind_address": (db_config["host"], 3306),
+        "remote_bind_address": (db_config["host"], remote_port),
     }
 
     # Add authentication method
