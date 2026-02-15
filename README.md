@@ -359,7 +359,7 @@ guacaman conn new \
     --hostname 192.168.1.100 \
     --port 5901 \
     --password vncpass \
-    --group developers,qa  # Comma-separated list of groups
+    --usergroup developers,qa  # Comma-separated list of groups
 
 # Create other types of connections
 guacaman conn new --type rdp ...
@@ -611,15 +611,14 @@ All list commands (`user list`, `usergroup list`, `conn list`, `conngroup list`,
 connections:
   dev-server:
     id: 42
-    protocol: vnc
-    parameters:
-      hostname: 192.168.1.100
-      port: "5901"
-      password: "******"
+    type: vnc
+    hostname: 192.168.1.100
+    port: "5901"
     parent: vnc_servers
+    groups:
+      - developers
     permissions:
-      - user: john.doe
-        permission: READ
+      - john.doe
 ```
 
 **Connection Group List Output:**
@@ -637,7 +636,7 @@ conngroups:
 ```yaml
 users:
   john.doe:
-    groups:
+    usergroups:
       - developers
       - qa
 ```
@@ -651,7 +650,7 @@ guacaman conn list | yq '.connections | keys[]'
 guacaman conngroup list | yq '.conngroups.vnc_servers.connections[]'
 
 # Get user groups
-guacaman user list | yq '.users[].groups[]'
+guacaman user list | yq '.users[].usergroups[]'
 ```
 
 ## Configuration File Format
@@ -665,6 +664,32 @@ user = guacamole_user
 password = your_password
 database = guacamole_db
 ```
+
+### SSH Tunnel Configuration (Optional)
+
+For remote MySQL access through an SSH gateway, add an `[ssh_tunnel]` section:
+
+```ini
+[ssh_tunnel]
+enabled = true
+host = ssh-gateway.example.com
+port = 22
+user = ssh_username
+private_key = /home/user/.ssh/id_rsa
+# password = ssh_password  # alternative to private_key
+# private_key_passphrase = passphrase  # if key is encrypted
+```
+
+**Note:** Either `password` or `private_key` is required for SSH authentication.
+
+**Environment Variables** (have priority over config file):
+- `GUACALIB_SSH_TUNNEL_ENABLED` - set to "true" to enable
+- `GUACALIB_SSH_TUNNEL_HOST` - SSH gateway hostname
+- `GUACALIB_SSH_TUNNEL_PORT` - SSH port (default: 22)
+- `GUACALIB_SSH_TUNNEL_USER` - SSH username
+- `GUACALIB_SSH_TUNNEL_PASSWORD` - SSH password (if not using key)
+- `GUACALIB_SSH_TUNNEL_PRIVATE_KEY` - path to SSH private key
+- `GUACALIB_SSH_TUNNEL_PRIVATE_KEY_PASSPHRASE` - key passphrase (if encrypted)
 
 ## Error Handling
 
