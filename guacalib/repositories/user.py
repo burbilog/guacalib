@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """User repository for Guacamole database operations."""
 
+from typing import Dict, List
+
 import mysql.connector
 import hashlib
 import os
@@ -16,7 +18,7 @@ class UserRepository(BaseGuacamoleRepository):
 
     USER_PARAMETERS = USER_PARAMETERS
 
-    def list_users(self):
+    def list_users(self) -> List[str]:
         """List all users.
 
         Returns:
@@ -35,7 +37,7 @@ class UserRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error listing users: {e}") from e
 
-    def user_exists(self, username):
+    def user_exists(self, username: str) -> bool:
         """Check if a user with the given name exists.
 
         Args:
@@ -56,7 +58,7 @@ class UserRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error checking user existence: {e}") from e
 
-    def create_user(self, username, password):
+    def create_user(self, username: str, password: str) -> None:
         """Create a new user with hashed password.
 
         Args:
@@ -105,7 +107,7 @@ class UserRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error creating user: {e}") from e
 
-    def delete_existing_user(self, username):
+    def delete_existing_user(self, username: str) -> None:
         """Delete a user and all associated data.
 
         Args:
@@ -176,7 +178,7 @@ class UserRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error deleting existing user: {e}") from e
 
-    def change_user_password(self, username, new_password):
+    def change_user_password(self, username: str, new_password: str) -> bool:
         """Change a user's password.
 
         Args:
@@ -231,7 +233,7 @@ class UserRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error changing password: {e}") from e
 
-    def modify_user(self, username, param_name, param_value):
+    def modify_user(self, username: str, param_name: str, param_value: str) -> bool:
         """Modify a user parameter in the guacamole_user table.
 
         Args:
@@ -289,7 +291,7 @@ class UserRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error modifying user parameter: {e}") from e
 
-    def list_users_with_usergroups(self):
+    def list_users_with_usergroups(self) -> Dict[str, List[str]]:
         """List all users with their group memberships.
 
         Returns:
@@ -314,7 +316,7 @@ class UserRepository(BaseGuacamoleRepository):
             self.cursor.execute(query)
             results = self.cursor.fetchall()
 
-            users_groups = {}
+            users_groups: Dict[str, List[str]] = {}
             for row in results:
                 username = row[0]
                 groupnames = row[1].split(",") if row[1] else []

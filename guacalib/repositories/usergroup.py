@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """User group repository for Guacamole database operations."""
 
+from typing import Dict, List, Optional
+
 import mysql.connector
 
 from .base import BaseGuacamoleRepository
@@ -10,7 +12,7 @@ from ..exceptions import DatabaseError, EntityNotFoundError, ValidationError
 class UserGroupRepository(BaseGuacamoleRepository):
     """Repository for user group-related database operations."""
 
-    def list_usergroups(self):
+    def list_usergroups(self) -> List[str]:
         """List all user groups.
 
         Returns:
@@ -29,7 +31,7 @@ class UserGroupRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error listing usergroups: {e}") from e
 
-    def usergroup_exists(self, group_name):
+    def usergroup_exists(self, group_name: str) -> bool:
         """Check if a group with the given name exists.
 
         Args:
@@ -50,7 +52,7 @@ class UserGroupRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error checking usergroup existence: {e}") from e
 
-    def usergroup_exists_by_id(self, group_id):
+    def usergroup_exists_by_id(self, group_id: int) -> bool:
         """Check if a usergroup exists by ID.
 
         Args:
@@ -73,7 +75,7 @@ class UserGroupRepository(BaseGuacamoleRepository):
                 f"Database error while checking usergroup existence: {e}"
             ) from e
 
-    def get_usergroup_id(self, group_name):
+    def get_usergroup_id(self, group_name: str) -> int:
         """Get user group ID by name.
 
         Args:
@@ -103,7 +105,7 @@ class UserGroupRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error getting usergroup ID: {e}") from e
 
-    def get_usergroup_name_by_id(self, group_id):
+    def get_usergroup_name_by_id(self, group_id: int) -> str:
         """Get usergroup name by ID.
 
         Args:
@@ -133,7 +135,9 @@ class UserGroupRepository(BaseGuacamoleRepository):
                 f"Database error while getting usergroup name: {e}"
             ) from e
 
-    def resolve_usergroup_id(self, group_name=None, group_id=None):
+    def resolve_usergroup_id(
+        self, group_name: Optional[str] = None, group_id: Optional[int] = None
+    ) -> int:
         """Validate inputs and resolve to user_group_id.
 
         Args:
@@ -166,7 +170,7 @@ class UserGroupRepository(BaseGuacamoleRepository):
             name_query=name_query,
         )
 
-    def create_usergroup(self, group_name):
+    def create_usergroup(self, group_name: str) -> None:
         """Create a new user group.
 
         Args:
@@ -196,7 +200,7 @@ class UserGroupRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error creating usergroup: {e}") from e
 
-    def delete_existing_usergroup(self, group_name):
+    def delete_existing_usergroup(self, group_name: str) -> None:
         """Delete a user group by name and all associated data.
 
         Args:
@@ -255,7 +259,7 @@ class UserGroupRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error deleting existing usergroup: {e}") from e
 
-    def delete_existing_usergroup_by_id(self, group_id):
+    def delete_existing_usergroup_by_id(self, group_id: int) -> None:
         """Delete a usergroup by ID and all its associated data.
 
         Args:
@@ -315,7 +319,7 @@ class UserGroupRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error deleting existing usergroup: {e}") from e
 
-    def add_user_to_usergroup(self, username, group_name):
+    def add_user_to_usergroup(self, username: str, group_name: str) -> None:
         """Add a user to a user group.
 
         Args:
@@ -374,7 +378,7 @@ class UserGroupRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error adding user to usergroup: {e}") from e
 
-    def remove_user_from_usergroup(self, username, group_name):
+    def remove_user_from_usergroup(self, username: str, group_name: str) -> None:
         """Remove a user from a user group.
 
         Args:
@@ -438,7 +442,7 @@ class UserGroupRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error removing user from group: {e}") from e
 
-    def list_groups_with_users(self):
+    def list_groups_with_users(self) -> Dict[str, List[str]]:
         """List all groups with their users.
 
         Returns:
@@ -460,7 +464,7 @@ class UserGroupRepository(BaseGuacamoleRepository):
             self.cursor.execute(query)
             results = self.cursor.fetchall()
 
-            groups_users = {}
+            groups_users: Dict[str, List[str]] = {}
             for row in results:
                 groupname = row[0]
                 usernames = row[1].split(",") if row[1] else []
@@ -470,7 +474,9 @@ class UserGroupRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error listing groups with users: {e}") from e
 
-    def list_usergroups_with_users_and_connections(self):
+    def list_usergroups_with_users_and_connections(
+        self,
+    ) -> Dict[str, Dict[str, object]]:
         """List all groups with their users and connections.
 
         Returns:
@@ -518,7 +524,7 @@ class UserGroupRepository(BaseGuacamoleRepository):
             }
 
             # Combine results
-            result = {}
+            result: Dict[str, Dict[str, object]] = {}
             for group_key in set(groups_users.keys()).union(groups_connections.keys()):
                 group_name, group_id = group_key
                 result[group_name] = {

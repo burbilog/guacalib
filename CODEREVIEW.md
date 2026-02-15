@@ -52,7 +52,7 @@
 
 ### СРЕДНИЕ
 
-- [ ] **3. Отсутствие type hints в некоторых местах**
+- [x] **3. Отсутствие type hints в некоторых местах** (ИСПРАВЛЕНО)
 
   **Файлы:** `guacalib/repositories/connection.py`, `guacalib/repositories/usergroup.py`, `guacalib/repositories/user.py`
 
@@ -61,11 +61,12 @@
   def user_exists(self, username):  # Нет типов аргументов
   ```
 
-  **Рекомендация:** Добавить полные type hints:
-  ```python
-  def list_users(self) -> List[str]:
-  def user_exists(self, username: str) -> bool:
-  ```
+  **Решение:** Добавлены полные type hints ко всем публичным методам в указанных файлах:
+  - `user.py`: `List[str]`, `bool`, `None`, `Dict[str, List[str]]`
+  - `usergroup.py`: `List[str]`, `bool`, `int`, `str`, `None`, `Dict[str, ...]`, `Optional[...]`
+  - `connection.py`: `Optional[str]`, `int`, `bool`, `List[str]`, `Tuple[...]`, `None`
+
+  Также исправлен遗漏 (missed) явный `commit()` в `connection.py:delete_existing_connection()`.
 
 - [ ] **4. Magic strings для entity types**
 

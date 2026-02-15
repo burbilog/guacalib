@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Connection repository for Guacamole database operations."""
 
+from typing import List, Optional, Tuple
+
 import mysql.connector
 
 from .base import BaseGuacamoleRepository
@@ -18,7 +20,7 @@ class ConnectionRepository(BaseGuacamoleRepository):
 
     CONNECTION_PARAMETERS = CONNECTION_PARAMETERS
 
-    def get_connection_name_by_id(self, connection_id):
+    def get_connection_name_by_id(self, connection_id: int) -> Optional[str]:
         """Get connection name by ID.
 
         Args:
@@ -41,7 +43,11 @@ class ConnectionRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error getting connection name by ID: {e}") from e
 
-    def resolve_connection_id(self, connection_name=None, connection_id=None):
+    def resolve_connection_id(
+        self,
+        connection_name: Optional[str] = None,
+        connection_id: Optional[int] = None,
+    ) -> int:
         """Validate inputs and resolve to connection_id.
 
         Args:
@@ -71,7 +77,11 @@ class ConnectionRepository(BaseGuacamoleRepository):
             name_query=name_query,
         )
 
-    def connection_exists(self, connection_name=None, connection_id=None):
+    def connection_exists(
+        self,
+        connection_name: Optional[str] = None,
+        connection_id: Optional[int] = None,
+    ) -> bool:
         """Check if a connection with the given name or ID exists.
 
         Args:
@@ -98,13 +108,13 @@ class ConnectionRepository(BaseGuacamoleRepository):
 
     def create_connection(
         self,
-        connection_type,
-        connection_name,
-        hostname,
-        port,
-        vnc_password,
-        parent_group_id=None,
-    ):
+        connection_type: str,
+        connection_name: str,
+        hostname: str,
+        port: str,
+        vnc_password: str,
+        parent_group_id: Optional[int] = None,
+    ) -> int:
         """Create a new connection.
 
         Args:
@@ -171,7 +181,11 @@ class ConnectionRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error creating VNC connection: {e}") from e
 
-    def delete_existing_connection(self, connection_name=None, connection_id=None):
+    def delete_existing_connection(
+        self,
+        connection_name: Optional[str] = None,
+        connection_id: Optional[int] = None,
+    ) -> None:
         """Delete a connection and all its associated data.
 
         Args:
@@ -231,9 +245,6 @@ class ConnectionRepository(BaseGuacamoleRepository):
                 (resolved_connection_id,),
             )
 
-            # Commit the transaction
-            self.debug_print("Committing transaction...")
-            self.conn.commit()
             self.debug_print(f"Successfully deleted connection '{connection_name}'")
 
         except mysql.connector.Error as e:
@@ -241,11 +252,11 @@ class ConnectionRepository(BaseGuacamoleRepository):
 
     def modify_connection(
         self,
-        connection_name=None,
-        connection_id=None,
-        param_name=None,
-        param_value=None,
-    ):
+        connection_name: Optional[str] = None,
+        connection_id: Optional[int] = None,
+        param_name: Optional[str] = None,
+        param_value: Optional[str] = None,
+    ) -> bool:
         """Modify a connection parameter.
 
         Args:
@@ -384,8 +395,11 @@ class ConnectionRepository(BaseGuacamoleRepository):
             raise DatabaseError(f"Error modifying connection parameter: {e}") from e
 
     def modify_connection_parent_group(
-        self, connection_name=None, connection_id=None, group_name=None
-    ):
+        self,
+        connection_name: Optional[str] = None,
+        connection_id: Optional[int] = None,
+        group_name: Optional[str] = None,
+    ) -> bool:
         """Set parent connection group for a connection.
 
         Args:
@@ -468,7 +482,7 @@ class ConnectionRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error modifying connection parent group: {e}") from e
 
-    def get_connection_user_permissions(self, connection_name):
+    def get_connection_user_permissions(self, connection_name: str) -> List[str]:
         """Get list of users with direct permissions to a connection.
 
         Args:
@@ -495,8 +509,12 @@ class ConnectionRepository(BaseGuacamoleRepository):
             ) from e
 
     def grant_connection_permission(
-        self, entity_name, entity_type, connection_id, group_path=None
-    ):
+        self,
+        entity_name: str,
+        entity_type: str,
+        connection_id: int,
+        group_path: Optional[str] = None,
+    ) -> None:
         """Grant connection permission to an entity.
 
         Args:
@@ -550,7 +568,9 @@ class ConnectionRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error granting connection permission: {e}") from e
 
-    def grant_connection_permission_to_user(self, username, connection_name):
+    def grant_connection_permission_to_user(
+        self, username: str, connection_name: str
+    ) -> bool:
         """Grant connection permission to a specific user.
 
         Args:
@@ -618,7 +638,9 @@ class ConnectionRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error granting connection permission: {e}") from e
 
-    def revoke_connection_permission_from_user(self, username, connection_name):
+    def revoke_connection_permission_from_user(
+        self, username: str, connection_name: str
+    ) -> bool:
         """Revoke connection permission from a specific user.
 
         Args:
@@ -685,7 +707,9 @@ class ConnectionRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error revoking connection permission: {e}") from e
 
-    def list_connections_with_conngroups_and_parents(self):
+    def list_connections_with_conngroups_and_parents(
+        self,
+    ) -> List[Tuple[int, str, str, str, str, str, str, List[str]]]:
         """List all connections with their groups, parent group, and user permissions.
 
         Returns:
@@ -755,7 +779,9 @@ class ConnectionRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error listing connections: {e}") from e
 
-    def get_connection_by_id(self, connection_id):
+    def get_connection_by_id(
+        self, connection_id: int
+    ) -> Optional[Tuple[int, str, str, str, str, str, str, List[str]]]:
         """Get a specific connection by its ID.
 
         Args:
