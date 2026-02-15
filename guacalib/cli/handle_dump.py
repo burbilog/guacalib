@@ -1,8 +1,8 @@
 def handle_dump_command(guacdb):
     """Handle dump command - fetch and format all Guacamole data in YAML format"""
     # Print user groups using existing list functionality
-    from guacalib.cli_handle_usergroup import handle_usergroup_command
-    from guacalib.cli_handle_conngroup import handle_conngroup_command
+    from guacalib.cli.handle_usergroup import handle_usergroup_command
+    from guacalib.cli.handle_conngroup import handle_conngroup_command
 
     # Create dummy args object for list commands
     class Args:
@@ -13,7 +13,7 @@ def handle_dump_command(guacdb):
     args = Args()
 
     # Print users using existing list handler
-    from guacalib.cli_handle_user import handle_user_list
+    from guacalib.cli.handle_user import handle_user_list
 
     handle_user_list(args, guacdb)
 
@@ -21,7 +21,7 @@ def handle_dump_command(guacdb):
     handle_usergroup_command(args, guacdb)
 
     # Print connections using conn list handler
-    from guacalib.cli_handle_conn import handle_conn_list
+    from guacalib.cli.handle_conn import handle_conn_list
 
     handle_conn_list(args, guacdb)
 

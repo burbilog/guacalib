@@ -12,8 +12,8 @@ from .repositories.user import UserRepository
 from .repositories.usergroup import UserGroupRepository
 from .repositories.connection import ConnectionRepository
 from .repositories.connection_group import ConnectionGroupRepository
-from .db_connection_parameters import CONNECTION_PARAMETERS
-from .db_user_parameters import USER_PARAMETERS
+from .repositories.connection_parameters import CONNECTION_PARAMETERS
+from .repositories.user_parameters import USER_PARAMETERS
 
 # SSH tunnel support
 try:

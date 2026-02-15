@@ -124,7 +124,7 @@ def handle_conn_new(args, guacdb):
 
 def handle_conn_delete(args, guacdb):
     # Validate exactly one selector provided
-    from .cli import validate_selector
+    from .main import validate_selector
 
     validate_selector(args, "connection")
 
@@ -145,7 +145,7 @@ def handle_conn_delete(args, guacdb):
 
 def handle_conn_exists(args, guacdb):
     # Validate exactly one selector provided
-    from .cli import validate_selector
+    from .main import validate_selector
 
     validate_selector(args, "connection")
 
@@ -208,7 +208,7 @@ def handle_conn_modify(args, guacdb):
         sys.exit(1)
 
     # Validate exactly one selector provided
-    from .cli import validate_selector
+    from .main import validate_selector
 
     validate_selector(args, "connection")
 

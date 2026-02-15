@@ -7,7 +7,7 @@ import os
 import binascii
 
 from .base import BaseGuacamoleRepository
-from ..db_user_parameters import USER_PARAMETERS
+from .user_parameters import USER_PARAMETERS
 
 
 class UserRepository(BaseGuacamoleRepository):

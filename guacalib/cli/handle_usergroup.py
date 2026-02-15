@@ -26,7 +26,7 @@ def handle_usergroup_command(args, guacdb):
 
     elif args.usergroup_command == "del":
         # Validate exactly one selector provided
-        from .cli import validate_selector
+        from .main import validate_selector
 
         validate_selector(args, "usergroup")
 
@@ -47,7 +47,7 @@ def handle_usergroup_command(args, guacdb):
 
     elif args.usergroup_command == "exists":
         # Validate exactly one selector provided
-        from .cli import validate_selector
+        from .main import validate_selector
 
         validate_selector(args, "usergroup")
 
@@ -66,7 +66,7 @@ def handle_usergroup_command(args, guacdb):
 
     elif args.usergroup_command == "modify":
         # Validate exactly one selector provided
-        from .cli import validate_selector
+        from .main import validate_selector
 
         validate_selector(args, "usergroup")
 

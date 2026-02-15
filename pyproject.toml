@@ -24,7 +24,7 @@ classifiers = [
 ]
 
 [project.scripts]
-guacaman = "guacalib.cli:main"
+guacaman = "guacalib.cli.main:main"
 
 [project.optional-dependencies]
 dev = [

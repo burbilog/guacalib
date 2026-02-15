@@ -83,18 +83,26 @@ The codebase uses the Repository pattern with a facade for backward compatibilit
 
 ```
 guacalib/
-├── db.py                          # Facade (GuacamoleDB) - delegates to repositories
-├── repositories/
-│   ├── __init__.py               # Exports all repositories
-│   ├── base.py                   # BaseGuacamoleRepository - shared connection & utilities
-│   ├── user.py                   # UserRepository - user operations
-│   ├── usergroup.py              # UserGroupRepository - user group operations
-│   ├── connection.py             # ConnectionRepository - connection operations
-│   └── connection_group.py       # ConnectionGroupRepository - connection group operations
-├── db_connection_parameters.py   # Connection parameter definitions
-├── db_user_parameters.py         # User parameter definitions
-├── cli.py                        # Main CLI entry point
-└── cli_handle_*.py               # CLI command handlers
+├── __init__.py
+├── version.py
+├── db.py                           # GuacamoleDB (facade)
+├── cli/
+│   ├── __init__.py
+│   ├── main.py                     # Entry point
+│   ├── handle_user.py
+│   ├── handle_usergroup.py
+│   ├── handle_conn.py
+│   ├── handle_conngroup.py
+│   └── handle_dump.py
+└── repositories/
+    ├── __init__.py
+    ├── base.py
+    ├── connection.py
+    ├── connection_group.py
+    ├── connection_parameters.py   # Connection parameter definitions
+    ├── user.py
+    ├── usergroup.py
+    └── user_parameters.py         # User parameter definitions
 ```
 
 ### Core Components
@@ -120,13 +128,13 @@ Each repository handles operations for its entity type:
 - **ConnectionGroupRepository**: create_connection_group, delete_connection_group, modify_connection_group_parent, permissions
 
 #### CLI Layer
-- **Main CLI (`cli.py`)**: Argument parsing and command routing
+- **Main CLI (`cli/main.py`)**: Argument parsing and command routing
 - **Command Handlers**: Separate modules for each command group:
-  - `cli_handle_user.py`: User management
-  - `cli_handle_usergroup.py`: User group management
-  - `cli_handle_conn.py`: Connection management
-  - `cli_handle_conngroup.py`: Connection group management
-  - `cli_handle_dump.py`: Data export functionality
+  - `cli/handle_user.py`: User management
+  - `cli/handle_usergroup.py`: User group management
+  - `cli/handle_conn.py`: Connection management
+  - `cli/handle_conngroup.py`: Connection group management
+  - `cli/handle_dump.py`: Data export functionality
 
 ### Data Model
 

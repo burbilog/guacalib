@@ -4,7 +4,7 @@
 import mysql.connector
 
 from .base import BaseGuacamoleRepository
-from ..db_connection_parameters import CONNECTION_PARAMETERS
+from .connection_parameters import CONNECTION_PARAMETERS
 
 
 class ConnectionRepository(BaseGuacamoleRepository):

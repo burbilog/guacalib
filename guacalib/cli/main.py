@@ -4,11 +4,11 @@ import argparse
 import os
 import sys
 from guacalib import GuacamoleDB
-from guacalib.cli_handle_usergroup import handle_usergroup_command
-from guacalib.cli_handle_dump import handle_dump_command
-from guacalib.cli_handle_user import handle_user_command
-from guacalib.cli_handle_conn import handle_conn_command
-from guacalib.cli_handle_conngroup import handle_conngroup_command
+from guacalib.cli.handle_usergroup import handle_usergroup_command
+from guacalib.cli.handle_dump import handle_dump_command
+from guacalib.cli.handle_user import handle_user_command
+from guacalib.cli.handle_conn import handle_conn_command
+from guacalib.cli.handle_conngroup import handle_conngroup_command
 
 
 def positive_int(value):
