@@ -7,6 +7,7 @@ import mysql.connector
 
 from .base import BaseGuacamoleRepository
 from .connection_parameters import CONNECTION_PARAMETERS
+from ..entities import ENTITY_TYPE_USER, ENTITY_TYPE_USER_GROUP
 from ..exceptions import (
     DatabaseError,
     EntityNotFoundError,
@@ -498,9 +499,9 @@ class ConnectionRepository(BaseGuacamoleRepository):
                 FROM guacamole_connection c
                 JOIN guacamole_connection_permission cp ON c.connection_id = cp.connection_id
                 JOIN guacamole_entity e ON cp.entity_id = e.entity_id
-                WHERE c.connection_name = %s AND e.type = 'USER'
+                WHERE c.connection_name = %s AND e.type = %s
             """,
-                (connection_name,),
+                (connection_name, ENTITY_TYPE_USER),
             )
             return [row[0] for row in self.cursor.fetchall()]
         except mysql.connector.Error as e:
@@ -598,9 +599,9 @@ class ConnectionRepository(BaseGuacamoleRepository):
             self.cursor.execute(
                 """
                 SELECT entity_id FROM guacamole_entity
-                WHERE name = %s AND type = 'USER'
+                WHERE name = %s AND type = %s
             """,
-                (username,),
+                (username, ENTITY_TYPE_USER),
             )
             result = self.cursor.fetchone()
             if not result:
@@ -668,9 +669,9 @@ class ConnectionRepository(BaseGuacamoleRepository):
             self.cursor.execute(
                 """
                 SELECT entity_id FROM guacamole_entity
-                WHERE name = %s AND type = 'USER'
+                WHERE name = %s AND type = %s
             """,
-                (username,),
+                (username, ENTITY_TYPE_USER),
             )
             result = self.cursor.fetchone()
             if not result:
@@ -724,7 +725,7 @@ class ConnectionRepository(BaseGuacamoleRepository):
                     c.protocol,
                     MAX(CASE WHEN p1.parameter_name = 'hostname' THEN p1.parameter_value END) AS hostname,
                     MAX(CASE WHEN p2.parameter_name = 'port' THEN p2.parameter_value END) AS port,
-                    GROUP_CONCAT(DISTINCT CASE WHEN e.type = 'USER_GROUP' THEN e.name END) AS groups,
+                    GROUP_CONCAT(DISTINCT CASE WHEN e.type = %s THEN e.name END) AS groups,
                     cg.connection_group_name AS parent
                 FROM guacamole_connection c
                 LEFT JOIN guacamole_connection_parameter p1
@@ -734,12 +735,13 @@ class ConnectionRepository(BaseGuacamoleRepository):
                 LEFT JOIN guacamole_connection_permission cp
                     ON c.connection_id = cp.connection_id
                 LEFT JOIN guacamole_entity e
-                    ON cp.entity_id = e.entity_id AND e.type = 'USER_GROUP'
+                    ON cp.entity_id = e.entity_id AND e.type = %s
                 LEFT JOIN guacamole_connection_group cg
                     ON c.parent_id = cg.connection_group_id
                 GROUP BY c.connection_id
                 ORDER BY c.connection_name
-            """
+            """,
+                (ENTITY_TYPE_USER_GROUP, ENTITY_TYPE_USER_GROUP),
             )
 
             connections_info = self.cursor.fetchall()
@@ -754,9 +756,9 @@ class ConnectionRepository(BaseGuacamoleRepository):
                     SELECT e.name
                     FROM guacamole_connection_permission cp
                     JOIN guacamole_entity e ON cp.entity_id = e.entity_id
-                    WHERE cp.connection_id = %s AND e.type = 'USER'
+                    WHERE cp.connection_id = %s AND e.type = %s
                 """,
-                    (conn_id,),
+                    (conn_id, ENTITY_TYPE_USER),
                 )
 
                 user_permissions = [row[0] for row in self.cursor.fetchall()]
@@ -799,7 +801,7 @@ class ConnectionRepository(BaseGuacamoleRepository):
                     c.protocol,
                     MAX(CASE WHEN p1.parameter_name = 'hostname' THEN p1.parameter_value END) AS hostname,
                     MAX(CASE WHEN p2.parameter_name = 'port' THEN p2.parameter_value END) AS port,
-                    GROUP_CONCAT(DISTINCT CASE WHEN e.type = 'USER_GROUP' THEN e.name END) AS groups,
+                    GROUP_CONCAT(DISTINCT CASE WHEN e.type = %s THEN e.name END) AS groups,
                     cg.connection_group_name AS parent
                 FROM guacamole_connection c
                 LEFT JOIN guacamole_connection_parameter p1
@@ -809,13 +811,13 @@ class ConnectionRepository(BaseGuacamoleRepository):
                 LEFT JOIN guacamole_connection_permission cp
                     ON c.connection_id = cp.connection_id
                 LEFT JOIN guacamole_entity e
-                    ON cp.entity_id = e.entity_id AND e.type = 'USER_GROUP'
+                    ON cp.entity_id = e.entity_id AND e.type = %s
                 LEFT JOIN guacamole_connection_group cg
                     ON c.parent_id = cg.connection_group_id
                 WHERE c.connection_id = %s
                 GROUP BY c.connection_id
             """,
-                (connection_id,),
+                (ENTITY_TYPE_USER_GROUP, ENTITY_TYPE_USER_GROUP, connection_id),
             )
 
             connection_info = self.cursor.fetchone()
@@ -830,9 +832,9 @@ class ConnectionRepository(BaseGuacamoleRepository):
                 SELECT e.name
                 FROM guacamole_connection_permission cp
                 JOIN guacamole_entity e ON cp.entity_id = e.entity_id
-                WHERE cp.connection_id = %s AND e.type = 'USER'
+                WHERE cp.connection_id = %s AND e.type = %s
             """,
-                (conn_id,),
+                (conn_id, ENTITY_TYPE_USER),
             )
 
             user_permissions = [row[0] for row in self.cursor.fetchall()]

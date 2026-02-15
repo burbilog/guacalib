@@ -6,6 +6,7 @@ from typing import Dict, List, Optional
 import mysql.connector
 
 from .base import BaseGuacamoleRepository
+from ..entities import ENTITY_TYPE_USER, ENTITY_TYPE_USER_GROUP
 from ..exceptions import DatabaseError, EntityNotFoundError, ValidationError
 
 
@@ -23,9 +24,10 @@ class UserGroupRepository(BaseGuacamoleRepository):
                 """
                 SELECT name
                 FROM guacamole_entity
-                WHERE type = 'USER_GROUP'
+                WHERE type = %s
                 ORDER BY name
-            """
+            """,
+                (ENTITY_TYPE_USER_GROUP,),
             )
             return [row[0] for row in self.cursor.fetchall()]
         except mysql.connector.Error as e:
@@ -44,9 +46,9 @@ class UserGroupRepository(BaseGuacamoleRepository):
             self.cursor.execute(
                 """
                 SELECT COUNT(*) FROM guacamole_entity
-                WHERE name = %s AND type = 'USER_GROUP'
+                WHERE name = %s AND type = %s
             """,
-                (group_name,),
+                (group_name, ENTITY_TYPE_USER_GROUP),
             )
             return self.cursor.fetchone()[0] > 0
         except mysql.connector.Error as e:
@@ -93,9 +95,9 @@ class UserGroupRepository(BaseGuacamoleRepository):
                 SELECT user_group_id
                 FROM guacamole_user_group g
                 JOIN guacamole_entity e ON g.entity_id = e.entity_id
-                WHERE e.name = %s AND e.type = 'USER_GROUP'
+                WHERE e.name = %s AND e.type = %s
             """,
-                (group_name,),
+                (group_name, ENTITY_TYPE_USER_GROUP),
             )
             result = self.cursor.fetchone()
             if result:
@@ -181,9 +183,9 @@ class UserGroupRepository(BaseGuacamoleRepository):
             self.cursor.execute(
                 """
                 INSERT INTO guacamole_entity (name, type)
-                VALUES (%s, 'USER_GROUP')
+                VALUES (%s, %s)
             """,
-                (group_name,),
+                (group_name, ENTITY_TYPE_USER_GROUP),
             )
 
             # Create group
@@ -192,9 +194,9 @@ class UserGroupRepository(BaseGuacamoleRepository):
                 INSERT INTO guacamole_user_group (entity_id, disabled)
                 SELECT entity_id, FALSE
                 FROM guacamole_entity
-                WHERE name = %s AND type = 'USER_GROUP'
+                WHERE name = %s AND type = %s
             """,
-                (group_name,),
+                (group_name, ENTITY_TYPE_USER_GROUP),
             )
 
         except mysql.connector.Error as e:
@@ -216,11 +218,11 @@ class UserGroupRepository(BaseGuacamoleRepository):
                     SELECT user_group_id FROM guacamole_user_group
                     WHERE entity_id IN (
                         SELECT entity_id FROM guacamole_entity
-                        WHERE name = %s AND type = 'USER_GROUP'
+                        WHERE name = %s AND type = %s
                     )
                 )
             """,
-                (group_name,),
+                (group_name, ENTITY_TYPE_USER_GROUP),
             )
 
             # Delete group permissions
@@ -229,10 +231,10 @@ class UserGroupRepository(BaseGuacamoleRepository):
                 DELETE FROM guacamole_connection_permission
                 WHERE entity_id IN (
                     SELECT entity_id FROM guacamole_entity
-                    WHERE name = %s AND type = 'USER_GROUP'
+                    WHERE name = %s AND type = %s
                 )
             """,
-                (group_name,),
+                (group_name, ENTITY_TYPE_USER_GROUP),
             )
 
             # Delete user group
@@ -241,19 +243,19 @@ class UserGroupRepository(BaseGuacamoleRepository):
                 DELETE FROM guacamole_user_group
                 WHERE entity_id IN (
                     SELECT entity_id FROM guacamole_entity
-                    WHERE name = %s AND type = 'USER_GROUP'
+                    WHERE name = %s AND type = %s
                 )
             """,
-                (group_name,),
+                (group_name, ENTITY_TYPE_USER_GROUP),
             )
 
             # Delete entity
             self.cursor.execute(
                 """
                 DELETE FROM guacamole_entity
-                WHERE name = %s AND type = 'USER_GROUP'
+                WHERE name = %s AND type = %s
             """,
-                (group_name,),
+                (group_name, ENTITY_TYPE_USER_GROUP),
             )
 
         except mysql.connector.Error as e:
@@ -335,9 +337,9 @@ class UserGroupRepository(BaseGuacamoleRepository):
                 """
                 SELECT entity_id
                 FROM guacamole_entity
-                WHERE name = %s AND type = 'USER'
+                WHERE name = %s AND type = %s
             """,
-                (username,),
+                (username, ENTITY_TYPE_USER),
             )
             result = self.cursor.fetchone()
             if not result:
@@ -394,9 +396,9 @@ class UserGroupRepository(BaseGuacamoleRepository):
                 """
                 SELECT entity_id
                 FROM guacamole_entity
-                WHERE name = %s AND type = 'USER'
+                WHERE name = %s AND type = %s
             """,
-                (username,),
+                (username, ENTITY_TYPE_USER),
             )
             result = self.cursor.fetchone()
             if not result:
@@ -456,12 +458,12 @@ class UserGroupRepository(BaseGuacamoleRepository):
                 FROM guacamole_entity e
                 LEFT JOIN guacamole_user_group ug ON e.entity_id = ug.entity_id
                 LEFT JOIN guacamole_user_group_member ugm ON ug.user_group_id = ugm.user_group_id
-                LEFT JOIN guacamole_entity ue ON ugm.member_entity_id = ue.entity_id AND ue.type = 'USER'
-                WHERE e.type = 'USER_GROUP'
+                LEFT JOIN guacamole_entity ue ON ugm.member_entity_id = ue.entity_id AND ue.type = %s
+                WHERE e.type = %s
                 GROUP BY e.name
                 ORDER BY e.name
             """
-            self.cursor.execute(query)
+            self.cursor.execute(query, (ENTITY_TYPE_USER, ENTITY_TYPE_USER_GROUP))
             results = self.cursor.fetchall()
 
             groups_users: Dict[str, List[str]] = {}
@@ -493,10 +495,11 @@ class UserGroupRepository(BaseGuacamoleRepository):
                 FROM guacamole_entity e
                 LEFT JOIN guacamole_user_group ug ON e.entity_id = ug.entity_id
                 LEFT JOIN guacamole_user_group_member ugm ON ug.user_group_id = ugm.user_group_id
-                LEFT JOIN guacamole_entity ue ON ugm.member_entity_id = ue.entity_id AND ue.type = 'USER'
-                WHERE e.type = 'USER_GROUP'
+                LEFT JOIN guacamole_entity ue ON ugm.member_entity_id = ue.entity_id AND ue.type = %s
+                WHERE e.type = %s
                 GROUP BY e.name, ug.user_group_id
-            """
+            """,
+                (ENTITY_TYPE_USER, ENTITY_TYPE_USER_GROUP),
             )
             groups_users = {
                 (row[0], row[1]): row[2].split(",") if row[2] else []
@@ -514,9 +517,10 @@ class UserGroupRepository(BaseGuacamoleRepository):
                 LEFT JOIN guacamole_user_group ug ON e.entity_id = ug.entity_id
                 LEFT JOIN guacamole_connection_permission cp ON e.entity_id = cp.entity_id
                 LEFT JOIN guacamole_connection c ON cp.connection_id = c.connection_id
-                WHERE e.type = 'USER_GROUP'
+                WHERE e.type = %s
                 GROUP BY e.name, ug.user_group_id
-            """
+            """,
+                (ENTITY_TYPE_USER_GROUP,),
             )
             groups_connections = {
                 (row[0], row[1]): row[2].split(",") if row[2] else []

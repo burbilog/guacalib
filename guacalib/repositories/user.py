@@ -10,6 +10,7 @@ import binascii
 
 from .base import BaseGuacamoleRepository
 from .user_parameters import USER_PARAMETERS
+from ..entities import ENTITY_TYPE_USER
 from ..exceptions import DatabaseError, EntityNotFoundError, ValidationError
 
 
@@ -29,9 +30,10 @@ class UserRepository(BaseGuacamoleRepository):
                 """
                 SELECT name
                 FROM guacamole_entity
-                WHERE type = 'USER'
+                WHERE type = %s
                 ORDER BY name
-            """
+            """,
+                (ENTITY_TYPE_USER,),
             )
             return [row[0] for row in self.cursor.fetchall()]
         except mysql.connector.Error as e:
@@ -50,9 +52,9 @@ class UserRepository(BaseGuacamoleRepository):
             self.cursor.execute(
                 """
                 SELECT COUNT(*) FROM guacamole_entity
-                WHERE name = %s AND type = 'USER'
+                WHERE name = %s AND type = %s
             """,
-                (username,),
+                (username, ENTITY_TYPE_USER),
             )
             return self.cursor.fetchone()[0] > 0
         except mysql.connector.Error as e:
@@ -83,9 +85,9 @@ class UserRepository(BaseGuacamoleRepository):
             self.cursor.execute(
                 """
                 INSERT INTO guacamole_entity (name, type)
-                VALUES (%s, 'USER')
+                VALUES (%s, %s)
             """,
-                (username,),
+                (username, ENTITY_TYPE_USER),
             )
 
             # Create user with proper binary data
@@ -99,9 +101,9 @@ class UserRepository(BaseGuacamoleRepository):
                     %s,
                     NOW()
             FROM guacamole_entity
-            WHERE name = %s AND type = 'USER'
+            WHERE name = %s AND type = %s
             """,
-                (password_hash, password_salt, username),
+                (password_hash, password_salt, username, ENTITY_TYPE_USER),
             )
 
         except mysql.connector.Error as e:
@@ -124,10 +126,10 @@ class UserRepository(BaseGuacamoleRepository):
                 DELETE FROM guacamole_user_group_permission
                 WHERE entity_id IN (
                     SELECT entity_id FROM guacamole_entity
-                    WHERE name = %s AND type = 'USER'
+                    WHERE name = %s AND type = %s
                 )
             """,
-                (username,),
+                (username, ENTITY_TYPE_USER),
             )
 
             # Delete user group memberships
@@ -136,10 +138,10 @@ class UserRepository(BaseGuacamoleRepository):
                 DELETE FROM guacamole_user_group_member
                 WHERE member_entity_id IN (
                     SELECT entity_id FROM guacamole_entity
-                    WHERE name = %s AND type = 'USER'
+                    WHERE name = %s AND type = %s
                 )
             """,
-                (username,),
+                (username, ENTITY_TYPE_USER),
             )
 
             # Delete user permissions
@@ -148,10 +150,10 @@ class UserRepository(BaseGuacamoleRepository):
                 DELETE FROM guacamole_connection_permission
                 WHERE entity_id IN (
                     SELECT entity_id FROM guacamole_entity
-                    WHERE name = %s AND type = 'USER'
+                    WHERE name = %s AND type = %s
                 )
             """,
-                (username,),
+                (username, ENTITY_TYPE_USER),
             )
 
             # Delete user
@@ -160,19 +162,19 @@ class UserRepository(BaseGuacamoleRepository):
                 DELETE FROM guacamole_user
                 WHERE entity_id IN (
                     SELECT entity_id FROM guacamole_entity
-                    WHERE name = %s AND type = 'USER'
+                    WHERE name = %s AND type = %s
                 )
             """,
-                (username,),
+                (username, ENTITY_TYPE_USER),
             )
 
             # Delete entity
             self.cursor.execute(
                 """
                 DELETE FROM guacamole_entity
-                WHERE name = %s AND type = 'USER'
+                WHERE name = %s AND type = %s
             """,
-                (username,),
+                (username, ENTITY_TYPE_USER),
             )
 
         except mysql.connector.Error as e:
@@ -202,9 +204,9 @@ class UserRepository(BaseGuacamoleRepository):
             self.cursor.execute(
                 """
                 SELECT entity_id FROM guacamole_entity
-                WHERE name = %s AND type = 'USER'
+                WHERE name = %s AND type = %s
             """,
-                (username,),
+                (username, ENTITY_TYPE_USER),
             )
             result = self.cursor.fetchone()
             if not result:
@@ -263,9 +265,9 @@ class UserRepository(BaseGuacamoleRepository):
             self.cursor.execute(
                 """
                 SELECT entity_id FROM guacamole_entity
-                WHERE name = %s AND type = 'USER'
+                WHERE name = %s AND type = %s
             """,
-                (username,),
+                (username, ENTITY_TYPE_USER),
             )
             result = self.cursor.fetchone()
             if not result:
@@ -310,10 +312,10 @@ class UserRepository(BaseGuacamoleRepository):
                     ON ugm.user_group_id = ug.user_group_id
                 LEFT JOIN guacamole_entity e2
                     ON ug.entity_id = e2.entity_id
-                WHERE e1.type = 'USER'
+                WHERE e1.type = %s
                 GROUP BY e1.name
             """
-            self.cursor.execute(query)
+            self.cursor.execute(query, (ENTITY_TYPE_USER,))
             results = self.cursor.fetchall()
 
             users_groups: Dict[str, List[str]] = {}

@@ -68,7 +68,7 @@
 
   Также исправлен遗漏 (missed) явный `commit()` в `connection.py:delete_existing_connection()`.
 
-- [ ] **4. Magic strings для entity types**
+- [x] **4. Magic strings для entity types** (ИСПРАВЛЕНО)
 
   **Файлы:** Многие репозитории
 
@@ -77,12 +77,11 @@
   WHERE type = 'USER_GROUP'
   ```
 
-  **Рекомендация:** Использовать enum или константы:
-  ```python
-  class EntityType(Enum):
-      USER = 'USER'
-      USER_GROUP = 'USER_GROUP'
-  ```
+  **Решение:** Создан модуль `guacalib/entities.py` с enum `EntityType` и константами `ENTITY_TYPE_USER`, `ENTITY_TYPE_USER_GROUP`. Все magic strings заменены на параметризованные запросы с использованием констант:
+  - `user.py`: 11 замен
+  - `usergroup.py`: 14 замен
+  - `connection.py`: 8 замен
+  - `connection_group.py`: 5 замен
 
 - [ ] **5. Непоследовательная обработка ошибок в CLI**
 

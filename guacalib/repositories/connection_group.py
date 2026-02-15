@@ -4,6 +4,7 @@
 import mysql.connector
 
 from .base import BaseGuacamoleRepository
+from ..entities import ENTITY_TYPE_USER
 from ..exceptions import (
     DatabaseError,
     EntityNotFoundError,
@@ -535,9 +536,9 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
                 SELECT e.name
                 FROM guacamole_connection_permission cp
                 JOIN guacamole_entity e ON cp.entity_id = e.entity_id
-                WHERE cp.connection_id = %s AND e.type = 'USER'
+                WHERE cp.connection_id = %s AND e.type = %s
             """,
-                (connection_id,),
+                (connection_id, ENTITY_TYPE_USER),
             )
 
             user_permissions = self.cursor.fetchall()
@@ -592,10 +593,10 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             self.cursor.execute(
                 """
                 SELECT entity_id, name FROM guacamole_entity
-                WHERE name = %s AND type = 'USER'
+                WHERE name = %s AND type = %s
                 LIMIT 1
             """,
-                (username,),
+                (username, ENTITY_TYPE_USER),
             )
             result = self.cursor.fetchone()
             if not result:
@@ -696,10 +697,10 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             self.cursor.execute(
                 """
                 SELECT entity_id, name FROM guacamole_entity
-                WHERE name = %s AND type = 'USER'
+                WHERE name = %s AND type = %s
                 LIMIT 1
             """,
-                (username,),
+                (username, ENTITY_TYPE_USER),
             )
             result = self.cursor.fetchone()
             if not result:
@@ -813,10 +814,10 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             self.cursor.execute(
                 """
                 SELECT entity_id, name FROM guacamole_entity
-                WHERE name = %s AND type = 'USER'
+                WHERE name = %s AND type = %s
                 LIMIT 1
             """,
-                (username,),
+                (username, ENTITY_TYPE_USER),
             )
             result = self.cursor.fetchone()
             if not result:
@@ -923,10 +924,10 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             self.cursor.execute(
                 """
                 SELECT entity_id, name FROM guacamole_entity
-                WHERE name = %s AND type = 'USER'
+                WHERE name = %s AND type = %s
                 LIMIT 1
             """,
-                (username,),
+                (username, ENTITY_TYPE_USER),
             )
             result = self.cursor.fetchone()
             if not result:
