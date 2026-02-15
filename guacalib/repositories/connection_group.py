@@ -489,7 +489,7 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             connection_name: Connection name to debug
         """
         try:
-            print(f"\n[DEBUG] Checking permissions for connection '{connection_name}'")
+            self.debug_print(f"Checking permissions for connection '{connection_name}'")
 
             # Get connection ID
             self.cursor.execute(
@@ -501,10 +501,10 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             )
             result = self.cursor.fetchone()
             if not result:
-                print(f"[DEBUG] Connection '{connection_name}' not found")
+                self.debug_print(f"Connection '{connection_name}' not found")
                 return
             connection_id = result[0]
-            print(f"[DEBUG] Connection ID: {connection_id}")
+            self.debug_print(f"Connection ID: {connection_id}")
 
             # Check all permissions
             self.cursor.execute(
@@ -519,15 +519,15 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
 
             permissions = self.cursor.fetchall()
             if not permissions:
-                print(
-                    f"[DEBUG] No permissions found for connection '{connection_name}'"
+                self.debug_print(
+                    f"No permissions found for connection '{connection_name}'"
                 )
             else:
-                print(f"[DEBUG] Found {len(permissions)} permissions:")
+                self.debug_print(f"Found {len(permissions)} permissions:")
                 for perm in permissions:
                     entity_id, name, entity_type, permission = perm
-                    print(
-                        f"[DEBUG]   Entity ID: {entity_id}, Name: {name}, Type: {entity_type}, Permission: {permission}"
+                    self.debug_print(
+                        f"  Entity ID: {entity_id}, Name: {name}, Type: {entity_type}, Permission: {permission}"
                     )
 
             # Specifically check user permissions
@@ -543,18 +543,18 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
 
             user_permissions = self.cursor.fetchall()
             if not user_permissions:
-                print(
-                    f"[DEBUG] No user permissions found for connection '{connection_name}'"
+                self.debug_print(
+                    f"No user permissions found for connection '{connection_name}'"
                 )
             else:
-                print(f"[DEBUG] Found {len(user_permissions)} user permissions:")
+                self.debug_print(f"Found {len(user_permissions)} user permissions:")
                 for perm in user_permissions:
-                    print(f"[DEBUG]   User: {perm[0]}")
+                    self.debug_print(f"  User: {perm[0]}")
 
-            print("[DEBUG] End of debug info")
+            self.debug_print("End of debug info")
 
         except mysql.connector.Error as e:
-            print(f"[DEBUG] Error debugging permissions: {e}")
+            self.debug_print(f"Error debugging permissions: {e}")
 
     def grant_connection_group_permission_to_user(self, username, conngroup_name):
         """Grant connection group permission to a specific user.
