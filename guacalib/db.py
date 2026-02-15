@@ -15,14 +15,7 @@ from .repositories.connection_group import ConnectionGroupRepository
 from .repositories.connection_parameters import CONNECTION_PARAMETERS
 from .repositories.user_parameters import USER_PARAMETERS
 
-# SSH tunnel support
-try:
-    from sshtunnel import SSHTunnelForwarder
-
-    SSH_TUNNEL_AVAILABLE = True
-except ImportError:
-    SSH_TUNNEL_AVAILABLE = False
-    SSHTunnelForwarder = None
+from .ssh_tunnel import create_ssh_tunnel, close_ssh_tunnel
 
 
 class GuacamoleDB:
@@ -95,49 +88,9 @@ class GuacamoleDB:
         Returns:
             Modified db_config with tunnel settings
         """
-        if not SSH_TUNNEL_AVAILABLE:
-            raise ImportError(
-                "sshtunnel package is required for SSH tunnel support. "
-                "Install it with: pip install sshtunnel"
-            )
-
-        db_config = db_config.copy()
-
-        # Build SSH tunnel configuration
-        tunnel_config = {
-            "ssh_address_or_host": (
-                self.ssh_tunnel_config["host"],
-                self.ssh_tunnel_config["port"],
-            ),
-            "ssh_username": self.ssh_tunnel_config["user"],
-            "remote_bind_address": (db_config["host"], 3306),
-        }
-
-        # Add authentication method
-        if self.ssh_tunnel_config.get("private_key"):
-            tunnel_config["ssh_pkey"] = self.ssh_tunnel_config["private_key"]
-            if self.ssh_tunnel_config.get("private_key_passphrase"):
-                tunnel_config["ssh_pkey_password"] = self.ssh_tunnel_config[
-                    "private_key_passphrase"
-                ]
-        elif self.ssh_tunnel_config.get("password"):
-            tunnel_config["ssh_password"] = self.ssh_tunnel_config["password"]
-
-        try:
-            self.debug_print(f"Creating SSH tunnel to {self.ssh_tunnel_config['host']}")
-            self.ssh_tunnel = SSHTunnelForwarder(**tunnel_config)
-            self.ssh_tunnel.start()
-
-            # Update MySQL config to use tunnel
-            db_config["host"] = "127.0.0.1"
-            db_config["port"] = self.ssh_tunnel.local_bind_port
-
-            self.debug_print(
-                f"SSH tunnel established on port {self.ssh_tunnel.local_bind_port}"
-            )
-        except Exception as e:
-            raise RuntimeError(f"Failed to create SSH tunnel: {e}") from e
-
+        self.ssh_tunnel, db_config = create_ssh_tunnel(
+            self.ssh_tunnel_config, db_config, self.debug_print
+        )
         return db_config
 
     def debug_print(self, *args, **kwargs):
@@ -164,12 +117,7 @@ class GuacamoleDB:
                 self.conn.close()
 
         # Close SSH tunnel if it was created
-        if self.ssh_tunnel:
-            try:
-                self.ssh_tunnel.stop()
-                self.debug_print("SSH tunnel closed")
-            except Exception:
-                pass
+        close_ssh_tunnel(self.ssh_tunnel, self.debug_print)
 
     # ==================== User methods ====================
 

@@ -8,14 +8,7 @@ from typing import Optional, Dict, Any
 
 from ..exceptions import DatabaseError, EntityNotFoundError, ValidationError
 
-# SSH tunnel support
-try:
-    from sshtunnel import SSHTunnelForwarder
-
-    SSH_TUNNEL_AVAILABLE = True
-except ImportError:
-    SSH_TUNNEL_AVAILABLE = False
-    SSHTunnelForwarder = None
+from ..ssh_tunnel import create_ssh_tunnel, close_ssh_tunnel, SSH_TUNNEL_AVAILABLE
 
 
 class BaseGuacamoleRepository:
@@ -83,11 +76,8 @@ class BaseGuacamoleRepository:
                 finally:
                     self.conn.close()
             # Close SSH tunnel if we own it
-            if not self._external_tunnel and self.ssh_tunnel:
-                try:
-                    self.ssh_tunnel.stop()
-                except Exception:
-                    pass
+            if not self._external_tunnel:
+                close_ssh_tunnel(self.ssh_tunnel)
 
     @staticmethod
     def read_config(config_file):
@@ -259,48 +249,9 @@ class BaseGuacamoleRepository:
         # Setup SSH tunnel if configured
         if hasattr(self, "ssh_tunnel_config") and self.ssh_tunnel_config:
             if self.ssh_tunnel_config.get("enabled"):
-                if not SSH_TUNNEL_AVAILABLE:
-                    raise ImportError(
-                        "sshtunnel package is required for SSH tunnel support. "
-                        "Install it with: pip install sshtunnel"
-                    )
-
-                # Build SSH tunnel configuration
-                tunnel_config = {
-                    "ssh_address_or_host": (
-                        self.ssh_tunnel_config["host"],
-                        self.ssh_tunnel_config["port"],
-                    ),
-                    "ssh_username": self.ssh_tunnel_config["user"],
-                    "remote_bind_address": (db_config["host"], 3306),
-                }
-
-                # Add authentication method
-                if self.ssh_tunnel_config.get("private_key"):
-                    tunnel_config["ssh_pkey"] = self.ssh_tunnel_config["private_key"]
-                    if self.ssh_tunnel_config.get("private_key_passphrase"):
-                        tunnel_config["ssh_pkey_password"] = self.ssh_tunnel_config[
-                            "private_key_passphrase"
-                        ]
-                elif self.ssh_tunnel_config.get("password"):
-                    tunnel_config["ssh_password"] = self.ssh_tunnel_config["password"]
-
-                try:
-                    self.debug_print(
-                        f"Creating SSH tunnel to {self.ssh_tunnel_config['host']}"
-                    )
-                    self.ssh_tunnel = SSHTunnelForwarder(**tunnel_config)
-                    self.ssh_tunnel.start()
-
-                    # Update MySQL config to use tunnel
-                    db_config["host"] = "127.0.0.1"
-                    db_config["port"] = self.ssh_tunnel.local_bind_port
-
-                    self.debug_print(
-                        f"SSH tunnel established on port {self.ssh_tunnel.local_bind_port}"
-                    )
-                except Exception as e:
-                    raise RuntimeError(f"Failed to create SSH tunnel: {e}") from e
+                self.ssh_tunnel, db_config = create_ssh_tunnel(
+                    self.ssh_tunnel_config, db_config, self.debug_print
+                )
 
         try:
             return mysql.connector.connect(
@@ -308,11 +259,7 @@ class BaseGuacamoleRepository:
             )
         except mysql.connector.Error as e:
             # Cleanup tunnel on connection failure
-            if self.ssh_tunnel:
-                try:
-                    self.ssh_tunnel.stop()
-                except Exception:
-                    pass
+            close_ssh_tunnel(self.ssh_tunnel)
             raise
 
     @staticmethod
