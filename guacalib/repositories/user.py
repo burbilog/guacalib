@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """User repository for Guacamole database operations."""
 
+import re
 from typing import Dict, List
 
 import mysql.connector
@@ -260,6 +261,22 @@ class UserRepository(BaseGuacamoleRepository):
                         value=str(param_value),
                     )
                 param_value = int(param_value)
+            elif param_type == "time":
+                # Validate time format: HH:MM:SS
+                if not re.match(r"^\d{2}:\d{2}:\d{2}$", param_value):
+                    raise ValidationError(
+                        f"Parameter {param_name} must be in HH:MM:SS format",
+                        field=param_name,
+                        value=str(param_value),
+                    )
+            elif param_type == "date":
+                # Validate date format: YYYY-MM-DD
+                if not re.match(r"^\d{4}-\d{2}-\d{2}$", param_value):
+                    raise ValidationError(
+                        f"Parameter {param_name} must be in YYYY-MM-DD format",
+                        field=param_name,
+                        value=str(param_value),
+                    )
 
             # Get user entity_id
             self.cursor.execute(
