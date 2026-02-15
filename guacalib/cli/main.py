@@ -7,6 +7,7 @@ from argparse import Namespace
 from typing import NoReturn
 
 from guacalib import GuacamoleDB
+from guacalib.exceptions import GuacalibError
 from guacalib.cli.handle_usergroup import handle_usergroup_command
 from guacalib.cli.handle_dump import handle_dump_command
 from guacalib.cli.handle_user import handle_user_command
@@ -20,25 +21,6 @@ def positive_int(value: str) -> int:
     if ivalue <= 0:
         raise argparse.ArgumentTypeError(f"{value} is not a positive integer")
     return ivalue
-
-
-def validate_selector(args: Namespace, entity_type: str = "connection") -> None:
-    """Validate exactly one of name or id is provided and validate ID format"""
-    has_name = hasattr(args, "name") and args.name is not None
-    has_id = hasattr(args, "id") and args.id is not None
-
-    if not (has_name ^ has_id):
-        print(
-            f"Error: Exactly one of --name or --id must be provided for {entity_type}"
-        )
-        sys.exit(1)
-
-    # Validate ID format if ID is provided
-    if has_id and args.id <= 0:
-        print(
-            f"Error: {entity_type.capitalize()} ID must be a positive integer greater than 0"
-        )
-        sys.exit(1)
 
 
 def setup_user_subcommands(subparsers: argparse._SubParsersAction) -> None:
@@ -376,6 +358,9 @@ def main() -> NoReturn:
                     sys.exit(1)
                 handle_conngroup_command(args, guacdb)
 
+    except GuacalibError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
     except Exception as e:
         print(f"An error occurred: {e}")
         sys.exit(1)

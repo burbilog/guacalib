@@ -1,9 +1,8 @@
 import sys
-import mysql.connector
 from argparse import Namespace
-from typing import NoReturn
 
 from guacalib import GuacamoleDB
+from guacalib.exceptions import GuacalibError, DatabaseError, EntityNotFoundError
 
 
 def handle_conngroup_command(args: Namespace, guacdb: GuacamoleDB) -> None:
@@ -64,7 +63,7 @@ def handle_conngroup_command(args: Namespace, guacdb: GuacamoleDB) -> None:
                     sys.exit(0)
                 else:
                     guacdb.debug_print(
-                        f"Connection group with ID '{args.id}' does not exist"
+                        f"Connection group with ID '{args.id}' doesn't exist"
                     )
                     sys.exit(1)
             else:
@@ -73,9 +72,9 @@ def handle_conngroup_command(args: Namespace, guacdb: GuacamoleDB) -> None:
                     guacdb.debug_print(f"Connection group '{args.name}' exists")
                     sys.exit(0)
                 else:
-                    guacdb.debug_print(f"Connection group '{args.name}' does not exist")
+                    guacdb.debug_print(f"Connection group '{args.name}' doesn't exist")
                     sys.exit(1)
-        except ValueError as e:
+        except GuacalibError as e:
             print(f"Error: {e}")
             sys.exit(1)
         except Exception as e:
@@ -84,16 +83,13 @@ def handle_conngroup_command(args: Namespace, guacdb: GuacamoleDB) -> None:
 
     elif args.conngroup_command == "del":
         try:
-            # Rely on database layer validation via resolvers
             if hasattr(args, "id") and args.id is not None:
-                # Delete by ID using resolver
                 guacdb.delete_connection_group(group_id=args.id)
             else:
-                # Delete by name using resolver
                 guacdb.delete_connection_group(group_name=args.name)
             guacdb.debug_print(f"Successfully deleted connection group")
             sys.exit(0)
-        except ValueError as e:
+        except GuacalibError as e:
             print(f"Error: {e}")
             sys.exit(1)
         except Exception as e:
@@ -254,32 +250,17 @@ def handle_conngroup_command(args: Namespace, guacdb: GuacamoleDB) -> None:
                             f"Successfully granted permission to user '{username}' for connection group '{group_name}'"
                         )
                     permission_modified = True
-                except ValueError as e:
-                    # Provide more specific error guidance
+                except EntityNotFoundError as e:
+                    print(f"Error: {e}")
+                    sys.exit(1)
+                except GuacalibError as e:
                     error_msg = str(e)
-                    if "not found" in error_msg:
-                        if "User" in error_msg:
-                            print(
-                                f"Error: User '{username}' does not exist. Use 'guacaman user list' to see available users."
-                            )
-                        elif "Connection group" in error_msg and "ID" in error_msg:
-                            print(
-                                f"Error: Connection group ID '{args.id}' does not exist"
-                            )
-                        elif "Connection group" in error_msg:
-                            print(
-                                f"Error: Connection group '{args.name}' does not exist"
-                            )
-                        else:
-                            print(f"Error: {error_msg}")
-                        raise  # Re-raise to be caught by outer handler
-                    elif "already has permission" in error_msg:
-                        print(f"Permission already exists. No changes made.")
-                        permission_modified = True  # Consider this successful since permission already exists
-                        # Continue without error - permission already exists
+                    if "already has permission" in error_msg:
+                        print("Permission already exists. No changes made.")
+                        permission_modified = True
                     else:
                         print(f"Error: {error_msg}")
-                        raise  # Re-raise to be caught by outer handler
+                        sys.exit(1)
 
             elif deny_list:
                 username = deny_list[0]
@@ -306,30 +287,15 @@ def handle_conngroup_command(args: Namespace, guacdb: GuacamoleDB) -> None:
                             f"Successfully revoked permission from user '{username}' for connection group '{group_name}'"
                         )
                     permission_modified = True
-                except ValueError as e:
-                    # Provide more specific error guidance
+                except EntityNotFoundError as e:
+                    print(f"Error: {e}")
+                    sys.exit(1)
+                except GuacalibError as e:
                     error_msg = str(e)
-                    if "not found" in error_msg:
-                        if "User" in error_msg:
-                            print(
-                                f"Error: User '{username}' does not exist. Use 'guacaman user list' to see available users."
-                            )
-                        elif "Connection group" in error_msg and "ID" in error_msg:
-                            print(
-                                f"Error: Connection group ID '{args.id}' does not exist"
-                            )
-                        elif "Connection group" in error_msg:
-                            print(
-                                f"Error: Connection group '{args.name}' does not exist"
-                            )
-                        else:
-                            print(f"Error: {error_msg}")
-                    elif "has no permission" in error_msg:
-                        # Match exact format expected by tests
+                    if "has no permission" in error_msg:
                         print(
-                            f"Error: Permission for user '{username}' on connection group '{group_name}' does not exist"
+                            f"Error: Permission for user '{username}' on connection group '{group_name}' doesn't exist"
                         )
-                        sys.exit(1)
                     else:
                         print(f"Error: {error_msg}")
                     sys.exit(1)
@@ -343,7 +309,7 @@ def handle_conngroup_command(args: Namespace, guacdb: GuacamoleDB) -> None:
                 print(
                     "Error: No modification specified. Use --parent, --addconn-*, --rmconn-*, --permit, or --deny"
                 )
-                sys.exit(2)
+                sys.exit(1)
 
             # Commit all operations atomically
             if connection_modified or permission_modified:
@@ -362,8 +328,7 @@ def handle_conngroup_command(args: Namespace, guacdb: GuacamoleDB) -> None:
                     sys.exit(1)
 
             sys.exit(0)
-        except ValueError as e:
-            # Handle validation and logical errors
+        except GuacalibError as e:
             print(f"Error: {e}")
             if guacdb.conn:
                 try:
@@ -371,21 +336,7 @@ def handle_conngroup_command(args: Namespace, guacdb: GuacamoleDB) -> None:
                 except Exception as rollback_error:
                     guacdb.debug_print(f"Rollback failed: {rollback_error}")
             sys.exit(1)
-        except mysql.connector.Error as e:
-            # Handle database-specific errors
-            error_msg = f"Database error modifying connection group: {e}"
-            guacdb.debug_print(error_msg)
-            if guacdb.conn:
-                try:
-                    guacdb.conn.rollback()
-                except Exception as rollback_error:
-                    guacdb.debug_print(f"Rollback failed: {rollback_error}")
-            print(
-                f"Error: Database operation failed. Please check your data and try again."
-            )
-            sys.exit(1)
         except Exception as e:
-            # Handle unexpected errors
             error_msg = f"Unexpected error modifying connection group: {e}"
             guacdb.debug_print(error_msg)
             if guacdb.conn:

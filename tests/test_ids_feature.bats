@@ -65,7 +65,7 @@ load run_tests.bats
     # Test delete with non-existent ID
     run guacaman --config "$TEST_CONFIG" conn del --id 99999
     [ "$status" -eq 1 ]
-    [[ "$output" == *"not found"* ]] || [[ "$output" == *"does not exist"* ]]
+    [[ "$output" == *"not found"* ]] || [[ "$output" == *"doesn't exist"* ]]
     
     # Test validation: both name and ID provided
     run guacaman --config "$TEST_CONFIG" conn del --name testconn1 --id 1
@@ -434,7 +434,7 @@ load run_tests.bats
     # Delete command - non-existent ID
     run guacaman --config "$TEST_CONFIG" conn del --id 99999
     [ "$status" -ne 0 ]
-    [[ "$output" == *"not found"* ]] || [[ "$output" == *"does not exist"* ]]
+    [[ "$output" == *"not found"* ]] || [[ "$output" == *"doesn't exist"* ]]
     
     # Exists command - non-existent ID (should exit with code 1)
     run guacaman --config "$TEST_CONFIG" conn exists --id 99999
@@ -443,7 +443,7 @@ load run_tests.bats
     # Modify command - non-existent ID
     run guacaman --config "$TEST_CONFIG" conn modify --id 99999 --set hostname=test
     [ "$status" -ne 0 ]
-    [[ "$output" == *"not found"* ]] || [[ "$output" == *"does not exist"* ]]
+    [[ "$output" == *"not found"* ]] || [[ "$output" == *"doesn't exist"* ]]
 }
 
 @test "Stage 4: Backward compatibility - name-based operations unchanged" {

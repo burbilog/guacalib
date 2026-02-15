@@ -3,6 +3,8 @@ from argparse import Namespace
 from typing import NoReturn
 
 from guacalib import GuacamoleDB
+from guacalib.exceptions import GuacalibError
+from .validators import validate_selector
 
 
 def is_terminal() -> bool:
@@ -108,19 +110,14 @@ def handle_conn_new(args: Namespace, guacdb: GuacamoleDB) -> None:
 
 
 def handle_conn_delete(args: Namespace, guacdb: GuacamoleDB) -> None:
-    # Validate exactly one selector provided
-    from .main import validate_selector
-
     validate_selector(args, "connection")
 
     try:
         if hasattr(args, "id") and args.id is not None:
-            # Delete by ID using resolver
             guacdb.delete_existing_connection(connection_id=args.id)
         else:
-            # Delete by name using resolver
             guacdb.delete_existing_connection(connection_name=args.name)
-    except ValueError as e:
+    except GuacalibError as e:
         print(f"Error: {e}")
         sys.exit(1)
     except Exception as e:
@@ -129,25 +126,20 @@ def handle_conn_delete(args: Namespace, guacdb: GuacamoleDB) -> None:
 
 
 def handle_conn_exists(args: Namespace, guacdb: GuacamoleDB) -> NoReturn:
-    # Validate exactly one selector provided
-    from .main import validate_selector
-
     validate_selector(args, "connection")
 
     try:
         if hasattr(args, "id") and args.id is not None:
-            # Check existence by ID using resolver
             if guacdb.connection_exists(connection_id=args.id):
                 sys.exit(0)
             else:
                 sys.exit(1)
         else:
-            # Check existence by name using resolver
             if guacdb.connection_exists(connection_name=args.name):
                 sys.exit(0)
             else:
                 sys.exit(1)
-    except ValueError as e:
+    except GuacalibError as e:
         print(f"Error: {e}")
         sys.exit(1)
     except Exception as e:
@@ -191,9 +183,6 @@ def handle_conn_modify(args: Namespace, guacdb: GuacamoleDB) -> None:
                 print(desc)
 
         sys.exit(1)
-
-    # Validate exactly one selector provided
-    from .main import validate_selector
 
     validate_selector(args, "connection")
 
@@ -269,11 +258,11 @@ def handle_conn_modify(args: Namespace, guacdb: GuacamoleDB) -> None:
                 print(
                     f"Successfully updated {param} for connection '{connection_name}'"
                 )
-            except ValueError as e:
-                print(f"Error: {str(e)}")
+            except GuacalibError as e:
+                print(f"Error: {e}")
                 sys.exit(1)
 
-    except ValueError as e:
+    except GuacalibError as e:
         print(f"Error: {e}")
         sys.exit(1)
     except Exception as e:

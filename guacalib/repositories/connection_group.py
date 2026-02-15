@@ -4,6 +4,12 @@
 import mysql.connector
 
 from .base import BaseGuacamoleRepository
+from ..exceptions import (
+    DatabaseError,
+    EntityNotFoundError,
+    ValidationError,
+    PermissionError,
+)
 
 
 class ConnectionGroupRepository(BaseGuacamoleRepository):
@@ -19,7 +25,8 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             int: Group ID or None if group_name is empty
 
         Raises:
-            ValueError: If group not found
+            EntityNotFoundError: If group not found
+            DatabaseError: If database operation fails
         """
         try:
             if not group_name:
@@ -35,11 +42,10 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             )
             result = self.cursor.fetchone()
             if not result:
-                raise ValueError(f"Connection group '{group_name}' not found")
+                raise EntityNotFoundError("connection group", group_name)
             return result[0]
         except mysql.connector.Error as e:
-            print(f"Error getting connection group ID: {e}")
-            raise
+            raise DatabaseError(f"Error getting connection group ID: {e}") from e
 
     def get_connection_group_id(self, group_path):
         """Resolve nested connection group path to group_id.
@@ -51,7 +57,8 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             int: Group ID
 
         Raises:
-            ValueError: If group not found in path
+            EntityNotFoundError: If group not found in path
+            DatabaseError: If database operation fails
         """
         try:
             groups = group_path.split("/")
@@ -81,8 +88,10 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
 
                 result = self.cursor.fetchone()
                 if not result:
-                    raise ValueError(
-                        f"Group '{group_name}' not found in path '{group_path}'"
+                    raise EntityNotFoundError(
+                        "connection group",
+                        group_name,
+                        f"Group '{group_name}' not found in path '{group_path}'",
                     )
 
                 parent_group_id = result[0]
@@ -91,8 +100,7 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             return parent_group_id
 
         except mysql.connector.Error as e:
-            print(f"Error resolving group path: {e}")
-            raise
+            raise DatabaseError(f"Error resolving group path: {e}") from e
 
     def get_connection_group_name_by_id(self, group_id):
         """Get connection group name by ID.
@@ -115,8 +123,9 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             result = self.cursor.fetchone()
             return result[0] if result else None
         except mysql.connector.Error as e:
-            print(f"Error getting connection group name by ID: {e}")
-            raise
+            raise DatabaseError(
+                f"Error getting connection group name by ID: {e}"
+            ) from e
 
     def resolve_conngroup_id(self, group_name=None, group_id=None):
         """Validate inputs and resolve to connection_group_id.
@@ -129,55 +138,20 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             int: Resolved group ID
 
         Raises:
-            ValueError: If invalid inputs or group not found
+            ValidationError: If invalid inputs
+            EntityNotFoundError: If group not found
+            DatabaseError: If database operation fails
         """
-        # Validate exactly one parameter provided
-        if (group_name is None) == (group_id is None):
-            raise ValueError("Exactly one of group_name or group_id must be provided")
+        id_query = "SELECT connection_group_id FROM guacamole_connection_group WHERE connection_group_id = %s"
+        name_query = "SELECT connection_group_id FROM guacamole_connection_group WHERE connection_group_name = %s"
 
-        # If ID provided, validate and return it
-        if group_id is not None:
-            if group_id <= 0:
-                raise ValueError(
-                    "Connection group ID must be a positive integer greater than 0"
-                )
-
-            # Verify the connection group exists
-            try:
-                self.cursor.execute(
-                    """
-                    SELECT connection_group_id FROM guacamole_connection_group
-                    WHERE connection_group_id = %s
-                """,
-                    (group_id,),
-                )
-                result = self.cursor.fetchone()
-                if not result:
-                    raise ValueError(f"Connection group with ID {group_id} not found")
-                return group_id
-            except mysql.connector.Error as e:
-                raise ValueError(
-                    f"Database error while resolving connection group ID: {e}"
-                )
-
-        # If name provided, resolve to ID
-        if group_name is not None:
-            try:
-                self.cursor.execute(
-                    """
-                    SELECT connection_group_id FROM guacamole_connection_group
-                    WHERE connection_group_name = %s
-                """,
-                    (group_name,),
-                )
-                result = self.cursor.fetchone()
-                if not result:
-                    raise ValueError(f"Connection group '{group_name}' not found")
-                return result[0]
-            except mysql.connector.Error as e:
-                raise ValueError(
-                    f"Database error while resolving connection group name: {e}"
-                )
+        return self._resolve_entity_id(
+            entity_name=group_name,
+            entity_id=group_id,
+            entity_type="Connection group",
+            id_query=id_query,
+            name_query=name_query,
+        )
 
     def connection_group_exists(self, group_name=None, group_id=None):
         """Check if a connection group with the given name or ID exists.
@@ -189,14 +163,16 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
         Returns:
             bool: True if group exists
         """
-        try:
-            resolved_group_id = self.resolve_conngroup_id(group_name, group_id)
-            return True
-        except ValueError:
-            return False
-        except mysql.connector.Error as e:
-            print(f"Error checking connection group existence: {e}")
-            raise
+        id_query = "SELECT connection_group_id FROM guacamole_connection_group WHERE connection_group_id = %s"
+        name_query = "SELECT connection_group_id FROM guacamole_connection_group WHERE connection_group_name = %s"
+
+        return self._entity_exists(
+            entity_name=group_name,
+            entity_id=group_id,
+            entity_type="Connection group",
+            id_query=id_query,
+            name_query=name_query,
+        )
 
     def _check_connection_group_cycle(self, group_id, parent_id):
         """Check if setting parent_id would create a cycle in connection groups.
@@ -254,14 +230,14 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
                 )
                 result = self.cursor.fetchone()
                 if not result:
-                    raise ValueError(
-                        f"Parent connection group '{parent_group_name}' not found"
+                    raise EntityNotFoundError(
+                        "parent connection group", parent_group_name
                     )
                 parent_group_id = result[0]
 
                 # Check for cycles
                 if self._check_connection_group_cycle(None, parent_group_id):
-                    raise ValueError(
+                    raise ValidationError(
                         f"Parent connection group '{parent_group_name}' is invalid"
                     )
 
@@ -285,13 +261,14 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
                 (group_name,),
             )
             if not self.cursor.fetchone():
-                raise ValueError("Failed to create connection group - no ID returned")
+                raise ValidationError(
+                    "Failed to create connection group - no ID returned"
+                )
 
             return True
 
         except mysql.connector.Error as e:
-            print(f"Error creating connection group: {e}")
-            raise
+            raise DatabaseError(f"Error creating connection group: {e}") from e
 
     def delete_connection_group(self, group_name=None, group_id=None):
         """Delete a connection group and update references to it.
@@ -353,8 +330,7 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             return True
 
         except mysql.connector.Error as e:
-            print(f"Error deleting connection group: {e}")
-            raise
+            raise DatabaseError(f"Error deleting connection group: {e}") from e
 
     def modify_connection_group_parent(
         self, group_name=None, group_id=None, new_parent_name=None
@@ -390,15 +366,15 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
                 )
                 result = self.cursor.fetchone()
                 if not result:
-                    raise ValueError(
-                        f"Parent connection group '{new_parent_name}' not found"
+                    raise EntityNotFoundError(
+                        "parent connection group", new_parent_name
                     )
                 new_parent_id = result[0]
 
                 # Check for cycles
                 if self._check_connection_group_cycle(resolved_group_id, new_parent_id):
-                    raise ValueError(
-                        f"Setting parent would create a cycle in connection groups"
+                    raise ValidationError(
+                        "Setting parent would create a cycle in connection groups"
                     )
 
             # Update the parent
@@ -412,13 +388,14 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             )
 
             if self.cursor.rowcount == 0:
-                raise ValueError(f"Failed to update parent group for '{group_name}'")
+                raise ValidationError(
+                    f"Failed to update parent group for '{group_name}'"
+                )
 
             return True
 
         except mysql.connector.Error as e:
-            print(f"Error modifying connection group parent: {e}")
-            raise
+            raise DatabaseError(f"Error modifying connection group parent: {e}") from e
 
     def list_connection_groups(self):
         """List all connection groups with their connections and parent groups.
@@ -458,8 +435,7 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
                 }
             return groups
         except mysql.connector.Error as e:
-            print(f"Error listing groups: {e}")
-            raise
+            raise DatabaseError(f"Error listing groups: {e}") from e
 
     def get_connection_group_by_id(self, group_id):
         """Get a specific connection group by its ID.
@@ -506,8 +482,7 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
                 }
             }
         except mysql.connector.Error as e:
-            print(f"Error getting connection group by ID: {e}")
-            raise
+            raise DatabaseError(f"Error getting connection group by ID: {e}") from e
 
     def debug_connection_permissions(self, connection_name):
         """Debug function to check permissions for a connection.
@@ -594,9 +569,9 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             bool: True if successful
         """
         if not username or not isinstance(username, str):
-            raise ValueError("Username must be a non-empty string")
+            raise ValidationError("Username must be a non-empty string")
         if not conngroup_name or not isinstance(conngroup_name, str):
-            raise ValueError("Connection group name must be a non-empty string")
+            raise ValidationError("Connection group name must be a non-empty string")
 
         try:
             # Get connection group ID
@@ -613,7 +588,7 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
                 self.debug_print(
                     f"Connection group lookup failed for: {conngroup_name}"
                 )
-                raise ValueError(f"Connection group '{conngroup_name}' not found")
+                raise EntityNotFoundError("connection group", conngroup_name)
             connection_group_id, actual_conngroup_name = result
 
             # Get user entity ID
@@ -628,7 +603,7 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             result = self.cursor.fetchone()
             if not result:
                 self.debug_print(f"User lookup failed for: {username}")
-                raise ValueError(f"User '{username}' not found")
+                raise EntityNotFoundError("user", username)
             entity_id, actual_username = result
 
             # Check if permission already exists
@@ -644,8 +619,11 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             if existing_permission:
                 permission_type = existing_permission[0]
                 if permission_type == "READ":
-                    raise ValueError(
-                        f"User '{actual_username}' already has permission for connection group '{actual_conngroup_name}'"
+                    raise PermissionError(
+                        f"User '{actual_username}' already has permission for connection group '{actual_conngroup_name}'",
+                        username=actual_username,
+                        resource_type="connection_group",
+                        resource_name=actual_conngroup_name,
                     )
                 else:
                     self.debug_print(
@@ -680,9 +658,9 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
 
             return True
         except mysql.connector.Error as e:
-            error_msg = f"Database error granting connection group permission for user '{username}' on group '{conngroup_name}': {e}"
-            self.debug_print(error_msg)
-            raise ValueError(error_msg) from e
+            raise DatabaseError(
+                f"Database error granting connection group permission for user '{username}' on group '{conngroup_name}': {e}"
+            ) from e
 
     def revoke_connection_group_permission_from_user(self, username, conngroup_name):
         """Revoke connection group permission from a specific user.
@@ -695,9 +673,9 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             bool: True if successful
         """
         if not username or not isinstance(username, str):
-            raise ValueError("Username must be a non-empty string")
+            raise ValidationError("Username must be a non-empty string")
         if not conngroup_name or not isinstance(conngroup_name, str):
-            raise ValueError("Connection group name must be a non-empty string")
+            raise ValidationError("Connection group name must be a non-empty string")
 
         try:
             # Get connection group ID
@@ -714,7 +692,7 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
                 self.debug_print(
                     f"Connection group lookup failed for: {conngroup_name}"
                 )
-                raise ValueError(f"Connection group '{conngroup_name}' not found")
+                raise EntityNotFoundError("connection group", conngroup_name)
             connection_group_id, actual_conngroup_name = result
 
             # Get user entity ID
@@ -729,7 +707,7 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             result = self.cursor.fetchone()
             if not result:
                 self.debug_print(f"User lookup failed for: {username}")
-                raise ValueError(f"User '{username}' not found")
+                raise EntityNotFoundError("user", username)
             entity_id, actual_username = result
 
             # Check if permission exists
@@ -743,8 +721,11 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             )
             existing_permission = self.cursor.fetchone()
             if not existing_permission:
-                raise ValueError(
-                    f"User '{actual_username}' has no permission for connection group '{actual_conngroup_name}'"
+                raise PermissionError(
+                    f"User '{actual_username}' has no permission for connection group '{actual_conngroup_name}'",
+                    username=actual_username,
+                    resource_type="connection_group",
+                    resource_name=actual_conngroup_name,
                 )
 
             permission_type = existing_permission[0]
@@ -763,8 +744,8 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             )
 
             if self.cursor.rowcount == 0:
-                raise ValueError(
-                    f"Failed to revoke permission - no rows affected. Permission may have been removed by another operation."
+                raise PermissionError(
+                    "Failed to revoke permission - no rows affected. Permission may have been removed by another operation."
                 )
 
             self.debug_print(
@@ -772,9 +753,9 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             )
             return True
         except mysql.connector.Error as e:
-            error_msg = f"Database error revoking connection group permission for user '{username}' on group '{conngroup_name}': {e}"
-            self.debug_print(error_msg)
-            raise ValueError(error_msg) from e
+            raise DatabaseError(
+                f"Database error revoking connection group permission for user '{username}' on group '{conngroup_name}': {e}"
+            ) from e
 
     def _atomic_permission_operation(self, operation_func, *args, **kwargs):
         """Execute a database operation with proper error handling and validation.
@@ -790,9 +771,9 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
         try:
             return operation_func(*args, **kwargs)
         except mysql.connector.Error as e:
-            error_msg = f"Database error during permission operation: {e}"
-            self.debug_print(error_msg)
-            raise ValueError(error_msg) from e
+            raise DatabaseError(
+                f"Database error during permission operation: {e}"
+            ) from e
 
     def grant_connection_group_permission_to_user_by_id(self, username, conngroup_id):
         """Grant connection group permission to a specific user by connection group ID.
@@ -805,13 +786,13 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             bool: True if successful
         """
         if not username or not isinstance(username, str):
-            raise ValueError("Username must be a non-empty string")
+            raise ValidationError("Username must be a non-empty string")
         if (
             conngroup_id is None
             or not isinstance(conngroup_id, int)
             or conngroup_id <= 0
         ):
-            raise ValueError("Connection group ID must be a positive integer")
+            raise ValidationError("Connection group ID must be a positive integer")
 
         try:
             # Get connection group name for error messages
@@ -828,7 +809,7 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
                 self.debug_print(
                     f"Connection group ID lookup failed for: {conngroup_id}"
                 )
-                raise ValueError(f"Connection group ID '{conngroup_id}' not found")
+                raise EntityNotFoundError("connection group", str(conngroup_id))
             actual_conngroup_id, conngroup_name = result
 
             # Get user entity ID
@@ -843,7 +824,7 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             result = self.cursor.fetchone()
             if not result:
                 self.debug_print(f"User lookup failed for: {username}")
-                raise ValueError(f"User '{username}' not found")
+                raise EntityNotFoundError("user", username)
             entity_id, actual_username = result
 
             # Check if permission already exists
@@ -859,8 +840,11 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             if existing_permission:
                 permission_type = existing_permission[0]
                 if permission_type == "READ":
-                    raise ValueError(
-                        f"User '{actual_username}' already has permission for connection group ID '{actual_conngroup_id}'"
+                    raise PermissionError(
+                        f"User '{actual_username}' already has permission for connection group ID '{actual_conngroup_id}'",
+                        username=actual_username,
+                        resource_type="connection_group",
+                        resource_name=str(actual_conngroup_id),
                     )
                 else:
                     self.debug_print(
@@ -895,9 +879,9 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
 
             return True
         except mysql.connector.Error as e:
-            error_msg = f"Database error granting connection group permission for user '{username}' on group ID '{conngroup_id}': {e}"
-            self.debug_print(error_msg)
-            raise ValueError(error_msg) from e
+            raise DatabaseError(
+                f"Database error granting connection group permission for user '{username}' on group ID '{conngroup_id}': {e}"
+            ) from e
 
     def revoke_connection_group_permission_from_user_by_id(
         self, username, conngroup_id
@@ -912,13 +896,13 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             bool: True if successful
         """
         if not username or not isinstance(username, str):
-            raise ValueError("Username must be a non-empty string")
+            raise ValidationError("Username must be a non-empty string")
         if (
             conngroup_id is None
             or not isinstance(conngroup_id, int)
             or conngroup_id <= 0
         ):
-            raise ValueError("Connection group ID must be a positive integer")
+            raise ValidationError("Connection group ID must be a positive integer")
 
         try:
             # Get connection group name for error messages
@@ -935,7 +919,7 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
                 self.debug_print(
                     f"Connection group ID lookup failed for: {conngroup_id}"
                 )
-                raise ValueError(f"Connection group ID '{conngroup_id}' not found")
+                raise EntityNotFoundError("connection group", str(conngroup_id))
             actual_conngroup_id, conngroup_name = result
 
             # Get user entity ID
@@ -950,7 +934,7 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             result = self.cursor.fetchone()
             if not result:
                 self.debug_print(f"User lookup failed for: {username}")
-                raise ValueError(f"User '{username}' not found")
+                raise EntityNotFoundError("user", username)
             entity_id, actual_username = result
 
             # Check if permission exists
@@ -964,8 +948,11 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             )
             existing_permission = self.cursor.fetchone()
             if not existing_permission:
-                raise ValueError(
-                    f"User '{actual_username}' has no permission for connection group ID '{actual_conngroup_id}'"
+                raise PermissionError(
+                    f"User '{actual_username}' has no permission for connection group ID '{actual_conngroup_id}'",
+                    username=actual_username,
+                    resource_type="connection_group",
+                    resource_name=str(actual_conngroup_id),
                 )
 
             permission_type = existing_permission[0]
@@ -984,8 +971,8 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             )
 
             if self.cursor.rowcount == 0:
-                raise ValueError(
-                    f"Failed to revoke permission - no rows affected. Permission may have been removed by another operation."
+                raise PermissionError(
+                    "Failed to revoke permission - no rows affected. Permission may have been removed by another operation."
                 )
 
             self.debug_print(
@@ -993,6 +980,6 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             )
             return True
         except mysql.connector.Error as e:
-            error_msg = f"Database error revoking connection group permission for user '{username}' on group ID '{conngroup_id}': {e}"
-            self.debug_print(error_msg)
-            raise ValueError(error_msg) from e
+            raise DatabaseError(
+                f"Database error revoking connection group permission for user '{username}' on group ID '{conngroup_id}': {e}"
+            ) from e

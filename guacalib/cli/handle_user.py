@@ -3,6 +3,7 @@ from argparse import Namespace
 from typing import NoReturn
 
 from guacalib import GuacamoleDB
+from guacalib.exceptions import GuacalibError
 
 
 def handle_user_command(args: Namespace, guacdb: GuacamoleDB) -> None:
@@ -64,7 +65,7 @@ def handle_user_delete(args: Namespace, guacdb: GuacamoleDB) -> None:
     try:
         guacdb.delete_existing_user(args.name)
         guacdb.debug_print(f"Successfully deleted user '{args.name}'")
-    except ValueError as e:
+    except GuacalibError as e:
         print(f"Error: {e}")
         sys.exit(1)
     except Exception as e:
@@ -110,7 +111,7 @@ def handle_user_modify(args: Namespace, guacdb: GuacamoleDB) -> None:
 
     try:
         if not guacdb.user_exists(args.name):
-            print(f"Error: User '{args.name}' does not exist")
+            print(f"Error: User '{args.name}' doesn't exist")
             sys.exit(1)
 
         if args.password:
@@ -131,7 +132,7 @@ def handle_user_modify(args: Namespace, guacdb: GuacamoleDB) -> None:
                 f"Successfully modified user '{args.name}': {param_name}={param_value}"
             )
 
-    except ValueError as e:
+    except GuacalibError as e:
         print(f"Error: {e}")
         sys.exit(1)
     except Exception as e:

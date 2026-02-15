@@ -69,7 +69,7 @@ load run_tests.bats
     # Negative check
     run guacaman --debug --config "$TEST_CONFIG" conngroup exists --name "nonexistentgroup_$(date +%s)"
     [ "$status" -eq 1 ]
-    [[ "$output" == *"Connection group 'nonexistentgroup_"*" does not exist"* ]]
+    [[ "$output" == *"Connection group 'nonexistentgroup_"*" doesn't exist"* ]]
     
     # Clean up
     guacaman --config "$TEST_CONFIG" conngroup del --name "$group_name"
@@ -108,7 +108,7 @@ load run_tests.bats
 @test "Delete non-existent connection group should fail" {
     run guacaman --debug --config "$TEST_CONFIG" conngroup del --name "nonexistentgroup_$(date +%s)"
     [ "$status" -ne 0 ]
-    [[ "$output" == *"not found"* ]]
+    [[ "$output" == *"doesn't exist"* ]]
 }
 
 @test "Connection group modify parent" {
@@ -209,7 +209,7 @@ load run_tests.bats
 @test "Connection group modify non-existent group should fail" {
     run guacaman --debug --config "$TEST_CONFIG" conngroup modify --name "nonexistent_$(date +%s)" --parent "somegroup"
     [ "$status" -ne 0 ]
-    [[ "$output" == *"not found"* ]]
+    [[ "$output" == *"doesn't exist"* ]]
 }
 
 @test "Connection group modify non-existent parent should fail" {
@@ -218,7 +218,7 @@ load run_tests.bats
     
     run guacaman --debug --config "$TEST_CONFIG" conngroup modify --name "$group_name" --parent "nonexistentparent"
     [ "$status" -ne 0 ]
-    [[ "$output" == *"not found"* ]]
+    [[ "$output" == *"doesn't exist"* ]]
     
     # Clean up
     guacaman --config "$TEST_CONFIG" conngroup del --name "$group_name"

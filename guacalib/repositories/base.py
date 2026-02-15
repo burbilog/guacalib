@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Base repository class for Guacamole database operations."""
 
-import mysql.connector
 import configparser
+import mysql.connector
 import os
 from typing import Optional, Dict, Any
+
+from ..exceptions import DatabaseError, EntityNotFoundError, ValidationError
 
 # SSH tunnel support
 try:
@@ -116,7 +118,7 @@ class BaseGuacamoleRepository:
         try:
             config.read(config_file)
             if "mysql" not in config:
-                raise ValueError(f"Missing [mysql] section in config file")
+                raise ValueError("Missing [mysql] section in config file")
 
             required_keys = ["host", "user", "password", "database"]
             missing_keys = [key for key in required_keys if key not in config["mysql"]]
@@ -325,10 +327,130 @@ class BaseGuacamoleRepository:
             The validated ID value
 
         Raises:
-            ValueError: If ID is not positive
+            ValidationError: If ID is not positive
         """
         if id_value is not None and id_value <= 0:
-            raise ValueError(
-                f"{entity_type} ID must be a positive integer greater than 0"
+            raise ValidationError(
+                f"{entity_type} ID must be a positive integer greater than 0",
+                field="id",
+                value=str(id_value),
             )
         return id_value
+
+    def _resolve_entity_id(
+        self,
+        entity_name: Optional[str],
+        entity_id: Optional[int],
+        entity_type: str,
+        id_query: str,
+        name_query: str,
+    ) -> int:
+        """Generic method to resolve entity name or ID to a database ID.
+
+        Args:
+            entity_name: Entity name (optional)
+            entity_id: Entity ID (optional)
+            entity_type: Type of entity for error messages (e.g., 'User', 'Connection')
+            id_query: SQL query to verify ID exists (should have one %s placeholder)
+            name_query: SQL query to get ID by name (should have one %s placeholder)
+
+        Returns:
+            int: Resolved entity ID
+
+        Raises:
+            ValidationError: If both or neither parameter is provided
+            EntityNotFoundError: If entity not found in database
+            DatabaseError: If database operation fails
+        """
+        # Validate exactly one parameter provided
+        if (entity_name is None) == (entity_id is None):
+            raise ValidationError(
+                f"Exactly one of {entity_type.lower()}_name or {entity_type.lower()}_id must be provided"
+            )
+
+        # If ID provided, validate and return it
+        if entity_id is not None:
+            self.validate_positive_id(entity_id, entity_type)
+
+            try:
+                self.cursor.execute(id_query, (entity_id,))
+                result = self.cursor.fetchone()
+                if not result:
+                    raise EntityNotFoundError(entity_type, str(entity_id))
+                return entity_id
+            except mysql.connector.Error as e:
+                raise DatabaseError(
+                    f"Database error while resolving {entity_type.lower()} ID: {e}"
+                ) from e
+
+        # If name provided, resolve to ID
+        if entity_name is not None:
+            try:
+                self.cursor.execute(name_query, (entity_name,))
+                result = self.cursor.fetchone()
+                if not result:
+                    raise EntityNotFoundError(entity_type, entity_name)
+                return result[0]
+            except mysql.connector.Error as e:
+                raise DatabaseError(
+                    f"Database error while resolving {entity_type.lower()} name: {e}"
+                ) from e
+
+    def _entity_exists(
+        self,
+        entity_name: Optional[str],
+        entity_id: Optional[int],
+        entity_type: str,
+        id_query: str,
+        name_query: str,
+    ) -> bool:
+        """Generic method to check if an entity exists.
+
+        Args:
+            entity_name: Entity name (optional)
+            entity_id: Entity ID (optional)
+            entity_type: Type of entity for error messages
+            id_query: SQL query to verify ID exists
+            name_query: SQL query to verify name exists
+
+        Returns:
+            bool: True if entity exists, False otherwise
+
+        Raises:
+            DatabaseError: If database operation fails
+        """
+        try:
+            self._resolve_entity_id(
+                entity_name, entity_id, entity_type, id_query, name_query
+            )
+            return True
+        except EntityNotFoundError:
+            return False
+        except ValidationError:
+            return False
+        except DatabaseError:
+            raise
+
+    def _validate_param_name(
+        self, param_name: str, allowed_params: Dict[str, Any]
+    ) -> str:
+        """Validate parameter name against whitelist.
+
+        Args:
+            param_name: Parameter name to validate
+            allowed_params: Dictionary of allowed parameter names
+
+        Returns:
+            str: Validated parameter name
+
+        Raises:
+            ValidationError: If parameter name is not in whitelist
+        """
+        if param_name not in allowed_params:
+            raise ValidationError(
+                f"Invalid parameter: {param_name}. "
+                f"Run 'guacaman' without arguments to see allowed parameters.",
+                field="param_name",
+                value=param_name,
+            )
+        return param_name

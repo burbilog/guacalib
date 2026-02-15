@@ -79,7 +79,7 @@ load run_tests.bats
     # Test granting permission to non-existent user
     run guacaman --debug --config "$TEST_CONFIG" conngroup modify --name "$group_name" --permit "$non_existent_user"
     [ "$status" -eq 1 ]
-    [[ "$output" == *"User '$non_existent_user' does not exist"* ]]
+    [[ "$output" == *"User '$non_existent_user' doesn't exist"* ]]
 
     # Clean up
     guacaman --config "$TEST_CONFIG" conngroup del --name "$group_name"
@@ -95,7 +95,7 @@ load run_tests.bats
     # Test granting permission to non-existent connection group
     run guacaman --debug --config "$TEST_CONFIG" conngroup modify --name "$non_existent_group" --permit "$user_name"
     [ "$status" -eq 1 ]
-    [[ "$output" == *"Connection group '$non_existent_group' does not exist"* ]]
+    [[ "$output" == *"Connection group '$non_existent_group' doesn't exist"* ]]
 
     # Clean up
     guacaman --config "$TEST_CONFIG" user del --name "$user_name"
@@ -181,7 +181,7 @@ load run_tests.bats
     # Test revoking permission from non-existent user
     run guacaman --debug --config "$TEST_CONFIG" conngroup modify --name "$group_name" --deny "$non_existent_user"
     [ "$status" -eq 1 ]
-    [[ "$output" == *"User '$non_existent_user' does not exist"* ]]
+    [[ "$output" == *"User '$non_existent_user' doesn't exist"* ]]
 
     # Clean up
     guacaman --config "$TEST_CONFIG" conngroup del --name "$group_name"
@@ -200,7 +200,7 @@ load run_tests.bats
     # Test revoking permission that was never granted
     run guacaman --debug --config "$TEST_CONFIG" conngroup modify --name "$group_name" --deny "$user_name"
     [ "$status" -eq 1 ]
-    [[ "$output" == *"Permission for user '$user_name' on connection group '$group_name' does not exist"* ]]
+    [[ "$output" == *"Permission for user '$user_name' on connection group '$group_name' doesn't exist"* ]]
 
     # Clean up
     guacaman --config "$TEST_CONFIG" conngroup del --name "$group_name"
@@ -251,7 +251,7 @@ load run_tests.bats
     # Try to revoke again - should fail
     run guacaman --debug --config "$TEST_CONFIG" conngroup modify --name "$group_name" --deny "$user_name"
     [ "$status" -eq 1 ]
-    [[ "$output" == *"Permission for user '$user_name' on connection group '$group_name' does not exist"* ]]
+    [[ "$output" == *"Permission for user '$user_name' on connection group '$group_name' doesn't exist"* ]]
 
     # Clean up
     guacaman --config "$TEST_CONFIG" conngroup del --name "$group_name"

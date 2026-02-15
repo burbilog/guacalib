@@ -8,6 +8,7 @@ import binascii
 
 from .base import BaseGuacamoleRepository
 from .user_parameters import USER_PARAMETERS
+from ..exceptions import DatabaseError, EntityNotFoundError, ValidationError
 
 
 class UserRepository(BaseGuacamoleRepository):
@@ -32,8 +33,7 @@ class UserRepository(BaseGuacamoleRepository):
             )
             return [row[0] for row in self.cursor.fetchall()]
         except mysql.connector.Error as e:
-            print(f"Error listing users: {e}")
-            raise
+            raise DatabaseError(f"Error listing users: {e}") from e
 
     def user_exists(self, username):
         """Check if a user with the given name exists.
@@ -54,8 +54,7 @@ class UserRepository(BaseGuacamoleRepository):
             )
             return self.cursor.fetchone()[0] > 0
         except mysql.connector.Error as e:
-            print(f"Error checking user existence: {e}")
-            raise
+            raise DatabaseError(f"Error checking user existence: {e}") from e
 
     def create_user(self, username, password):
         """Create a new user with hashed password.
@@ -104,8 +103,7 @@ class UserRepository(BaseGuacamoleRepository):
             )
 
         except mysql.connector.Error as e:
-            print(f"Error creating user: {e}")
-            raise
+            raise DatabaseError(f"Error creating user: {e}") from e
 
     def delete_existing_user(self, username):
         """Delete a user and all associated data.
@@ -115,7 +113,7 @@ class UserRepository(BaseGuacamoleRepository):
         """
         try:
             if not self.user_exists(username):
-                raise ValueError(f"User '{username}' doesn't exist")
+                raise EntityNotFoundError("user", username)
 
             self.debug_print(f"Deleting user: {username}")
             # Delete user group permissions first
@@ -176,8 +174,7 @@ class UserRepository(BaseGuacamoleRepository):
             )
 
         except mysql.connector.Error as e:
-            print(f"Error deleting existing user: {e}")
-            raise
+            raise DatabaseError(f"Error deleting existing user: {e}") from e
 
     def change_user_password(self, username, new_password):
         """Change a user's password.
@@ -209,7 +206,7 @@ class UserRepository(BaseGuacamoleRepository):
             )
             result = self.cursor.fetchone()
             if not result:
-                raise ValueError(f"User '{username}' not found")
+                raise EntityNotFoundError("user", username)
             entity_id = result[0]
 
             # Update the password
@@ -225,13 +222,14 @@ class UserRepository(BaseGuacamoleRepository):
             )
 
             if self.cursor.rowcount == 0:
-                raise ValueError(f"Failed to update password for user '{username}'")
+                raise ValidationError(
+                    f"Failed to update password for user '{username}'"
+                )
 
             return True
 
         except mysql.connector.Error as e:
-            print(f"Error changing password: {e}")
-            raise
+            raise DatabaseError(f"Error changing password: {e}") from e
 
     def modify_user(self, username, param_name, param_value):
         """Modify a user parameter in the guacamole_user table.
@@ -245,17 +243,18 @@ class UserRepository(BaseGuacamoleRepository):
             bool: True if successful
         """
         try:
-            # Validate parameter name
-            if param_name not in self.USER_PARAMETERS:
-                raise ValueError(
-                    f"Invalid parameter: {param_name}. Run 'guacaman user modify' without arguments to see allowed parameters."
-                )
+            # Validate parameter name against whitelist (prevents SQL injection)
+            self._validate_param_name(param_name, self.USER_PARAMETERS)
 
             # Validate parameter value based on type
             param_type = self.USER_PARAMETERS[param_name]["type"]
             if param_type == "tinyint":
                 if param_value not in ("0", "1"):
-                    raise ValueError(f"Parameter {param_name} must be 0 or 1")
+                    raise ValidationError(
+                        f"Parameter {param_name} must be 0 or 1",
+                        field=param_name,
+                        value=str(param_value),
+                    )
                 param_value = int(param_value)
 
             # Get user entity_id
@@ -268,10 +267,10 @@ class UserRepository(BaseGuacamoleRepository):
             )
             result = self.cursor.fetchone()
             if not result:
-                raise ValueError(f"User '{username}' not found")
+                raise EntityNotFoundError("user", username)
             entity_id = result[0]
 
-            # Update the parameter
+            # Update the parameter - param_name is validated against whitelist
             query = f"""
                 UPDATE guacamole_user
                 SET {param_name} = %s
@@ -280,13 +279,15 @@ class UserRepository(BaseGuacamoleRepository):
             self.cursor.execute(query, (param_value, entity_id))
 
             if self.cursor.rowcount == 0:
-                raise ValueError(f"Failed to update user parameter: {param_name}")
+                raise ValidationError(
+                    f"Failed to update user parameter: {param_name}",
+                    field=param_name,
+                )
 
             return True
 
         except mysql.connector.Error as e:
-            print(f"Error modifying user parameter: {e}")
-            raise
+            raise DatabaseError(f"Error modifying user parameter: {e}") from e
 
     def list_users_with_usergroups(self):
         """List all users with their group memberships.
@@ -294,28 +295,31 @@ class UserRepository(BaseGuacamoleRepository):
         Returns:
             dict: Dictionary mapping usernames to list of group names
         """
-        query = """
-            SELECT DISTINCT
-                e1.name as username,
-                GROUP_CONCAT(e2.name) as groupnames
-            FROM guacamole_entity e1
-            JOIN guacamole_user u ON e1.entity_id = u.entity_id
-            LEFT JOIN guacamole_user_group_member ugm
-                ON e1.entity_id = ugm.member_entity_id
-            LEFT JOIN guacamole_user_group ug
-                ON ugm.user_group_id = ug.user_group_id
-            LEFT JOIN guacamole_entity e2
-                ON ug.entity_id = e2.entity_id
-            WHERE e1.type = 'USER'
-            GROUP BY e1.name
-        """
-        self.cursor.execute(query)
-        results = self.cursor.fetchall()
+        try:
+            query = """
+                SELECT DISTINCT
+                    e1.name as username,
+                    GROUP_CONCAT(e2.name) as groupnames
+                FROM guacamole_entity e1
+                JOIN guacamole_user u ON e1.entity_id = u.entity_id
+                LEFT JOIN guacamole_user_group_member ugm
+                    ON e1.entity_id = ugm.member_entity_id
+                LEFT JOIN guacamole_user_group ug
+                    ON ugm.user_group_id = ug.user_group_id
+                LEFT JOIN guacamole_entity e2
+                    ON ug.entity_id = e2.entity_id
+                WHERE e1.type = 'USER'
+                GROUP BY e1.name
+            """
+            self.cursor.execute(query)
+            results = self.cursor.fetchall()
 
-        users_groups = {}
-        for row in results:
-            username = row[0]
-            groupnames = row[1].split(",") if row[1] else []
-            users_groups[username] = groupnames
+            users_groups = {}
+            for row in results:
+                username = row[0]
+                groupnames = row[1].split(",") if row[1] else []
+                users_groups[username] = groupnames
 
-        return users_groups
+            return users_groups
+        except mysql.connector.Error as e:
+            raise DatabaseError(f"Error listing users with usergroups: {e}") from e

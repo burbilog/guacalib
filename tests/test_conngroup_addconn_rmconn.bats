@@ -111,7 +111,7 @@
 
     run guacaman conngroup modify --name "nonexistent_group" --addconn-by-name "$TEST_CONN"
     [ "$status" -eq 1 ]
-    [[ "$output" =~ "not found" ]]
+    [[ "$output" =~ "doesn't exist" ]]
 
     guacaman conn del --name "$TEST_CONN"
 }

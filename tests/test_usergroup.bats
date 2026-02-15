@@ -35,7 +35,7 @@ load run_tests.bats
 @test "Delete non-existent user group should fail" {
     run guacaman --config "$TEST_CONFIG" usergroup del --name nonexistentgroup
     [ "$status" -ne 0 ]
-    [[ "$output" == *"does not exist"* ]]
+    [[ "$output" == *"doesn't exist"* ]]
 }
 
 @test "Add user to usergroup" {
@@ -66,25 +66,25 @@ load run_tests.bats
 @test "Add user to non-existent group should fail" {
     run guacaman --config "$TEST_CONFIG" usergroup modify --name nonexistentgroup --adduser testuser1
     [ "$status" -ne 0 ]
-    [[ "$output" == *"does not exist"* ]]
+    [[ "$output" == *"doesn't exist"* ]]
 }
 
 @test "Remove user from non-existent group should fail" {
     run guacaman --config "$TEST_CONFIG" usergroup modify --name nonexistentgroup --rmuser testuser1
     [ "$status" -ne 0 ]
-    [[ "$output" == *"does not exist"* ]]
+    [[ "$output" == *"doesn't exist"* ]]
 }
 
 @test "Add non-existent user to group should fail" {
     run guacaman --config "$TEST_CONFIG" usergroup modify --name testgroup1 --adduser nonexistentuser
     [ "$status" -ne 0 ]
-    [[ "$output" == *"does not exist"* ]]
+    [[ "$output" == *"doesn't exist"* ]]
 }
 
 @test "Remove non-existent user from group should fail" {
     run guacaman --config "$TEST_CONFIG" usergroup modify --name testgroup1 --rmuser nonexistentuser
     [ "$status" -ne 0 ]
-    [[ "$output" == *"does not exist"* ]]
+    [[ "$output" == *"doesn't exist"* ]]
 }
 
 @test "Remove user not in group should fail" {

@@ -119,7 +119,7 @@ teardown() {
 @test "Connection modify non-existent connection should fail" {
     run guacaman --config "$TEST_CONFIG" conn modify --name nonexistentconn --set hostname=10.1.1.10
     [ "$status" -ne 0 ]
-    [[ "$output" == *"not found"* ]]
+    [[ "$output" == *"doesn't exist"* ]]
 }
 
 @test "Connection modify invalid parameter should fail" {
@@ -212,23 +212,23 @@ teardown() {
 @test "Connection modify grant permission to non-existent user should fail" {
     run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn_modify --permit nonexistentuser
     [ "$status" -ne 0 ]
-    [[ "$output" == *"not found"* ]]
+    [[ "$output" == *"doesn't exist"* ]]
 }
 
 @test "Connection modify revoke permission from non-existent user should fail" {
     run guacaman --debug --config "$TEST_CONFIG" conn modify --name testconn_modify --deny nonexistentuser
     [ "$status" -ne 0 ]
-    [[ "$output" == *"not found"* ]]
+    [[ "$output" == *"doesn't exist"* ]]
 }
 
 @test "Connection modify grant permission to non-existent connection should fail" {
     run guacaman --debug --config "$TEST_CONFIG" conn modify --name nonexistentconn --permit testuser1
     [ "$status" -ne 0 ]
-    [[ "$output" == *"not found"* ]]
+    [[ "$output" == *"doesn't exist"* ]]
 }
 
 @test "Connection modify revoke permission from non-existent connection should fail" {
     run guacaman --debug --config "$TEST_CONFIG" conn modify --name nonexistentconn --deny testuser1
     [ "$status" -ne 0 ]
-    [[ "$output" == *"not found"* ]]
+    [[ "$output" == *"doesn't exist"* ]]
 }

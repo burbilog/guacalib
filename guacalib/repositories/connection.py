@@ -5,6 +5,12 @@ import mysql.connector
 
 from .base import BaseGuacamoleRepository
 from .connection_parameters import CONNECTION_PARAMETERS
+from ..exceptions import (
+    DatabaseError,
+    EntityNotFoundError,
+    ValidationError,
+    PermissionError,
+)
 
 
 class ConnectionRepository(BaseGuacamoleRepository):
@@ -33,8 +39,7 @@ class ConnectionRepository(BaseGuacamoleRepository):
             result = self.cursor.fetchone()
             return result[0] if result else None
         except mysql.connector.Error as e:
-            print(f"Error getting connection name by ID: {e}")
-            raise
+            raise DatabaseError(f"Error getting connection name by ID: {e}") from e
 
     def resolve_connection_id(self, connection_name=None, connection_id=None):
         """Validate inputs and resolve to connection_id.
@@ -47,53 +52,24 @@ class ConnectionRepository(BaseGuacamoleRepository):
             int: Resolved connection ID
 
         Raises:
-            ValueError: If invalid inputs or connection not found
+            ValidationError: If invalid inputs
+            EntityNotFoundError: If connection not found
+            DatabaseError: If database operation fails
         """
-        # Validate exactly one parameter provided
-        if (connection_name is None) == (connection_id is None):
-            raise ValueError(
-                "Exactly one of connection_name or connection_id must be provided"
-            )
+        id_query = (
+            "SELECT connection_id FROM guacamole_connection WHERE connection_id = %s"
+        )
+        name_query = (
+            "SELECT connection_id FROM guacamole_connection WHERE connection_name = %s"
+        )
 
-        # If ID provided, validate and return it
-        if connection_id is not None:
-            if connection_id <= 0:
-                raise ValueError(
-                    "Connection ID must be a positive integer greater than 0"
-                )
-
-            # Verify the connection exists
-            try:
-                self.cursor.execute(
-                    """
-                    SELECT connection_id FROM guacamole_connection
-                    WHERE connection_id = %s
-                """,
-                    (connection_id,),
-                )
-                result = self.cursor.fetchone()
-                if not result:
-                    raise ValueError(f"Connection with ID {connection_id} not found")
-                return connection_id
-            except mysql.connector.Error as e:
-                raise ValueError(f"Database error while resolving connection ID: {e}")
-
-        # If name provided, resolve to ID
-        if connection_name is not None:
-            try:
-                self.cursor.execute(
-                    """
-                    SELECT connection_id FROM guacamole_connection
-                    WHERE connection_name = %s
-                """,
-                    (connection_name,),
-                )
-                result = self.cursor.fetchone()
-                if not result:
-                    raise ValueError(f"Connection '{connection_name}' doesn't exist")
-                return result[0]
-            except mysql.connector.Error as e:
-                raise ValueError(f"Database error while resolving connection name: {e}")
+        return self._resolve_entity_id(
+            entity_name=connection_name,
+            entity_id=connection_id,
+            entity_type="Connection",
+            id_query=id_query,
+            name_query=name_query,
+        )
 
     def connection_exists(self, connection_name=None, connection_id=None):
         """Check if a connection with the given name or ID exists.
@@ -105,16 +81,20 @@ class ConnectionRepository(BaseGuacamoleRepository):
         Returns:
             bool: True if connection exists
         """
-        try:
-            resolved_connection_id = self.resolve_connection_id(
-                connection_name, connection_id
-            )
-            return True
-        except ValueError:
-            return False
-        except mysql.connector.Error as e:
-            print(f"Error checking connection existence: {e}")
-            raise
+        id_query = (
+            "SELECT connection_id FROM guacamole_connection WHERE connection_id = %s"
+        )
+        name_query = (
+            "SELECT connection_id FROM guacamole_connection WHERE connection_name = %s"
+        )
+
+        return self._entity_exists(
+            entity_name=connection_name,
+            entity_id=connection_id,
+            entity_type="Connection",
+            id_query=id_query,
+            name_query=name_query,
+        )
 
     def create_connection(
         self,
@@ -139,13 +119,14 @@ class ConnectionRepository(BaseGuacamoleRepository):
             int: Connection ID
 
         Raises:
-            ValueError: If missing required parameters or connection exists
+            ValidationError: If missing required parameters or connection exists
+            DatabaseError: If database operation fails
         """
         if not all([connection_name, hostname, port]):
-            raise ValueError("Missing required connection parameters")
+            raise ValidationError("Missing required connection parameters")
 
         if self.connection_exists(connection_name):
-            raise ValueError(f"Connection '{connection_name}' already exists")
+            raise ValidationError(f"Connection '{connection_name}' already exists")
 
         try:
             # Create connection
@@ -188,8 +169,7 @@ class ConnectionRepository(BaseGuacamoleRepository):
             return connection_id
 
         except mysql.connector.Error as e:
-            print(f"Error creating VNC connection: {e}")
-            raise
+            raise DatabaseError(f"Error creating VNC connection: {e}") from e
 
     def delete_existing_connection(self, connection_name=None, connection_id=None):
         """Delete a connection and all its associated data.
@@ -257,8 +237,7 @@ class ConnectionRepository(BaseGuacamoleRepository):
             self.debug_print(f"Successfully deleted connection '{connection_name}'")
 
         except mysql.connector.Error as e:
-            print(f"Error deleting existing connection: {e}")
-            raise
+            raise DatabaseError(f"Error deleting existing connection: {e}") from e
 
     def modify_connection(
         self,
@@ -279,11 +258,8 @@ class ConnectionRepository(BaseGuacamoleRepository):
             bool: True if successful
         """
         try:
-            # Validate parameter name
-            if param_name not in self.CONNECTION_PARAMETERS:
-                raise ValueError(
-                    f"Invalid parameter: {param_name}. Run 'guacaman conn modify' without arguments to see allowed parameters."
-                )
+            # Validate parameter name against whitelist (prevents SQL injection)
+            self._validate_param_name(param_name, self.CONNECTION_PARAMETERS)
 
             resolved_connection_id = self.resolve_connection_id(
                 connection_name, connection_id
@@ -299,9 +275,13 @@ class ConnectionRepository(BaseGuacamoleRepository):
                     try:
                         param_value = int(param_value)
                     except ValueError:
-                        raise ValueError(f"Parameter {param_name} must be an integer")
+                        raise ValidationError(
+                            f"Parameter {param_name} must be an integer",
+                            field=param_name,
+                            value=str(param_value),
+                        )
 
-                # Update in guacamole_connection table
+                # Update in guacamole_connection table - param_name validated against whitelist
                 query = f"""
                     UPDATE guacamole_connection
                     SET {param_name} = %s
@@ -313,8 +293,10 @@ class ConnectionRepository(BaseGuacamoleRepository):
                 # Special handling for read-only parameter
                 if param_name == "read-only":
                     if param_value.lower() not in ("true", "false"):
-                        raise ValueError(
-                            "Parameter read-only must be 'true' or 'false'"
+                        raise ValidationError(
+                            "Parameter read-only must be 'true' or 'false'",
+                            field=param_name,
+                            value=str(param_value),
                         )
 
                     if param_value.lower() == "true":
@@ -356,8 +338,10 @@ class ConnectionRepository(BaseGuacamoleRepository):
                     # Special handling for color-depth
                     if param_name == "color-depth":
                         if param_value not in ("8", "16", "24", "32"):
-                            raise ValueError(
-                                "color-depth must be one of: 8, 16, 24, 32"
+                            raise ValidationError(
+                                "color-depth must be one of: 8, 16, 24, 32",
+                                field=param_name,
+                                value=str(param_value),
                             )
 
                     # Regular parameter handling
@@ -389,13 +373,15 @@ class ConnectionRepository(BaseGuacamoleRepository):
                         )
 
             if self.cursor.rowcount == 0:
-                raise ValueError(f"Failed to update connection parameter: {param_name}")
+                raise ValidationError(
+                    f"Failed to update connection parameter: {param_name}",
+                    field=param_name,
+                )
 
             return True
 
         except mysql.connector.Error as e:
-            print(f"Error modifying connection parameter: {e}")
-            raise
+            raise DatabaseError(f"Error modifying connection parameter: {e}") from e
 
     def modify_connection_parent_group(
         self, connection_name=None, connection_id=None, group_name=None
@@ -430,7 +416,7 @@ class ConnectionRepository(BaseGuacamoleRepository):
                 )
                 result = self.cursor.fetchone()
                 if not result:
-                    raise ValueError(f"Connection group '{group_name}' not found")
+                    raise EntityNotFoundError("connection group", group_name)
                 group_id = result[0]
 
             # Get current parent
@@ -444,9 +430,7 @@ class ConnectionRepository(BaseGuacamoleRepository):
             )
             result = self.cursor.fetchone()
             if not result:
-                raise ValueError(
-                    f"Connection with ID {resolved_connection_id} not found"
-                )
+                raise EntityNotFoundError("connection", str(resolved_connection_id))
             current_parent_id = result[0]
 
             # Get connection name for error messages if we only have ID
@@ -456,11 +440,11 @@ class ConnectionRepository(BaseGuacamoleRepository):
             # Check if we're trying to set to same group
             if group_id == current_parent_id:
                 if group_id is None:
-                    raise ValueError(
+                    raise ValidationError(
                         f"Connection '{connection_name}' already has no parent group"
                     )
                 else:
-                    raise ValueError(
+                    raise ValidationError(
                         f"Connection '{connection_name}' is already in group '{group_name}'"
                     )
 
@@ -475,15 +459,14 @@ class ConnectionRepository(BaseGuacamoleRepository):
             )
 
             if self.cursor.rowcount == 0:
-                raise ValueError(
+                raise ValidationError(
                     f"Failed to update parent group for connection '{connection_name}'"
                 )
 
             return True
 
         except mysql.connector.Error as e:
-            print(f"Error modifying connection parent group: {e}")
-            raise
+            raise DatabaseError(f"Error modifying connection parent group: {e}") from e
 
     def get_connection_user_permissions(self, connection_name):
         """Get list of users with direct permissions to a connection.
@@ -507,8 +490,9 @@ class ConnectionRepository(BaseGuacamoleRepository):
             )
             return [row[0] for row in self.cursor.fetchall()]
         except mysql.connector.Error as e:
-            print(f"Error getting connection user permissions: {e}")
-            raise
+            raise DatabaseError(
+                f"Error getting connection user permissions: {e}"
+            ) from e
 
     def grant_connection_permission(
         self, entity_name, entity_type, connection_id, group_path=None
@@ -564,8 +548,7 @@ class ConnectionRepository(BaseGuacamoleRepository):
             )
 
         except mysql.connector.Error as e:
-            print(f"Error granting connection permission: {e}")
-            raise
+            raise DatabaseError(f"Error granting connection permission: {e}") from e
 
     def grant_connection_permission_to_user(self, username, connection_name):
         """Grant connection permission to a specific user.
@@ -588,7 +571,7 @@ class ConnectionRepository(BaseGuacamoleRepository):
             )
             result = self.cursor.fetchone()
             if not result:
-                raise ValueError(f"Connection '{connection_name}' not found")
+                raise EntityNotFoundError("connection", connection_name)
             connection_id = result[0]
 
             # Get user entity ID
@@ -601,7 +584,7 @@ class ConnectionRepository(BaseGuacamoleRepository):
             )
             result = self.cursor.fetchone()
             if not result:
-                raise ValueError(f"User '{username}' not found")
+                raise EntityNotFoundError("user", username)
             entity_id = result[0]
 
             # Check if permission already exists
@@ -613,8 +596,11 @@ class ConnectionRepository(BaseGuacamoleRepository):
                 (entity_id, connection_id),
             )
             if self.cursor.fetchone():
-                raise ValueError(
-                    f"User '{username}' already has permission for connection '{connection_name}'"
+                raise PermissionError(
+                    f"User '{username}' already has permission for connection '{connection_name}'",
+                    username=username,
+                    resource_type="connection",
+                    resource_name=connection_name,
                 )
 
             # Grant permission
@@ -630,8 +616,7 @@ class ConnectionRepository(BaseGuacamoleRepository):
             return True
 
         except mysql.connector.Error as e:
-            print(f"Error granting connection permission: {e}")
-            raise
+            raise DatabaseError(f"Error granting connection permission: {e}") from e
 
     def revoke_connection_permission_from_user(self, username, connection_name):
         """Revoke connection permission from a specific user.
@@ -654,7 +639,7 @@ class ConnectionRepository(BaseGuacamoleRepository):
             )
             result = self.cursor.fetchone()
             if not result:
-                raise ValueError(f"Connection '{connection_name}' not found")
+                raise EntityNotFoundError("connection", connection_name)
             connection_id = result[0]
 
             # Get user entity ID
@@ -667,7 +652,7 @@ class ConnectionRepository(BaseGuacamoleRepository):
             )
             result = self.cursor.fetchone()
             if not result:
-                raise ValueError(f"User '{username}' not found")
+                raise EntityNotFoundError("user", username)
             entity_id = result[0]
 
             # Check if permission exists
@@ -679,8 +664,11 @@ class ConnectionRepository(BaseGuacamoleRepository):
                 (entity_id, connection_id),
             )
             if not self.cursor.fetchone():
-                raise ValueError(
-                    f"User '{username}' has no permission for connection '{connection_name}'"
+                raise PermissionError(
+                    f"User '{username}' has no permission for connection '{connection_name}'",
+                    username=username,
+                    resource_type="connection",
+                    resource_name=connection_name,
                 )
 
             # Revoke permission
@@ -695,8 +683,7 @@ class ConnectionRepository(BaseGuacamoleRepository):
             return True
 
         except mysql.connector.Error as e:
-            print(f"Error revoking connection permission: {e}")
-            raise
+            raise DatabaseError(f"Error revoking connection permission: {e}") from e
 
     def list_connections_with_conngroups_and_parents(self):
         """List all connections with their groups, parent group, and user permissions.
@@ -766,8 +753,7 @@ class ConnectionRepository(BaseGuacamoleRepository):
             return result
 
         except mysql.connector.Error as e:
-            print(f"Error listing connections: {e}")
-            raise
+            raise DatabaseError(f"Error listing connections: {e}") from e
 
     def get_connection_by_id(self, connection_id):
         """Get a specific connection by its ID.
@@ -837,5 +823,4 @@ class ConnectionRepository(BaseGuacamoleRepository):
             )
 
         except mysql.connector.Error as e:
-            print(f"Error getting connection by ID: {e}")
-            raise
+            raise DatabaseError(f"Error getting connection by ID: {e}") from e
