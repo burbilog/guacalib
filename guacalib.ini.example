@@ -1,6 +1,15 @@
-# place this file into $HOME/.guacalib.ini and adjust to your guacamole's mysql settings
+# place this file into $HOME/.guacaman.ini and adjust to your guacamole's mysql settings
 [mysql]
 host = localhost
 user = guacamole_user
 password = your_password
 database = guacamole_db
+
+# SSH tunnel (optional - for remote MySQL access through SSH gateway)
+# ssh_tunnel_enabled = true
+# ssh_tunnel_host = ssh-gateway.example.com
+# ssh_tunnel_port = 22
+# ssh_tunnel_user = ssh_username
+# ssh_tunnel_private_key = /home/user/.ssh/id_rsa
+# ssh_tunnel_password = ssh_password  # alternative to private_key
+# ssh_tunnel_private_key_passphrase = passphrase  # if key is encrypted

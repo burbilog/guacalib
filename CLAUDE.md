@@ -27,6 +27,11 @@ bats -t --print-output-on-failure tests/test_user.bats
 bats -t --print-output-on-failure tests/test_usergroup.bats
 bats -t --print-output-on-failure tests/test_connection.bats
 bats -t --print-output-on-failure tests/test_conngroup.bats
+
+# SSH tunnel tests (requires SSH key setup):
+# Setup: ssh-keygen -t ed25519 -f ~/.ssh/test_id_ed25519 -N ""
+#        cat ~/.ssh/test_id_ed25519.pub >> ~/.ssh/authorized_keys
+bats -t --print-output-on-failure tests/test_ssh_tunnel.bats
 ```
 
 ### Code Formatting
@@ -104,7 +109,8 @@ guacalib/
 - Abstract base class for all repositories
 - Handles database connection management
 - Supports external connection sharing (for facade pattern)
-- Provides `debug_print()`, `read_config()`, `validate_positive_id()` utilities
+- Supports SSH tunnel for remote MySQL access
+- Provides `debug_print()`, `read_config()`, `read_ssh_tunnel_config()`, `validate_positive_id()` utilities
 
 #### Repository Classes
 Each repository handles operations for its entity type:
@@ -134,8 +140,9 @@ The tool manages four main entity types:
 
 - **Repository Pattern**: Each entity has its own repository class
 - **Facade Pattern**: GuacamoleDB provides a unified interface
-- **Context Manager**: Database connections with automatic cleanup
+- **Context Manager**: Database connections with automatic cleanup (includes SSH tunnel)
 - **Shared Connection**: All repositories use a single DB connection
+- **SSH Tunnel**: Optional SSH tunnel managed at facade level for remote DB access
 
 ## Configuration
 
@@ -150,6 +157,30 @@ database = guacamole_db
 ```
 
 File permissions must be 0600 (owner read/write only) for security.
+
+### SSH Tunnel Configuration (Optional)
+For remote MySQL access through an SSH gateway, add an `[ssh_tunnel]` section:
+```ini
+[ssh_tunnel]
+enabled = true
+host = ssh-gateway.example.com
+port = 22
+user = ssh_username
+private_key = /home/user/.ssh/id_rsa
+# password = ssh_password  # alternative to private_key
+# private_key_passphrase = passphrase  # if key is encrypted
+```
+
+**Environment Variables** (have priority over config file):
+- `GUACALIB_SSH_TUNNEL_ENABLED` - set to "true" to enable
+- `GUACALIB_SSH_TUNNEL_HOST` - SSH gateway hostname
+- `GUACALIB_SSH_TUNNEL_PORT` - SSH port (default: 22)
+- `GUACALIB_SSH_TUNNEL_USER` - SSH username
+- `GUACALIB_SSH_TUNNEL_PASSWORD` - SSH password (if not using key)
+- `GUACALIB_SSH_TUNNEL_PRIVATE_KEY` - path to SSH private key
+- `GUACALIB_SSH_TUNNEL_PRIVATE_KEY_PASSPHRASE` - key passphrase (if encrypted)
+
+**Note**: Either `password` or `private_key` is required for SSH authentication.
 
 ## Development Guidelines
 

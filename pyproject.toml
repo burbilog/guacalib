@@ -6,7 +6,9 @@ build-backend = "setuptools.build_meta"
 dynamic = ["version"]
 dependencies = [
     "mysql-connector-python>=8.0.0",
-    "configparser>=5.0.0"
+    "configparser>=5.0.0",
+    "sshtunnel>=0.4.0",
+    "paramiko<4",
 ]
 name = "guacalib"
 description = "Guacamole management library and CLI"

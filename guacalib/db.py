@@ -6,12 +6,23 @@ This class provides backward-compatible API by delegating to specialized reposit
 For new code, consider using the repository classes directly.
 """
 
+import mysql.connector
+
 from .repositories.user import UserRepository
 from .repositories.usergroup import UserGroupRepository
 from .repositories.connection import ConnectionRepository
 from .repositories.connection_group import ConnectionGroupRepository
 from .db_connection_parameters import CONNECTION_PARAMETERS
 from .db_user_parameters import USER_PARAMETERS
+
+# SSH tunnel support
+try:
+    from sshtunnel import SSHTunnelForwarder
+
+    SSH_TUNNEL_AVAILABLE = True
+except ImportError:
+    SSH_TUNNEL_AVAILABLE = False
+    SSHTunnelForwarder = None
 
 
 class GuacamoleDB:
@@ -39,29 +50,99 @@ class GuacamoleDB:
             debug: Enable debug output
         """
         from .repositories.base import BaseGuacamoleRepository
-        import mysql.connector
 
         self.debug = debug
         self._config_file = config_file
+        self.ssh_tunnel = None
+
+        # Read configurations
+        self.db_config = BaseGuacamoleRepository.read_config(config_file)
+        self.ssh_tunnel_config = BaseGuacamoleRepository.read_ssh_tunnel_config(
+            config_file
+        )
+
+        # Setup SSH tunnel if configured
+        db_connect_config = self.db_config.copy()
+        if self.ssh_tunnel_config and self.ssh_tunnel_config.get("enabled"):
+            db_connect_config = self._setup_ssh_tunnel(db_connect_config)
 
         # Create single shared connection
-        self.db_config = BaseGuacamoleRepository.read_config(config_file)
         self.conn = mysql.connector.connect(
-            **self.db_config, charset="utf8mb4", collation="utf8mb4_general_ci"
+            **db_connect_config, charset="utf8mb4", collation="utf8mb4_general_ci"
         )
         self.cursor = self.conn.cursor()
 
         # Initialize repositories with shared connection
-        self.users = UserRepository(config_file, debug, self.conn, self.cursor)
+        self.users = UserRepository(
+            config_file, debug, self.conn, self.cursor, self.ssh_tunnel
+        )
         self.usergroups = UserGroupRepository(
-            config_file, debug, self.conn, self.cursor
+            config_file, debug, self.conn, self.cursor, self.ssh_tunnel
         )
         self.connections = ConnectionRepository(
-            config_file, debug, self.conn, self.cursor
+            config_file, debug, self.conn, self.cursor, self.ssh_tunnel
         )
         self.connection_groups = ConnectionGroupRepository(
-            config_file, debug, self.conn, self.cursor
+            config_file, debug, self.conn, self.cursor, self.ssh_tunnel
         )
+
+    def _setup_ssh_tunnel(self, db_config):
+        """Setup SSH tunnel and return modified db_config.
+
+        Args:
+            db_config: Original database configuration
+
+        Returns:
+            Modified db_config with tunnel settings
+        """
+        if not SSH_TUNNEL_AVAILABLE:
+            print("Error: sshtunnel package is required for SSH tunnel support")
+            print("Install it with: pip install sshtunnel")
+            import sys
+
+            sys.exit(1)
+
+        db_config = db_config.copy()
+
+        # Build SSH tunnel configuration
+        tunnel_config = {
+            "ssh_address_or_host": (
+                self.ssh_tunnel_config["host"],
+                self.ssh_tunnel_config["port"],
+            ),
+            "ssh_username": self.ssh_tunnel_config["user"],
+            "remote_bind_address": (db_config["host"], 3306),
+        }
+
+        # Add authentication method
+        if self.ssh_tunnel_config.get("private_key"):
+            tunnel_config["ssh_pkey"] = self.ssh_tunnel_config["private_key"]
+            if self.ssh_tunnel_config.get("private_key_passphrase"):
+                tunnel_config["ssh_pkey_password"] = self.ssh_tunnel_config[
+                    "private_key_passphrase"
+                ]
+        elif self.ssh_tunnel_config.get("password"):
+            tunnel_config["ssh_password"] = self.ssh_tunnel_config["password"]
+
+        try:
+            self.debug_print(f"Creating SSH tunnel to {self.ssh_tunnel_config['host']}")
+            self.ssh_tunnel = SSHTunnelForwarder(**tunnel_config)
+            self.ssh_tunnel.start()
+
+            # Update MySQL config to use tunnel
+            db_config["host"] = "127.0.0.1"
+            db_config["port"] = self.ssh_tunnel.local_bind_port
+
+            self.debug_print(
+                f"SSH tunnel established on port {self.ssh_tunnel.local_bind_port}"
+            )
+        except Exception as e:
+            print(f"Error creating SSH tunnel: {e}")
+            import sys
+
+            sys.exit(1)
+
+        return db_config
 
     def debug_print(self, *args, **kwargs):
         """Print debug messages if debug mode is enabled."""
@@ -74,7 +155,7 @@ class GuacamoleDB:
 
     def __exit__(self, exc_type, exc_value, traceback):
         """Exit context manager with proper cleanup."""
-        # Cleanup is handled by the repositories
+        # Cleanup database connection
         if self.cursor:
             self.cursor.close()
         if self.conn:
@@ -85,6 +166,14 @@ class GuacamoleDB:
                     self.conn.rollback()
             finally:
                 self.conn.close()
+
+        # Close SSH tunnel if it was created
+        if self.ssh_tunnel:
+            try:
+                self.ssh_tunnel.stop()
+                self.debug_print("SSH tunnel closed")
+            except Exception:
+                pass
 
     # ==================== User methods ====================
 
@@ -366,3 +455,10 @@ class GuacamoleDB:
         from .repositories.base import BaseGuacamoleRepository
 
         return BaseGuacamoleRepository.validate_positive_id(id_value, entity_type)
+
+    @staticmethod
+    def read_ssh_tunnel_config(config_file):
+        """Read SSH tunnel configuration from file or environment variables."""
+        from .repositories.base import BaseGuacamoleRepository
+
+        return BaseGuacamoleRepository.read_ssh_tunnel_config(config_file)
