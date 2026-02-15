@@ -31,7 +31,7 @@
 
   **Решение:** Код вынесен в отдельный модуль `guacalib/ssh_tunnel.py` с функциями `create_ssh_tunnel()` и `close_ssh_tunnel()`. Оба файла теперь используют этот общий модуль.
 
-- [ ] **2. Явные commit() в бизнес-логике**
+- [x] **2. Явные commit() в бизнес-логике** (ИСПРАВЛЕНО)
 
   **Файлы:** `guacalib/cli/handle_conngroup.py:169`, `guacalib/repositories/connection_group.py:327-328`
 
@@ -41,7 +41,12 @@
 
   **Проблема:** Нарушает принцип единой транзакции. Context manager должен управлять commit/rollback.
 
-  **Рекомендация:** Убрать явные `commit()` из методов репозиториев, полагаться на `__exit__` context manager.
+  **Решение:**
+  1. Убраны явные `commit()` из `delete_connection_group()` в репозитории и из CLI handlers
+  2. Исправлены context managers (`GuacamoleDB.__exit__()` и `BaseGuacamoleRepository.__exit__()`) для корректной обработки `sys.exit()`:
+     - `sys.exit(0)` → commit (нормальный выход)
+     - `sys.exit(1)` → rollback (выход с ошибкой)
+     - Исключения → rollback
 
 ---
 

@@ -323,9 +323,6 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
                 (resolved_group_id,),
             )
 
-            # Commit the transaction
-            self.debug_print("Committing transaction...")
-            self.conn.commit()
             self.debug_print(f"Successfully deleted connection group '{group_name}'")
             return True
 

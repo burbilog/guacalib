@@ -16,13 +16,9 @@ def handle_conngroup_command(args: Namespace, guacdb: GuacamoleDB) -> None:
                 sys.exit(1)
 
             guacdb.create_connection_group(args.name, args.parent)
-            # Explicitly commit the transaction
-            guacdb.conn.commit()
             guacdb.debug_print(f"Successfully created connection group: {args.name}")
             sys.exit(0)
         except Exception as e:
-            # Rollback on error
-            guacdb.conn.rollback()
             print(f"Error creating connection group: {e}")
             sys.exit(1)
 
@@ -166,7 +162,6 @@ def handle_conngroup_command(args: Namespace, guacdb: GuacamoleDB) -> None:
                     guacdb.modify_connection_group_parent(
                         group_name=args.name, new_parent_name=args.parent
                     )
-                guacdb.conn.commit()  # Explicitly commit the transaction
                 print(
                     f"Successfully set parent group for '{group_name}' to '{args.parent}'"
                 )
@@ -311,39 +306,13 @@ def handle_conngroup_command(args: Namespace, guacdb: GuacamoleDB) -> None:
                 )
                 sys.exit(1)
 
-            # Commit all operations atomically
-            if connection_modified or permission_modified:
-                try:
-                    guacdb.debug_print("Committing all transaction operations...")
-                    guacdb.conn.commit()
-                    guacdb.debug_print(
-                        f"Successfully committed transaction for connection group '{group_name}' operations"
-                    )
-                except Exception as commit_error:
-                    error_msg = f"Failed to commit transaction: {commit_error}"
-                    guacdb.debug_print(error_msg)
-                    print(
-                        "Error: Failed to save changes. No modifications were applied."
-                    )
-                    sys.exit(1)
-
             sys.exit(0)
         except GuacalibError as e:
             print(f"Error: {e}")
-            if guacdb.conn:
-                try:
-                    guacdb.conn.rollback()
-                except Exception as rollback_error:
-                    guacdb.debug_print(f"Rollback failed: {rollback_error}")
             sys.exit(1)
         except Exception as e:
             error_msg = f"Unexpected error modifying connection group: {e}"
             guacdb.debug_print(error_msg)
-            if guacdb.conn:
-                try:
-                    guacdb.conn.rollback()
-                except Exception as rollback_error:
-                    guacdb.debug_print(f"Rollback failed: {rollback_error}")
             print(
                 f"Error: An unexpected error occurred. Please check the logs and try again."
             )

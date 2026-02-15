@@ -63,13 +63,23 @@ class BaseGuacamoleRepository:
 
     def __exit__(self, exc_type, exc_value, traceback):
         """Exit context manager with proper cleanup."""
+        # Determine if we should commit or rollback
+        # Commit on: no exception, or SystemExit with code 0
+        # Rollback on: any other exception, or SystemExit with non-zero code
+        should_commit = False
+        if exc_type is None:
+            should_commit = True
+        elif exc_type is SystemExit:
+            # sys.exit(0) should commit, sys.exit(1) should rollback
+            should_commit = exc_value is not None and exc_value.code == 0
+
         # Only cleanup if we own the connection
         if not self._external_conn:
             if self.cursor:
                 self.cursor.close()
             if self.conn:
                 try:
-                    if exc_type is None:
+                    if should_commit:
                         self.conn.commit()
                     else:
                         self.conn.rollback()
