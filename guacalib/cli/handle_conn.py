@@ -97,14 +97,14 @@ def handle_conn_new(args: Namespace, guacdb: GuacamoleDB) -> None:
                         group_path=None,  # No path nesting
                     )
                     guacdb.debug_print(f"Granted access to group '{group}'")
-                except Exception as e:
+                except GuacalibError as e:
                     print(f"[-] Failed to grant access to group '{group}': {e}")
                     success = False
 
             if not success:
                 raise RuntimeError("Failed to grant access to one or more groups")
 
-    except Exception as e:
+    except GuacalibError as e:
         print(f"Error creating connection: {e}")
         sys.exit(1)
 
@@ -119,9 +119,6 @@ def handle_conn_delete(args: Namespace, guacdb: GuacamoleDB) -> None:
             guacdb.delete_existing_connection(connection_name=args.name)
     except GuacalibError as e:
         print(f"Error: {e}")
-        sys.exit(1)
-    except Exception as e:
-        print(f"Error deleting connection: {e}")
         sys.exit(1)
 
 
@@ -141,9 +138,6 @@ def handle_conn_exists(args: Namespace, guacdb: GuacamoleDB) -> NoReturn:
                 sys.exit(1)
     except GuacalibError as e:
         print(f"Error: {e}")
-        sys.exit(1)
-    except Exception as e:
-        print(f"Error checking connection existence: {e}")
         sys.exit(1)
 
 
@@ -215,23 +209,19 @@ def handle_conn_modify(args: Namespace, guacdb: GuacamoleDB) -> None:
 
         # Handle parent group modification using resolver
         if args.parent is not None:
-            try:
-                # Convert empty string to None to unset parent group
-                parent_group = args.parent if args.parent != "" else None
-                if hasattr(args, "id") and args.id is not None:
-                    guacdb.modify_connection_parent_group(
-                        connection_id=args.id, group_name=parent_group
-                    )
-                else:
-                    guacdb.modify_connection_parent_group(
-                        connection_name=args.name, group_name=parent_group
-                    )
-                print(
-                    f"Successfully set parent group to '{args.parent}' for connection '{connection_name}'"
+            # Convert empty string to None to unset parent group
+            parent_group = args.parent if args.parent != "" else None
+            if hasattr(args, "id") and args.id is not None:
+                guacdb.modify_connection_parent_group(
+                    connection_id=args.id, group_name=parent_group
                 )
-            except Exception as e:
-                print(f"Error setting parent group: {e}")
-                sys.exit(1)
+            else:
+                guacdb.modify_connection_parent_group(
+                    connection_name=args.name, group_name=parent_group
+                )
+            print(
+                f"Successfully set parent group to '{args.parent}' for connection '{connection_name}'"
+            )
 
         # Process each --set argument (if any) using resolver
         for param_value in args.set or []:
@@ -264,7 +254,4 @@ def handle_conn_modify(args: Namespace, guacdb: GuacamoleDB) -> None:
 
     except GuacalibError as e:
         print(f"Error: {e}")
-        sys.exit(1)
-    except Exception as e:
-        print(f"Error modifying connection: {e}")
         sys.exit(1)

@@ -39,7 +39,7 @@ def handle_user_new(args: Namespace, guacdb: GuacamoleDB) -> None:
             try:
                 guacdb.add_user_to_usergroup(args.name, group)
                 guacdb.debug_print(f"Added user '{args.name}' to usergroup '{group}'")
-            except Exception as e:
+            except GuacalibError as e:
                 print(f"[-] Failed to add to group '{group}': {e}")
                 success = False
 
@@ -67,9 +67,6 @@ def handle_user_delete(args: Namespace, guacdb: GuacamoleDB) -> None:
         guacdb.debug_print(f"Successfully deleted user '{args.name}'")
     except GuacalibError as e:
         print(f"Error: {e}")
-        sys.exit(1)
-    except Exception as e:
-        print(f"Error deleting user: {e}")
         sys.exit(1)
 
 
@@ -134,7 +131,4 @@ def handle_user_modify(args: Namespace, guacdb: GuacamoleDB) -> None:
 
     except GuacalibError as e:
         print(f"Error: {e}")
-        sys.exit(1)
-    except Exception as e:
-        print(f"Error modifying user: {e}")
         sys.exit(1)

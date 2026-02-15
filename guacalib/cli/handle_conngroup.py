@@ -18,7 +18,7 @@ def handle_conngroup_command(args: Namespace, guacdb: GuacamoleDB) -> None:
             guacdb.create_connection_group(args.name, args.parent)
             guacdb.debug_print(f"Successfully created connection group: {args.name}")
             sys.exit(0)
-        except Exception as e:
+        except GuacalibError as e:
             print(f"Error creating connection group: {e}")
             sys.exit(1)
 
@@ -73,9 +73,6 @@ def handle_conngroup_command(args: Namespace, guacdb: GuacamoleDB) -> None:
         except GuacalibError as e:
             print(f"Error: {e}")
             sys.exit(1)
-        except Exception as e:
-            print(f"Error checking connection group existence: {e}")
-            sys.exit(1)
 
     elif args.conngroup_command == "del":
         try:
@@ -87,9 +84,6 @@ def handle_conngroup_command(args: Namespace, guacdb: GuacamoleDB) -> None:
             sys.exit(0)
         except GuacalibError as e:
             print(f"Error: {e}")
-            sys.exit(1)
-        except Exception as e:
-            print(f"Error deleting connection group: {e}")
             sys.exit(1)
 
     elif args.conngroup_command == "modify":
@@ -309,11 +303,4 @@ def handle_conngroup_command(args: Namespace, guacdb: GuacamoleDB) -> None:
             sys.exit(0)
         except GuacalibError as e:
             print(f"Error: {e}")
-            sys.exit(1)
-        except Exception as e:
-            error_msg = f"Unexpected error modifying connection group: {e}"
-            guacdb.debug_print(error_msg)
-            print(
-                f"Error: An unexpected error occurred. Please check the logs and try again."
-            )
             sys.exit(1)

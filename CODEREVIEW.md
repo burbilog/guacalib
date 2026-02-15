@@ -83,7 +83,7 @@
   - `connection.py`: 8 замен
   - `connection_group.py`: 5 замен
 
-- [ ] **5. Непоследовательная обработка ошибок в CLI**
+- [x] **5. Непоследовательная обработка ошибок в CLI** (ИСПРАВЛЕНО)
 
   **Файл:** `guacalib/cli/handle_conngroup.py:10-27`
 
@@ -92,7 +92,13 @@
       guacdb.conn.rollback()  # Прямой доступ к conn
   ```
 
-  **Рекомендация:** Ловить только `GuacalibError` и позволить context manager обрабатывать rollback.
+  **Решение:** Удалены все лишние `except Exception` блоки из CLI handlers. Теперь каждый handler ловит только `GuacalibError`, а неожиданные ошибки пробрасываются на верхний уровень в `main.py` где есть общий обработчик.
+
+  Изменены файлы:
+  - `handle_conngroup.py`: 4 блока удалено
+  - `handle_user.py`: 2 блока удалено, 1 заменён на `GuacalibError`
+  - `handle_conn.py`: 4 блока удалено, 2 заменены на `GuacalibError`
+  - `handle_dump.py`: 1 блок удалено
 
 - [ ] **6. Глубокая вложенность SQL-запросов при удалении**
 
