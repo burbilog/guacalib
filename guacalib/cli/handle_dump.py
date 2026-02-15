@@ -1,29 +1,62 @@
-def handle_dump_command(guacdb):
-    """Handle dump command - fetch and format all Guacamole data in YAML format"""
-    # Print user groups using existing list functionality
-    from guacalib.cli.handle_usergroup import handle_usergroup_command
-    from guacalib.cli.handle_conngroup import handle_conngroup_command
+from guacalib import GuacamoleDB
 
-    # Create dummy args object for list commands
-    class Args:
-        def __init__(self):
-            self.usergroup_command = "list"
-            self.conngroup_command = "list"
 
-    args = Args()
+def handle_dump_command(guacdb: GuacamoleDB) -> None:
+    """Handle dump command - fetch and format all Guacamole data in YAML format.
 
-    # Print users using existing list handler
-    from guacalib.cli.handle_user import handle_user_list
+    This function directly uses the API instead of CLI handlers to avoid
+    unnecessary argument parsing overhead.
+    """
 
-    handle_user_list(args, guacdb)
+    # Print users with their groups
+    users_and_groups = guacdb.list_users_with_usergroups()
+    print("users:")
+    for user, groups in users_and_groups.items():
+        print(f"  {user}:")
+        print("    usergroups:")
+        for group in groups:
+            print(f"      - {group}")
 
-    # Print user groups
-    handle_usergroup_command(args, guacdb)
+    # Print user groups with users and connections
+    groups_data = guacdb.list_usergroups_with_users_and_connections()
+    print("usergroups:")
+    for group_name, data in groups_data.items():
+        print(f"  {group_name}:")
+        print("    users:")
+        for user in data.get("users", []):
+            print(f"      - {user}")
+        print("    connections:")
+        for conn in data.get("connections", []):
+            print(f"      - {conn}")
 
-    # Print connections using conn list handler
-    from guacalib.cli.handle_conn import handle_conn_list
-
-    handle_conn_list(args, guacdb)
+    # Print connections with groups, parent, and permissions
+    connections = guacdb.list_connections_with_conngroups_and_parents()
+    print("connections:")
+    for conn in connections:
+        conn_id, name, protocol, host, port, groups, parent, user_permissions = conn
+        print(f"  {name}:")
+        print(f"    id: {conn_id}")
+        print(f"    type: {protocol}")
+        print(f"    hostname: {host}")
+        print(f"    port: {port}")
+        if parent:
+            print(f"    parent: {parent}")
+        print("    groups:")
+        for group in groups.split(",") if groups else []:
+            if group:
+                print(f"      - {group}")
+        if user_permissions:
+            print("    permissions:")
+            for user in user_permissions:
+                print(f"      - {user}")
 
     # Print connection groups
-    handle_conngroup_command(args, guacdb)
+    conngroups = guacdb.list_connection_groups()
+    print("conngroups:")
+    for group_name, data in conngroups.items():
+        print(f"  {group_name}:")
+        print(f"    id: {data['id']}")
+        print(f"    parent: {data['parent']}")
+        print("    connections:")
+        for conn in data["connections"]:
+            print(f"      - {conn}")

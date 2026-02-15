@@ -1,7 +1,11 @@
 import sys
+from argparse import Namespace
+from typing import NoReturn
+
+from guacalib import GuacamoleDB
 
 
-def is_terminal():
+def is_terminal() -> bool:
     """Check if stdout is a terminal (not piped)"""
     return sys.stdout.isatty()
 
@@ -15,7 +19,7 @@ else:
     RESET = ""
 
 
-def handle_conn_command(args, guacdb):
+def handle_conn_command(args: Namespace, guacdb: GuacamoleDB) -> None:
     command_handlers = {
         "new": handle_conn_new,
         "list": handle_conn_list,
@@ -32,26 +36,7 @@ def handle_conn_command(args, guacdb):
         sys.exit(1)
 
 
-"""
-def handle_conn_list(args, guacdb):
-    # Get connections with both groups and parent group info
-    connections = guacdb.list_connections_with_conngroups_and_parents()
-    print("connections:")
-    for conn in connections:
-        name, protocol, host, port, groups, parent = conn
-        print(f"  {name}:")
-        print(f"    type: {protocol}")
-        print(f"    hostname: {host}")
-        print(f"    port: {port}")
-        if parent:
-            print(f"    parent: {parent}")
-        print("    groups:")
-        for group in (groups.split(',') if groups else []):
-            print(f"      - {group}")
-"""
-
-
-def handle_conn_list(args, guacdb):
+def handle_conn_list(args: Namespace, guacdb: GuacamoleDB) -> None:
     # Check if specific ID is requested
     if hasattr(args, "id") and args.id:
         # Get specific connection by ID
@@ -88,7 +73,7 @@ def handle_conn_list(args, guacdb):
                 print(f"      - {user}")
 
 
-def handle_conn_new(args, guacdb):
+def handle_conn_new(args: Namespace, guacdb: GuacamoleDB) -> None:
     try:
         connection_id = None
 
@@ -122,7 +107,7 @@ def handle_conn_new(args, guacdb):
         sys.exit(1)
 
 
-def handle_conn_delete(args, guacdb):
+def handle_conn_delete(args: Namespace, guacdb: GuacamoleDB) -> None:
     # Validate exactly one selector provided
     from .main import validate_selector
 
@@ -143,7 +128,7 @@ def handle_conn_delete(args, guacdb):
         sys.exit(1)
 
 
-def handle_conn_exists(args, guacdb):
+def handle_conn_exists(args: Namespace, guacdb: GuacamoleDB) -> NoReturn:
     # Validate exactly one selector provided
     from .main import validate_selector
 
@@ -170,7 +155,7 @@ def handle_conn_exists(args, guacdb):
         sys.exit(1)
 
 
-def handle_conn_modify(args, guacdb):
+def handle_conn_modify(args: Namespace, guacdb: GuacamoleDB) -> None:
     """Handle the connection modify command"""
     # Check if no modification options provided - show help
     if not args.set and args.parent is None and not args.permit and not args.deny:

@@ -30,7 +30,6 @@ guacaman = "guacalib.cli.main:main"
 dev = [
     "black",
     "flake8",
-    "pytest",
 ]
 
 [tool.setuptools.dynamic]

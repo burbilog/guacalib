@@ -3,6 +3,9 @@
 import argparse
 import os
 import sys
+from argparse import Namespace
+from typing import NoReturn
+
 from guacalib import GuacamoleDB
 from guacalib.cli.handle_usergroup import handle_usergroup_command
 from guacalib.cli.handle_dump import handle_dump_command
@@ -11,7 +14,7 @@ from guacalib.cli.handle_conn import handle_conn_command
 from guacalib.cli.handle_conngroup import handle_conngroup_command
 
 
-def positive_int(value):
+def positive_int(value: str) -> int:
     """Convert to integer and validate that it is positive"""
     ivalue = int(value)
     if ivalue <= 0:
@@ -19,7 +22,7 @@ def positive_int(value):
     return ivalue
 
 
-def validate_selector(args, entity_type="connection"):
+def validate_selector(args: Namespace, entity_type: str = "connection") -> None:
     """Validate exactly one of name or id is provided and validate ID format"""
     has_name = hasattr(args, "name") and args.name is not None
     has_id = hasattr(args, "id") and args.id is not None
@@ -38,7 +41,7 @@ def validate_selector(args, entity_type="connection"):
         sys.exit(1)
 
 
-def setup_user_subcommands(subparsers):
+def setup_user_subcommands(subparsers: argparse._SubParsersAction) -> None:
     user_parser = subparsers.add_parser("user", help="Manage Guacamole users")
     user_subparsers = user_parser.add_subparsers(
         dest="user_command", help="User commands"
@@ -72,7 +75,7 @@ def setup_user_subcommands(subparsers):
     modify_user.add_argument("--password", help="New password for the user")
 
 
-def setup_usergroup_subcommands(subparsers):
+def setup_usergroup_subcommands(subparsers: argparse._SubParsersAction) -> None:
     group_parser = subparsers.add_parser(
         "usergroup", help="Manage Guacamole usergroups"
     )
@@ -117,7 +120,7 @@ def setup_usergroup_subcommands(subparsers):
     modify_group.add_argument("--rmuser", help="Username to remove from usergroup")
 
 
-def setup_conngroup_subcommands(subparsers):
+def setup_conngroup_subcommands(subparsers: argparse._SubParsersAction) -> None:
     conngroup_parser = subparsers.add_parser(
         "conngroup", help="Manage connection groups"
     )
@@ -216,17 +219,17 @@ def setup_conngroup_subcommands(subparsers):
     )
 
 
-def setup_dump_subcommand(subparsers):
+def setup_dump_subcommand(subparsers: argparse._SubParsersAction) -> None:
     subparsers.add_parser(
         "dump", help="Dump all groups, users and connections in YAML format"
     )
 
 
-def setup_version_subcommand(subparsers):
+def setup_version_subcommand(subparsers: argparse._SubParsersAction) -> None:
     subparsers.add_parser("version", help="Show version information")
 
 
-def setup_conn_subcommands(subparsers):
+def setup_conn_subcommands(subparsers: argparse._SubParsersAction) -> None:
     conn_parser = subparsers.add_parser("conn", help="Manage connections")
     conn_subparsers = conn_parser.add_subparsers(
         dest="conn_command", help="Connection commands"
@@ -297,7 +300,7 @@ def setup_conn_subcommands(subparsers):
     )
 
 
-def main():
+def main() -> NoReturn:
     parser = argparse.ArgumentParser(
         description="Manage Guacamole users, groups, and connections"
     )

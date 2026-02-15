@@ -1,8 +1,12 @@
 import sys
 import mysql.connector
+from argparse import Namespace
+from typing import NoReturn
+
+from guacalib import GuacamoleDB
 
 
-def handle_conngroup_command(args, guacdb):
+def handle_conngroup_command(args: Namespace, guacdb: GuacamoleDB) -> None:
     """Handle all conngroup subcommands"""
     if args.conngroup_command == "new":
         try:

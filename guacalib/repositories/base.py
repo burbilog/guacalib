@@ -3,7 +3,6 @@
 
 import mysql.connector
 import configparser
-import sys
 import os
 from typing import Optional, Dict, Any
 
@@ -25,7 +24,7 @@ class BaseGuacamoleRepository:
 
     def __init__(
         self,
-        config_file="db_config.ini",
+        config_file="~/.guacaman.ini",
         debug=False,
         conn=None,
         cursor=None,
@@ -97,34 +96,34 @@ class BaseGuacamoleRepository:
 
         Returns:
             dict: Database configuration dictionary
+
+        Raises:
+            FileNotFoundError: If config file doesn't exist
+            ValueError: If config file is invalid
         """
         config = configparser.ConfigParser()
         if not os.path.exists(config_file):
-            print(f"Error: Config file not found: {config_file}")
-            print(
-                "Please create a config file at ~/.guacaman.ini with the following format:"
+            raise FileNotFoundError(
+                f"Config file not found. Please create a config file at {config_file} "
+                "with the following format:\n"
+                "[mysql]\n"
+                "host = your_mysql_host\n"
+                "user = your_mysql_user\n"
+                "password = your_mysql_password\n"
+                "database = your_mysql_database"
             )
-            print("[mysql]")
-            print("host = your_mysql_host")
-            print("user = your_mysql_user")
-            print("password = your_mysql_password")
-            print("database = your_mysql_database")
-            sys.exit(1)
 
         try:
             config.read(config_file)
             if "mysql" not in config:
-                print(f"Error: Missing [mysql] section in config file: {config_file}")
-                sys.exit(1)
+                raise ValueError(f"Missing [mysql] section in config file")
 
             required_keys = ["host", "user", "password", "database"]
             missing_keys = [key for key in required_keys if key not in config["mysql"]]
             if missing_keys:
-                print(
-                    f"Error: Missing required keys in [mysql] section: {', '.join(missing_keys)}"
+                raise ValueError(
+                    f"Missing required keys in [mysql] section: {', '.join(missing_keys)}"
                 )
-                print(f"Config file: {config_file}")
-                sys.exit(1)
 
             return {
                 "host": config["mysql"]["host"],
@@ -132,9 +131,10 @@ class BaseGuacamoleRepository:
                 "password": config["mysql"]["password"],
                 "database": config["mysql"]["database"],
             }
+        except (FileNotFoundError, ValueError):
+            raise
         except Exception as e:
-            print(f"Error reading config file {config_file}: {str(e)}")
-            sys.exit(1)
+            raise ValueError(f"Error reading config file: {str(e)}") from e
 
     @staticmethod
     def read_ssh_tunnel_config(config_file: str) -> Optional[Dict[str, Any]]:
@@ -147,6 +147,10 @@ class BaseGuacamoleRepository:
 
         Returns:
             dict or None: SSH tunnel configuration dictionary, or None if not enabled
+
+        Raises:
+            ValueError: If SSH tunnel configuration is invalid
+            ImportError: If sshtunnel package is required but not installed
         """
         # Check environment variables first
         enabled_env = os.environ.get("GUACALIB_SSH_TUNNEL_ENABLED", "").lower()
@@ -166,15 +170,13 @@ class BaseGuacamoleRepository:
 
             # Validate required fields
             if not ssh_config["host"]:
-                print(
-                    "Error: GUACALIB_SSH_TUNNEL_HOST is required when SSH tunnel is enabled"
+                raise ValueError(
+                    "GUACALIB_SSH_TUNNEL_HOST is required when SSH tunnel is enabled"
                 )
-                sys.exit(1)
             if not ssh_config["user"]:
-                print(
-                    "Error: GUACALIB_SSH_TUNNEL_USER is required when SSH tunnel is enabled"
+                raise ValueError(
+                    "GUACALIB_SSH_TUNNEL_USER is required when SSH tunnel is enabled"
                 )
-                sys.exit(1)
 
             return ssh_config
 
@@ -196,9 +198,10 @@ class BaseGuacamoleRepository:
                 return None
 
             if not SSH_TUNNEL_AVAILABLE:
-                print("Error: sshtunnel package is required for SSH tunnel support")
-                print("Install it with: pip install sshtunnel")
-                sys.exit(1)
+                raise ImportError(
+                    "sshtunnel package is required for SSH tunnel support. "
+                    "Install it with: pip install sshtunnel"
+                )
 
             ssh_config = {
                 "enabled": True,
@@ -217,20 +220,24 @@ class BaseGuacamoleRepository:
 
             # Validate required fields
             if not ssh_config["host"]:
-                print("Error: SSH tunnel host is required when SSH tunnel is enabled")
-                sys.exit(1)
+                raise ValueError(
+                    "SSH tunnel host is required when SSH tunnel is enabled"
+                )
             if not ssh_config["user"]:
-                print("Error: SSH tunnel user is required when SSH tunnel is enabled")
-                sys.exit(1)
+                raise ValueError(
+                    "SSH tunnel user is required when SSH tunnel is enabled"
+                )
             if not ssh_config["password"] and not ssh_config["private_key"]:
-                print("Error: Either SSH tunnel password or private_key is required")
-                sys.exit(1)
+                raise ValueError(
+                    "Either SSH tunnel password or private_key is required"
+                )
 
             return ssh_config
 
+        except (ValueError, ImportError):
+            raise
         except Exception as e:
-            print(f"Error reading SSH tunnel config: {str(e)}")
-            sys.exit(1)
+            raise ValueError(f"Error reading SSH tunnel config: {str(e)}") from e
 
     def connect_db(self):
         """Establish database connection.
@@ -239,6 +246,11 @@ class BaseGuacamoleRepository:
 
         Returns:
             mysql.connector.connection: Database connection object
+
+        Raises:
+            ImportError: If sshtunnel package is required but not installed
+            RuntimeError: If SSH tunnel creation fails
+            mysql.connector.Error: If database connection fails
         """
         db_config = self.db_config.copy()
 
@@ -246,9 +258,10 @@ class BaseGuacamoleRepository:
         if hasattr(self, "ssh_tunnel_config") and self.ssh_tunnel_config:
             if self.ssh_tunnel_config.get("enabled"):
                 if not SSH_TUNNEL_AVAILABLE:
-                    print("Error: sshtunnel package is required for SSH tunnel support")
-                    print("Install it with: pip install sshtunnel")
-                    sys.exit(1)
+                    raise ImportError(
+                        "sshtunnel package is required for SSH tunnel support. "
+                        "Install it with: pip install sshtunnel"
+                    )
 
                 # Build SSH tunnel configuration
                 tunnel_config = {
@@ -285,8 +298,7 @@ class BaseGuacamoleRepository:
                         f"SSH tunnel established on port {self.ssh_tunnel.local_bind_port}"
                     )
                 except Exception as e:
-                    print(f"Error creating SSH tunnel: {e}")
-                    sys.exit(1)
+                    raise RuntimeError(f"Failed to create SSH tunnel: {e}") from e
 
         try:
             return mysql.connector.connect(
@@ -299,8 +311,7 @@ class BaseGuacamoleRepository:
                     self.ssh_tunnel.stop()
                 except Exception:
                     pass
-            print(f"Error connecting to database: {e}")
-            sys.exit(1)
+            raise
 
     @staticmethod
     def validate_positive_id(id_value, entity_type="entity"):

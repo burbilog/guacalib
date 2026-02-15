@@ -42,7 +42,7 @@ class GuacamoleDB:
     CONNECTION_PARAMETERS = CONNECTION_PARAMETERS
     USER_PARAMETERS = USER_PARAMETERS
 
-    def __init__(self, config_file="db_config.ini", debug=False):
+    def __init__(self, config_file="~/.guacaman.ini", debug=False):
         """Initialize GuacamoleDB with database configuration.
 
         Args:
@@ -96,11 +96,10 @@ class GuacamoleDB:
             Modified db_config with tunnel settings
         """
         if not SSH_TUNNEL_AVAILABLE:
-            print("Error: sshtunnel package is required for SSH tunnel support")
-            print("Install it with: pip install sshtunnel")
-            import sys
-
-            sys.exit(1)
+            raise ImportError(
+                "sshtunnel package is required for SSH tunnel support. "
+                "Install it with: pip install sshtunnel"
+            )
 
         db_config = db_config.copy()
 
@@ -137,10 +136,7 @@ class GuacamoleDB:
                 f"SSH tunnel established on port {self.ssh_tunnel.local_bind_port}"
             )
         except Exception as e:
-            print(f"Error creating SSH tunnel: {e}")
-            import sys
-
-            sys.exit(1)
+            raise RuntimeError(f"Failed to create SSH tunnel: {e}") from e
 
         return db_config
 
