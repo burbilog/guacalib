@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code and other AI assistants when working with code in this repository.
 
 ## Project Overview
 
@@ -12,24 +12,35 @@ Guacalib is a Python library and CLI tool for managing Apache Guacamole users, g
 ## Development Commands
 
 ### Testing
-```bash
-# Run all tests (requires TEST_CONFIG environment variable)
-make tests
 
-# The test suite uses bats (Bash Automated Testing System) with multiple test files
-# Set TEST_CONFIG to point to a valid .guacaman.ini file:
+**IMPORTANT**: Tests require **at least 600 seconds (10 minutes)** timeout due to the comprehensive test suite (116 tests).
+
+```bash
+# Set TEST_CONFIG first
 export TEST_CONFIG=/home/rm/.guacaman.ini
 
-# Run individual test files:
-bats -t --print-output-on-failure tests/test_usergroup.bats
+# Run all tests with timeout (REQUIRED!)
+timeout 600 make tests
+
+# Or run individual test files (faster):
 bats -t --print-output-on-failure tests/test_user.bats
+bats -t --print-output-on-failure tests/test_usergroup.bats
 bats -t --print-output-on-failure tests/test_connection.bats
-# ... and other test files
+bats -t --print-output-on-failure tests/test_conngroup.bats
 ```
 
-**ATTENTION** running tests requires more than 2 minutes! Claude code will time out, if make tests is ran without working around this default time limitation.
+### Code Formatting
+
+```bash
+# Check formatting
+make format-check
+
+# Apply formatting
+make format
+```
 
 ### Building and Publishing
+
 ```bash
 # Build the package
 make build
@@ -45,7 +56,11 @@ make push
 ```
 
 ### Development Setup
+
 ```bash
+# Activate virtual environment first
+source .venv/bin/activate
+
 # Install in development mode
 pip install -e .
 
@@ -57,26 +72,55 @@ pip install -e .[dev]
 
 ## Code Architecture
 
+### Repository Pattern
+
+The codebase uses the Repository pattern with a facade for backward compatibility:
+
+```
+guacalib/
+├── db.py                          # Facade (GuacamoleDB) - delegates to repositories
+├── repositories/
+│   ├── __init__.py               # Exports all repositories
+│   ├── base.py                   # BaseGuacamoleRepository - shared connection & utilities
+│   ├── user.py                   # UserRepository - user operations
+│   ├── usergroup.py              # UserGroupRepository - user group operations
+│   ├── connection.py             # ConnectionRepository - connection operations
+│   └── connection_group.py       # ConnectionGroupRepository - connection group operations
+├── db_connection_parameters.py   # Connection parameter definitions
+├── db_user_parameters.py         # User parameter definitions
+├── cli.py                        # Main CLI entry point
+└── cli_handle_*.py               # CLI command handlers
+```
+
 ### Core Components
 
-#### Database Layer (`db.py`)
-- **GuacamoleDB**: Main class providing database operations
-- Uses MySQL connector with parameterized queries for security
-- Implements context manager pattern (`__enter__`/`__exit__`)
-- Contains connection and user parameter validation dictionaries
+#### GuacamoleDB (Facade)
+- Main entry point for backward compatibility
+- Creates a single shared database connection
+- Delegates all operations to specialized repositories
+- Exposes `users`, `usergroups`, `connections`, `connection_groups` attributes for direct repository access
 
-#### CLI Layer (`cli.py` and `cli_handle_*.py`)
+#### BaseGuacamoleRepository
+- Abstract base class for all repositories
+- Handles database connection management
+- Supports external connection sharing (for facade pattern)
+- Provides `debug_print()`, `read_config()`, `validate_positive_id()` utilities
+
+#### Repository Classes
+Each repository handles operations for its entity type:
+- **UserRepository**: list_users, create_user, delete_existing_user, modify_user, change_user_password
+- **UserGroupRepository**: list_usergroups, create_usergroup, add_user_to_usergroup, remove_user_from_usergroup
+- **ConnectionRepository**: create_connection, delete_existing_connection, modify_connection, grant/revoke permissions
+- **ConnectionGroupRepository**: create_connection_group, delete_connection_group, modify_connection_group_parent, permissions
+
+#### CLI Layer
 - **Main CLI (`cli.py`)**: Argument parsing and command routing
 - **Command Handlers**: Separate modules for each command group:
   - `cli_handle_user.py`: User management
-  - `cli_handle_usergroup.py`: User group management  
+  - `cli_handle_usergroup.py`: User group management
   - `cli_handle_conn.py`: Connection management
   - `cli_handle_conngroup.py`: Connection group management
   - `cli_handle_dump.py`: Data export functionality
-
-#### Parameter Definitions
-- **`db_connection_parameters.py`**: Valid connection parameters by protocol type
-- **`db_user_parameters.py`**: Valid user account parameters
 
 ### Data Model
 
@@ -88,10 +132,10 @@ The tool manages four main entity types:
 
 ### Key Design Patterns
 
-- **Command Pattern**: CLI commands separated into handler modules
+- **Repository Pattern**: Each entity has its own repository class
+- **Facade Pattern**: GuacamoleDB provides a unified interface
 - **Context Manager**: Database connections with automatic cleanup
-- **Parameter Validation**: Centralized parameter definitions with validation
-- **Hierarchical IDs**: Support for both name-based and ID-based entity identification
+- **Shared Connection**: All repositories use a single DB connection
 
 ## Configuration
 
@@ -109,13 +153,39 @@ File permissions must be 0600 (owner read/write only) for security.
 
 ## Development Guidelines
 
-### Code Quality (from AGENTS.md)
-- Write clear, readable code with meaningful names
+### Code Style and Structure
+- Use meaningful variable and function names
 - Add type hints to function signatures
-- Use Google-style or NumPy-style docstrings
-- Handle exceptions appropriately with descriptive error messages
-- Follow single-responsibility principles
-- Validate all user inputs and handle file paths securely
+- Structure code in logical modules and packages
+- Avoid deeply nested code structures
+- Avoid global variables
+
+### Documentation
+- Write docstrings for all public functions, classes, and modules
+- Use Google-style or NumPy-style docstrings consistently
+- Include parameter descriptions, return types, and examples
+- Update README.md when adding new features
+
+### Code Quality
+- Write code for clarity first. Prefer readable, maintainable solutions with clear names, comments where needed, and straightforward control flow
+- Do not produce code-golf or overly clever one-liners unless explicitly requested
+- Don't add unnecessary dependencies
+- Use descriptive error messages
+- Handle exceptions appropriately
+- Strictly adhere to single-responsibility principles
+
+### Security
+- Never hardcode sensitive information
+- Validate all user inputs
+- Handle file paths securely
+- Use secure default settings
+- All SQL queries use parameterized statements to prevent injection
+- Password hashing before database storage
+
+### Performance
+- Optimize for readability first, then performance
+- Comment any non-obvious optimizations
+- Consider memory usage for large data operations
 
 ### Testing Strategy
 - Uses bats (Bash Automated Testing System) for integration testing
@@ -123,30 +193,13 @@ File permissions must be 0600 (owner read/write only) for security.
 - Tests require a live MySQL database with Guacamole schema
 - Test setup creates temporary entities and cleans up afterward
 - Environment variable `TEST_CONFIG` must point to test database config
+- **Always use timeout >= 600 seconds when running tests**
 
-## Current Development Focus
+## When Suggesting Changes
+- Explain the reasoning behind proposed changes
+- Offer complete solutions, not partial fixes
+- Respect the existing architecture
 
-### Active Features (feature/cgperm branch)
-- Connection group permission management enhancements
-- Fine-grained permission controls for connection groups
-- Improved permission validation and error handling
-
-### Recently Completed Features
-- `--id` parameter support for connections and connection groups
-- User group ID-based operations
-- Enhanced list commands to always show database IDs
-- Resolution of naming ambiguity in hierarchical structures
-
-### Planned Improvements
-- GuacamoleDB initialization without configuration file
-- More granular permission management for users and groups
-- Custom connection parameters for different protocols
-- RDP connection support in dump command
-
-## Security Considerations
-
-- Database credentials stored in separate configuration file with strict permissions
-- All SQL queries use parameterized statements to prevent injection
-- Password hashing before database storage
-- Input validation on all user-provided data
-- No hardcoded sensitive information in source code
+## When Reviewing Code
+- Check for issues such as rule violations, deviations from best practices, design patterns, or security concerns
+- Document findings for follow-up sessions to iteratively address each issue
