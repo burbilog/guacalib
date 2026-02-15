@@ -772,7 +772,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-Copyright Roman V. Isaev <rm@isaeff.net> 2024-2025, though 95% of the code is written with Aider/DeepSeek/Sonnet/etc
+Copyright Roman V. Isaev <rm@isaeff.net> 2024-2026, though 95% of the code is written with the help of various LLMs and coding agents.
 
 This software is distributed under the terms of the GNU General Public license, version 3.
 
