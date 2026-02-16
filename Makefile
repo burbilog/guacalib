@@ -8,10 +8,20 @@ all:
 	@echo "  make cleanup    - Clean up test database entries"
 	@echo ""
 	@echo "Build & Release:"
+	@echo "  make set-release-version v=X.X.X - Set version in version.py and README.md"
 	@echo "  make build      - Build package for distribution"
 	@echo "  make testpub    - Publish to PyPI test repository"
 	@echo "  make pub        - Publish to PyPI production"
 	@echo "  make push       - Create release tag and push to Git"
+
+.PHONY: set-release-version
+set-release-version:
+	@test -n "$(v)" || { echo "Usage: make set-release-version v=X.X.X"; exit 1; }
+	@echo "Setting version to $(v)..."
+	sed -i 's/VERSION = ".*"/VERSION = "$(v)"/' guacalib/version.py
+	sed -i 's/This is version .*/This is version $(v)/' README.md
+	@echo "Version updated to $(v) in version.py and README.md"
+	@echo "Don't forget to update CHANGELOG.md!"
 
 build: FORCE
 	rm -rf build/ dist/ *.egg-info/
