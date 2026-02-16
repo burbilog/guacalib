@@ -97,5 +97,6 @@ def close_ssh_tunnel(ssh_tunnel, debug_print=None):
             ssh_tunnel.stop()
             if debug_print:
                 debug_print("SSH tunnel closed")
-        except Exception:
-            pass
+        except Exception as e:
+            if debug_print:
+                debug_print(f"Warning: Error closing SSH tunnel: {e}")
