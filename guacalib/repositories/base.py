@@ -152,6 +152,16 @@ class BaseGuacamoleRepository:
             ValueError: If SSH tunnel configuration is invalid
             ImportError: If sshtunnel package is required but not installed
         """
+
+        def _safe_int(value, default, param_name):
+            """Safely convert value to int with helpful error message."""
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                raise ValueError(
+                    f"Invalid {param_name} value '{value}': must be an integer"
+                )
+
         # Check environment variables first
         enabled_env = os.environ.get("GUACALIB_SSH_TUNNEL_ENABLED", "").lower()
         if enabled_env in ("true", "1", "yes"):
@@ -159,15 +169,21 @@ class BaseGuacamoleRepository:
             ssh_config = {
                 "enabled": True,
                 "host": os.environ.get("GUACALIB_SSH_TUNNEL_HOST"),
-                "port": int(os.environ.get("GUACALIB_SSH_TUNNEL_PORT", "22")),
+                "port": _safe_int(
+                    os.environ.get("GUACALIB_SSH_TUNNEL_PORT", "22"),
+                    22,
+                    "GUACALIB_SSH_TUNNEL_PORT",
+                ),
                 "user": os.environ.get("GUACALIB_SSH_TUNNEL_USER"),
                 "password": os.environ.get("GUACALIB_SSH_TUNNEL_PASSWORD"),
                 "private_key": os.environ.get("GUACALIB_SSH_TUNNEL_PRIVATE_KEY"),
                 "private_key_passphrase": os.environ.get(
                     "GUACALIB_SSH_TUNNEL_PRIVATE_KEY_PASSPHRASE"
                 ),
-                "remote_port": int(
-                    os.environ.get("GUACALIB_SSH_TUNNEL_REMOTE_PORT", "3306")
+                "remote_port": _safe_int(
+                    os.environ.get("GUACALIB_SSH_TUNNEL_REMOTE_PORT", "3306"),
+                    3306,
+                    "GUACALIB_SSH_TUNNEL_REMOTE_PORT",
                 ),
             }
 
@@ -209,8 +225,10 @@ class BaseGuacamoleRepository:
             ssh_config = {
                 "enabled": True,
                 "host": ssh_section.get("host") or ssh_section.get("ssh_tunnel_host"),
-                "port": int(
-                    ssh_section.get("port", ssh_section.get("ssh_tunnel_port", "22"))
+                "port": _safe_int(
+                    ssh_section.get("port", ssh_section.get("ssh_tunnel_port", "22")),
+                    22,
+                    "ssh_tunnel.port",
                 ),
                 "user": ssh_section.get("user") or ssh_section.get("ssh_tunnel_user"),
                 "password": ssh_section.get("password")
@@ -219,7 +237,11 @@ class BaseGuacamoleRepository:
                 or ssh_section.get("ssh_tunnel_private_key"),
                 "private_key_passphrase": ssh_section.get("private_key_passphrase")
                 or ssh_section.get("ssh_tunnel_private_key_passphrase"),
-                "remote_port": int(ssh_section.get("remote_port", "3306")),
+                "remote_port": _safe_int(
+                    ssh_section.get("remote_port", "3306"),
+                    3306,
+                    "ssh_tunnel.remote_port",
+                ),
             }
 
             # Validate required fields
