@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Connection group repository for Guacamole database operations."""
 
+from typing import Any, Callable, Dict, Optional
+
 import mysql.connector
 
 from .base import BaseGuacamoleRepository
@@ -16,7 +18,7 @@ from ..exceptions import (
 class ConnectionGroupRepository(BaseGuacamoleRepository):
     """Repository for connection group-related database operations."""
 
-    def get_connection_group_id_by_name(self, group_name):
+    def get_connection_group_id_by_name(self, group_name: str) -> Optional[int]:
         """Get connection_group_id by name from guacamole_connection_group.
 
         Args:
@@ -48,7 +50,7 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error getting connection group ID: {e}") from e
 
-    def get_connection_group_id(self, group_path):
+    def get_connection_group_id(self, group_path: str) -> int:
         """Resolve nested connection group path to group_id.
 
         Args:
@@ -103,7 +105,7 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error resolving group path: {e}") from e
 
-    def get_connection_group_name_by_id(self, group_id):
+    def get_connection_group_name_by_id(self, group_id: int) -> Optional[str]:
         """Get connection group name by ID.
 
         Args:
@@ -128,7 +130,9 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
                 f"Error getting connection group name by ID: {e}"
             ) from e
 
-    def resolve_conngroup_id(self, group_name=None, group_id=None):
+    def resolve_conngroup_id(
+        self, group_name: Optional[str] = None, group_id: Optional[int] = None
+    ) -> int:
         """Validate inputs and resolve to connection_group_id.
 
         Args:
@@ -154,7 +158,9 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             name_query=name_query,
         )
 
-    def connection_group_exists(self, group_name=None, group_id=None):
+    def connection_group_exists(
+        self, group_name: Optional[str] = None, group_id: Optional[int] = None
+    ) -> bool:
         """Check if a connection group with the given name or ID exists.
 
         Args:
@@ -175,7 +181,7 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             name_query=name_query,
         )
 
-    def _check_connection_group_cycle(self, group_id, parent_id):
+    def _check_connection_group_cycle(self, group_id: int, parent_id: Optional[int]) -> bool:
         """Check if setting parent_id would create a cycle in connection groups.
 
         Args:
@@ -207,7 +213,9 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
 
         return False
 
-    def create_connection_group(self, group_name, parent_group_name=None):
+    def create_connection_group(
+        self, group_name: str, parent_group_name: Optional[str] = None
+    ) -> bool:
         """Create a new connection group.
 
         Args:
@@ -271,7 +279,9 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error creating connection group: {e}") from e
 
-    def delete_connection_group(self, group_name=None, group_id=None):
+    def delete_connection_group(
+        self, group_name: Optional[str] = None, group_id: Optional[int] = None
+    ) -> bool:
         """Delete a connection group and update references to it.
 
         Args:
@@ -331,8 +341,11 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             raise DatabaseError(f"Error deleting connection group: {e}") from e
 
     def modify_connection_group_parent(
-        self, group_name=None, group_id=None, new_parent_name=None
-    ):
+        self,
+        group_name: Optional[str] = None,
+        group_id: Optional[int] = None,
+        new_parent_name: Optional[str] = None,
+    ) -> bool:
         """Set parent connection group for a connection group with cycle detection.
 
         Args:
@@ -395,7 +408,7 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error modifying connection group parent: {e}") from e
 
-    def list_connection_groups(self):
+    def list_connection_groups(self) -> Dict[str, Dict[str, Any]]:
         """List all connection groups with their connections and parent groups.
 
         Returns:
@@ -435,7 +448,7 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error listing groups: {e}") from e
 
-    def get_connection_group_by_id(self, group_id):
+    def get_connection_group_by_id(self, group_id: int) -> Optional[Dict[str, Dict[str, Any]]]:
         """Get a specific connection group by its ID.
 
         Args:
@@ -482,7 +495,7 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error getting connection group by ID: {e}") from e
 
-    def debug_connection_permissions(self, connection_name):
+    def debug_connection_permissions(self, connection_name: str) -> None:
         """Debug function to check permissions for a connection.
 
         Args:
@@ -556,7 +569,9 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             self.debug_print(f"Error debugging permissions: {e}")
 
-    def grant_connection_group_permission_to_user(self, username, conngroup_name):
+    def grant_connection_group_permission_to_user(
+        self, username: str, conngroup_name: str
+    ) -> bool:
         """Grant connection group permission to a specific user.
 
         Args:
@@ -660,7 +675,9 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
                 f"Database error granting connection group permission for user '{username}' on group '{conngroup_name}': {e}"
             ) from e
 
-    def revoke_connection_group_permission_from_user(self, username, conngroup_name):
+    def revoke_connection_group_permission_from_user(
+        self, username: str, conngroup_name: str
+    ) -> bool:
         """Revoke connection group permission from a specific user.
 
         Args:
@@ -755,7 +772,9 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
                 f"Database error revoking connection group permission for user '{username}' on group '{conngroup_name}': {e}"
             ) from e
 
-    def _atomic_permission_operation(self, operation_func, *args, **kwargs):
+    def _atomic_permission_operation(
+        self, operation_func: Callable, *args: Any, **kwargs: Any
+    ) -> Any:
         """Execute a database operation with proper error handling and validation.
 
         Args:
@@ -773,7 +792,9 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
                 f"Database error during permission operation: {e}"
             ) from e
 
-    def grant_connection_group_permission_to_user_by_id(self, username, conngroup_id):
+    def grant_connection_group_permission_to_user_by_id(
+        self, username: str, conngroup_id: int
+    ) -> bool:
         """Grant connection group permission to a specific user by connection group ID.
 
         Args:
@@ -882,8 +903,8 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             ) from e
 
     def revoke_connection_group_permission_from_user_by_id(
-        self, username, conngroup_id
-    ):
+        self, username: str, conngroup_id: int
+    ) -> bool:
         """Revoke connection group permission from a specific user by connection group ID.
 
         Args:

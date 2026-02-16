@@ -63,7 +63,7 @@ class BaseGuacamoleRepository:
             self.conn = self.connect_db()
             self.cursor = self.conn.cursor()
 
-    def debug_print(self, *args, **kwargs):
+    def debug_print(self, *args: Any, **kwargs: Any) -> None:
         """Log debug messages if debug mode is enabled.
 
         Uses logging module for library usage, falls back to print for CLI.
@@ -72,11 +72,16 @@ class BaseGuacamoleRepository:
             message = " ".join(str(arg) for arg in args)
             logger.debug(message)
 
-    def __enter__(self):
+    def __enter__(self) -> "BaseGuacamoleRepository":
         """Enter context manager."""
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(
+        self,
+        exc_type: Optional[type],
+        exc_value: Optional[BaseException],
+        traceback: Optional[Any],
+    ) -> None:
         """Exit context manager with proper cleanup."""
         # Determine if we should commit or rollback
         # Commit on: no exception, or SystemExit with code 0
@@ -105,7 +110,7 @@ class BaseGuacamoleRepository:
                 close_ssh_tunnel(self.ssh_tunnel)
 
     @staticmethod
-    def read_config(config_file):
+    def read_config(config_file: str) -> Dict[str, str]:
         """Read database configuration from file.
 
         Args:
@@ -168,7 +173,7 @@ class BaseGuacamoleRepository:
             ImportError: If sshtunnel package is required but not installed
         """
 
-        def _safe_int(value, default, param_name):
+        def _safe_int(value: str, default: int, param_name: str) -> int:
             """Safely convert value to int with helpful error message."""
             try:
                 return int(value)
@@ -280,7 +285,7 @@ class BaseGuacamoleRepository:
         except Exception as e:
             raise ValueError(f"Error reading SSH tunnel config: {str(e)}") from e
 
-    def connect_db(self):
+    def connect_db(self) -> Any:
         """Establish database connection.
 
         Creates SSH tunnel if configured, then connects to MySQL.
@@ -312,7 +317,7 @@ class BaseGuacamoleRepository:
             raise
 
     @staticmethod
-    def validate_positive_id(id_value, entity_type="entity"):
+    def validate_positive_id(id_value: Optional[int], entity_type: str = "entity") -> Optional[int]:
         """Validate that ID is a positive integer.
 
         Args:

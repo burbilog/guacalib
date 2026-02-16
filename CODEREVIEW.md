@@ -295,7 +295,14 @@
 
 **Отступления:**
 - [ ] **24. Длинные функции** - некоторые функции длиннее рекомендованного (например, `handle_conngroup_command` ~350 строк)
-- [ ] **25. Неполные type hints** - не все функции имеют полные type hints
+- [x] **25. Неполные type hints** (ИСПРАВЛЕНО)
+
+  **Решение:** Добавлены полные type hints во все публичные методы:
+  - `connection_group.py`: все 16 методов получили type hints
+  - `base.py`: добавлены type hints для `debug_print()`, `__enter__()`, `__exit__()`, `read_config()`, `connect_db()`, `validate_positive_id()`, `_safe_int()`
+  - `db.py`: все 50+ методов фасада получили type hints
+
+  Добавлены необходимые импорты из `typing`: `Any`, `Callable`, `Dict`, `List`, `Optional`
 
 ---
 
