@@ -8,6 +8,7 @@ For new code, consider using the repository classes directly.
 
 import mysql.connector
 
+from .repositories.base import BaseGuacamoleRepository
 from .repositories.user import UserRepository
 from .repositories.usergroup import UserGroupRepository
 from .repositories.connection import ConnectionRepository
@@ -42,8 +43,6 @@ class GuacamoleDB:
             config_file: Path to the configuration file
             debug: Enable debug output
         """
-        from .repositories.base import BaseGuacamoleRepository
-
         self.debug = debug
         self._config_file = config_file
         self.ssh_tunnel = None
@@ -399,20 +398,14 @@ class GuacamoleDB:
     @staticmethod
     def read_config(config_file):
         """Read database configuration from file."""
-        from .repositories.base import BaseGuacamoleRepository
-
         return BaseGuacamoleRepository.read_config(config_file)
 
     @staticmethod
     def validate_positive_id(id_value, entity_type="entity"):
         """Validate that ID is a positive integer."""
-        from .repositories.base import BaseGuacamoleRepository
-
         return BaseGuacamoleRepository.validate_positive_id(id_value, entity_type)
 
     @staticmethod
     def read_ssh_tunnel_config(config_file):
         """Read SSH tunnel configuration from file or environment variables."""
-        from .repositories.base import BaseGuacamoleRepository
-
         return BaseGuacamoleRepository.read_ssh_tunnel_config(config_file)

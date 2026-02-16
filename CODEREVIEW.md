@@ -152,7 +152,7 @@
   - `date`: формат YYYY-MM-DD (добавлено)
   - `string`: без валидации (произвольная строка)
 
-- [ ] **10. Импорты внутри функций (circular import workaround)**
+- [x] **10. Импорты внутри функций (circular import workaround)** (ИСПРАВЛЕНО)
 
   **Файлы:** `guacalib/db.py:52`, `guacalib/repositories/connection.py:400`
 
@@ -161,7 +161,9 @@
       from .repositories.base import BaseGuacamoleRepository
   ```
 
-  **Рекомендация:** Реструктурировать код для избежания circular imports на уровне модулей.
+  **Решение:** После рефакторинга circular imports больше нет. Импорты перенесены на уровень модулей:
+  - `db.py`: `BaseGuacamoleRepository` импортирован на верхний уровень
+  - `connection.py`: `ConnectionGroupRepository` импортирован на верхний уровень
 
 ---
 

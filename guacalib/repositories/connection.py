@@ -6,6 +6,7 @@ from typing import List, Optional, Tuple
 import mysql.connector
 
 from .base import BaseGuacamoleRepository
+from .connection_group import ConnectionGroupRepository
 from .connection_parameters import CONNECTION_PARAMETERS
 from ..entities import ENTITY_TYPE_USER, ENTITY_TYPE_USER_GROUP
 from ..exceptions import (
@@ -412,8 +413,6 @@ class ConnectionRepository(BaseGuacamoleRepository):
             bool: True if successful
         """
         try:
-            from .connection_group import ConnectionGroupRepository
-
             resolved_connection_id = self.resolve_connection_id(
                 connection_name, connection_id
             )
@@ -528,7 +527,6 @@ class ConnectionRepository(BaseGuacamoleRepository):
             if group_path:
                 self.debug_print(f"Processing group path: {group_path}")
                 # Need to resolve group path
-                from .connection_group import ConnectionGroupRepository
 
                 # Simple resolution for single-level group
                 self.cursor.execute(
