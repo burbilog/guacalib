@@ -60,6 +60,47 @@ make pub
 make push
 ```
 
+## Release Process
+
+### Creating a New Release
+
+1. **Set the new version** (updates `version.py` and `README.md`):
+   ```bash
+   make set-release-version v=X.X.X
+   ```
+
+2. **Update CHANGELOG.md** with changes since last release:
+   - Add new section `## [X.X.X] - YYYY-MM-DD`
+   - Document changes under: Added, Changed, Fixed, Improved
+
+3. **Commit and push to master**:
+   ```bash
+   git add -A
+   git commit -m "Release version X.X.X"
+   git push origin master
+   ```
+
+4. **Create and push git tag**:
+   ```bash
+   git tag vX.X.X
+   git push origin vX.X.X
+   ```
+
+5. **Publish to PyPI**:
+   ```bash
+   make testpub   # Test on test.pypi.org first
+   make pub       # Publish to real PyPI
+   ```
+
+### Version Locations
+
+Version is stored in three places (all must be synchronized):
+- `guacalib/version.py` - single source of truth
+- `README.md` - "This is version X.X.X" line
+- `CHANGELOG.md` - release header
+
+Use `make set-release-version v=X.X.X` to update version.py and README.md automatically.
+
 ### Development Setup
 
 ```bash
