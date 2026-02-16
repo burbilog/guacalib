@@ -133,8 +133,6 @@ class BaseGuacamoleRepository:
                 "password": config["mysql"]["password"],
                 "database": config["mysql"]["database"],
             }
-        except (FileNotFoundError, ValueError):
-            raise
         except Exception as e:
             raise ValueError(f"Error reading config file: {str(e)}") from e
 
