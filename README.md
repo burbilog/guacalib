@@ -79,6 +79,55 @@ with GuacamoleDB('~/.guacaman.ini') as guacdb:
     # Your code here
 ```
 
+### Logging Configuration
+
+When using guacalib as a library, you can configure logging to capture debug output. The library uses Python's standard `logging` module with logger name `"guacalib"`.
+
+**Simple approach - enable debug mode:**
+```python
+# Debug mode automatically configures a basic logger
+with GuacamoleDB('~/.guacaman.ini', debug=True) as guacdb:
+    guacdb.create_user('test', 'password')
+    # Debug output will be printed to stderr
+```
+
+**Advanced approach - custom logging configuration:**
+```python
+import logging
+from guacalib import GuacamoleDB
+
+# Configure the guacalib logger yourself
+logger = logging.getLogger('guacalib')
+logger.setLevel(logging.DEBUG)
+
+# Add custom handler (e.g., to file)
+handler = logging.FileHandler('/var/log/guacalib.log')
+handler.setFormatter(logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+))
+logger.addHandler(handler)
+
+# Now use the library
+with GuacamoleDB('~/.guacaman.ini') as guacdb:
+    # All debug messages go to your log file
+    guacdb.create_user('test', 'password')
+```
+
+**Integration with existing logging:**
+```python
+import logging
+
+# If your app already has logging configured
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+# Enable guacalib debug logging when needed
+guacalib_logger = logging.getLogger('guacalib')
+guacalib_logger.setLevel(logging.DEBUG)
+```
+
 ### Managing Users
 ```python
 # Create user

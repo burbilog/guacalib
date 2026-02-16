@@ -2,6 +2,7 @@
 """Base repository class for Guacamole database operations."""
 
 import configparser
+import logging
 import mysql.connector
 import os
 from typing import Optional, Dict, Any
@@ -9,6 +10,9 @@ from typing import Optional, Dict, Any
 from ..exceptions import DatabaseError, EntityNotFoundError, ValidationError
 
 from ..ssh_tunnel import create_ssh_tunnel, close_ssh_tunnel, SSH_TUNNEL_AVAILABLE
+
+# Module logger
+logger = logging.getLogger("guacalib")
 
 
 class BaseGuacamoleRepository:
@@ -38,6 +42,13 @@ class BaseGuacamoleRepository:
         self._external_conn = conn is not None
         self._external_tunnel = ssh_tunnel is not None
 
+        # Configure logging if debug mode is enabled
+        if debug and not logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))
+            logger.addHandler(handler)
+            logger.setLevel(logging.DEBUG)
+
         if conn is not None and cursor is not None:
             # Use external connection and cursor
             self.conn = conn
@@ -53,9 +64,13 @@ class BaseGuacamoleRepository:
             self.cursor = self.conn.cursor()
 
     def debug_print(self, *args, **kwargs):
-        """Print debug messages if debug mode is enabled."""
+        """Log debug messages if debug mode is enabled.
+
+        Uses logging module for library usage, falls back to print for CLI.
+        """
         if self.debug:
-            print("[DEBUG]", *args, **kwargs)
+            message = " ".join(str(arg) for arg in args)
+            logger.debug(message)
 
     def __enter__(self):
         """Enter context manager."""

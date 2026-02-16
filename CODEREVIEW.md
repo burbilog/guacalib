@@ -270,7 +270,14 @@
 
 ## Рекомендации по улучшению (future work)
 
-- [ ] **19. Добавить logging модуль** вместо print/debug_print
+- [x] **19. Добавить logging модуль** вместо print/debug_print (ИСПРАВЛЕНО)
+
+  **Решение:** Добавлен logging модуль в `BaseGuacamoleRepository`:
+  - Создан module-level logger `logging.getLogger("guacalib")`
+  - `debug_print()` теперь использует `logger.debug()`
+  - При `debug=True` автоматически настраивается StreamHandler
+  - Пользователи библиотеки могут настроить logging самостоятельно
+  - Backward compatible: существующий API не изменился
 - [ ] **20. Unit-тесты для Python кода** (сейчас только bats для интеграционных тестов)
 - [ ] **21. Pre-commit hooks** для автоматической проверки форматирования
 - [ ] **22. Type checking с mypy** в CI pipeline
