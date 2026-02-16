@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.24] - 2026-02-16
+
+### Added
+- SSH tunnel support for remote MySQL access through an SSH gateway
+- Configurable remote MySQL port for SSH tunnel connections
+- Logging module support with configurable log levels
+- Parameter validation for time and date types in modify_user command
+- CODEREVIEW.md file documenting code review findings and decisions
+
+### Changed
+- Major refactoring: GuacamoleDB restructured into Repository pattern with facade
+- Project restructuring: CLI moved to `cli/` subdirectory, parameters moved to `repositories/`
+- Error handling refactored with custom exception hierarchy (GuacalibError base class)
+- SSH tunnel code extracted to dedicated `ssh_tunnel.py` module
+- Transaction management improved: removed explicit commits, better context manager handling
+- Added code formatting targets (format, format-check) to Makefile
+
+### Fixed
+- README.md: corrected CLI option documentation and output formats, added SSH tunnel docs
+- Use debug_print instead of print in debug_connection_permissions
+- Imports moved from functions to module level for better performance
+- Proper error logging when closing SSH tunnel fails
+- Removed redundant re-raise in read_config
+- Safe int conversion for SSH tunnel port config to handle edge cases
+
+### Improved
+- Complete type hints added to all repository and facade methods
+- Magic strings replaced with entity type constants
+- Consistent error handling in CLI: all commands catch only GuacalibError
+
 ## [0.21] - 2025-10-11
 
 ### Fixed
