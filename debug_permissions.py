@@ -41,7 +41,7 @@ def main():
     # Connect to DB
     try:
         conn = mysql.connector.connect(**db_config)
-        cursor = conn.cursor()
+        cursor = conn.cursor(buffered=True)
 
         if is_conngroup:
             # Handle connection group

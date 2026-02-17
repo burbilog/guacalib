@@ -66,7 +66,7 @@ class GuacamoleDB:
         self.conn = mysql.connector.connect(
             **db_connect_config, charset="utf8mb4", collation="utf8mb4_general_ci"
         )
-        self.cursor = self.conn.cursor()
+        self.cursor = self.conn.cursor(buffered=True)
 
         # Initialize repositories with shared connection
         self.users = UserRepository(
