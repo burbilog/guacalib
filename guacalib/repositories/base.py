@@ -61,7 +61,7 @@ class BaseGuacamoleRepository:
             self.ssh_tunnel_config = self.read_ssh_tunnel_config(config_file)
             self.ssh_tunnel = None
             self.conn = self.connect_db()
-            self.cursor = self.conn.cursor()
+            self.cursor = self.conn.cursor(buffered=True)
 
     def debug_print(self, *args: Any, **kwargs: Any) -> None:
         """Log debug messages if debug mode is enabled.
