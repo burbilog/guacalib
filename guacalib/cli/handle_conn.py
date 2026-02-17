@@ -4,7 +4,7 @@ from typing import NoReturn
 
 from guacalib import GuacamoleDB
 from guacalib.exceptions import GuacalibError
-from .validators import validate_selector
+from .validators import validate_port, validate_selector
 
 
 def is_terminal() -> bool:
@@ -76,6 +76,9 @@ def handle_conn_list(args: Namespace, guacdb: GuacamoleDB) -> None:
 
 
 def handle_conn_new(args: Namespace, guacdb: GuacamoleDB) -> None:
+    # Validate port before creating connection
+    validate_port(args.port)
+
     try:
         connection_id = None
 

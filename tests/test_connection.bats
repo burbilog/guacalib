@@ -41,3 +41,44 @@ load run_tests.bats
     [[ "$output" == *"doesn't exist"* ]]
 }
 
+# Port validation tests
+
+@test "Port validation: non-numeric port should fail" {
+    run guacaman --config "$TEST_CONFIG" conn new --type vnc --name testconn_port --hostname 192.168.1.1 --port abc --password test
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Port must be a number"* ]]
+}
+
+@test "Port validation: port zero should fail" {
+    run guacaman --config "$TEST_CONFIG" conn new --type vnc --name testconn_port --hostname 192.168.1.1 --port 0 --password test
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Port must be between 1 and 65535"* ]]
+}
+
+@test "Port validation: negative port should fail" {
+    run guacaman --config "$TEST_CONFIG" conn new --type vnc --name testconn_port --hostname 192.168.1.1 --port -1 --password test
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Port must be between 1 and 65535"* ]]
+}
+
+@test "Port validation: port above 65535 should fail" {
+    run guacaman --config "$TEST_CONFIG" conn new --type vnc --name testconn_port --hostname 192.168.1.1 --port 65536 --password test
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Port must be between 1 and 65535"* ]]
+}
+
+@test "Port validation: port 1 should succeed" {
+    run guacaman --config "$TEST_CONFIG" conn new --type vnc --name testconn_port_low --hostname 192.168.1.1 --port 1 --password test
+    [ "$status" -eq 0 ]
+
+    # Cleanup
+    guacaman --config "$TEST_CONFIG" conn del --name testconn_port_low >/dev/null 2>&1 || true
+}
+
+@test "Port validation: port 65535 should succeed" {
+    run guacaman --config "$TEST_CONFIG" conn new --type vnc --name testconn_port_high --hostname 192.168.1.1 --port 65535 --password test
+    [ "$status" -eq 0 ]
+
+    # Cleanup
+    guacaman --config "$TEST_CONFIG" conn del --name testconn_port_high >/dev/null 2>&1 || true
+}
