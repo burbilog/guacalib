@@ -18,11 +18,12 @@ from ..exceptions import (
 class ConnectionGroupRepository(BaseGuacamoleRepository):
     """Repository for connection group-related database operations."""
 
-    def get_connection_group_id_by_name(self, group_name: str) -> Optional[int]:
+    def get_connection_group_id_by_name(self, group_name: str, parent_id: Optional[int] = None) -> Optional[int]:
         """Get connection_group_id by name from guacamole_connection_group.
 
         Args:
             group_name: Group name
+            parent_id: Parent group ID (optional, None for root-level groups)
 
         Returns:
             int: Group ID or None if group_name is empty
@@ -35,14 +36,27 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             if not group_name:
                 return None
 
-            self.cursor.execute(
-                """
-                SELECT connection_group_id
-                FROM guacamole_connection_group
-                WHERE connection_group_name = %s
-            """,
-                (group_name,),
-            )
+            if parent_id is not None:
+                self.cursor.execute(
+                    """
+                    SELECT connection_group_id
+                    FROM guacamole_connection_group
+                    WHERE connection_group_name = %s AND parent_id = %s
+                    LIMIT 1
+                """,
+                    (group_name, parent_id),
+                )
+            else:
+                # For root-level groups (no parent)
+                self.cursor.execute(
+                    """
+                    SELECT connection_group_id
+                    FROM guacamole_connection_group
+                    WHERE connection_group_name = %s AND parent_id IS NULL
+                    LIMIT 1
+                """,
+                    (group_name,),
+                )
             result = self.cursor.fetchone()
             if not result:
                 raise EntityNotFoundError("connection group", group_name)
@@ -220,12 +234,14 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
     ) -> bool:
         """Create a new connection group.
 
+        If a group with the same name already exists, returns True without creating a duplicate.
+
         Args:
             group_name: Name for the new group
             parent_group_name: Parent group name (optional)
 
         Returns:
-            bool: True if successful
+            bool: True if successful (group exists or was created)
         """
         try:
             parent_group_id = None
@@ -251,6 +267,31 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
                     raise ValidationError(
                         f"Parent connection group '{parent_group_name}' is invalid"
                     )
+
+                # Check if group already exists with this parent
+                self.cursor.execute(
+                    """
+                    SELECT connection_group_id
+                    FROM guacamole_connection_group
+                    WHERE connection_group_name = %s AND parent_id = %s
+                """,
+                    (group_name, parent_group_id),
+                )
+            else:
+                # Check if group already exists without parent (root level)
+                self.cursor.execute(
+                    """
+                    SELECT connection_group_id
+                    FROM guacamole_connection_group
+                    WHERE connection_group_name = %s AND parent_id IS NULL
+                """,
+                    (group_name,),
+                )
+
+            existing = self.cursor.fetchone()
+            if existing:
+                self.debug_print(f"Connection group '{group_name}' already exists with ID {existing[0]}")
+                return True
 
             # Create the new connection group
             self.cursor.execute(

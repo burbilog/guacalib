@@ -333,9 +333,14 @@ class GuacamoleDB:
 
     # ==================== Connection group methods ====================
 
-    def get_connection_group_id_by_name(self, group_name: str) -> Optional[int]:
-        """Get connection group ID by name."""
-        return self.connection_groups.get_connection_group_id_by_name(group_name)
+    def get_connection_group_id_by_name(self, group_name: str, parent_id: Optional[int] = None) -> Optional[int]:
+        """Get connection group ID by name.
+
+        Args:
+            group_name: Group name
+            parent_id: Parent group ID (optional, None for root-level groups)
+        """
+        return self.connection_groups.get_connection_group_id_by_name(group_name, parent_id)
 
     def get_connection_group_id(self, group_path: str) -> int:
         """Resolve nested connection group path to group ID."""
