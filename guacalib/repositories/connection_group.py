@@ -181,7 +181,9 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
             name_query=name_query,
         )
 
-    def _check_connection_group_cycle(self, group_id: int, parent_id: Optional[int]) -> bool:
+    def _check_connection_group_cycle(
+        self, group_id: int, parent_id: Optional[int]
+    ) -> bool:
         """Check if setting parent_id would create a cycle in connection groups.
 
         Args:
@@ -448,7 +450,9 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
         except mysql.connector.Error as e:
             raise DatabaseError(f"Error listing groups: {e}") from e
 
-    def get_connection_group_by_id(self, group_id: int) -> Optional[Dict[str, Dict[str, Any]]]:
+    def get_connection_group_by_id(
+        self, group_id: int
+    ) -> Optional[Dict[str, Dict[str, Any]]]:
         """Get a specific connection group by its ID.
 
         Args:

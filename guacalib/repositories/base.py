@@ -317,7 +317,9 @@ class BaseGuacamoleRepository:
             raise
 
     @staticmethod
-    def validate_positive_id(id_value: Optional[int], entity_type: str = "entity") -> Optional[int]:
+    def validate_positive_id(
+        id_value: Optional[int], entity_type: str = "entity"
+    ) -> Optional[int]:
         """Validate that ID is a positive integer.
 
         Args:

@@ -38,7 +38,9 @@ class GuacamoleDB:
     CONNECTION_PARAMETERS = CONNECTION_PARAMETERS
     USER_PARAMETERS = USER_PARAMETERS
 
-    def __init__(self, config_file: str = "~/.guacaman.ini", debug: bool = False) -> None:
+    def __init__(
+        self, config_file: str = "~/.guacaman.ini", debug: bool = False
+    ) -> None:
         """Initialize GuacamoleDB with database configuration.
 
         Args:
@@ -305,13 +307,17 @@ class GuacamoleDB:
             entity_name, entity_type, connection_id, group_path
         )
 
-    def grant_connection_permission_to_user(self, username: str, connection_name: str) -> bool:
+    def grant_connection_permission_to_user(
+        self, username: str, connection_name: str
+    ) -> bool:
         """Grant connection permission to a specific user."""
         return self.connections.grant_connection_permission_to_user(
             username, connection_name
         )
 
-    def revoke_connection_permission_from_user(self, username: str, connection_name: str) -> bool:
+    def revoke_connection_permission_from_user(
+        self, username: str, connection_name: str
+    ) -> bool:
         """Revoke connection permission from a specific user."""
         return self.connections.revoke_connection_permission_from_user(
             username, connection_name
@@ -351,7 +357,9 @@ class GuacamoleDB:
         """Check if a connection group exists."""
         return self.connection_groups.connection_group_exists(group_name, group_id)
 
-    def _check_connection_group_cycle(self, group_id: int, parent_id: Optional[int]) -> bool:
+    def _check_connection_group_cycle(
+        self, group_id: int, parent_id: Optional[int]
+    ) -> bool:
         """Check if setting parent_id would create a cycle."""
         return self.connection_groups._check_connection_group_cycle(group_id, parent_id)
 
@@ -384,7 +392,9 @@ class GuacamoleDB:
         """List all connection groups."""
         return self.connection_groups.list_connection_groups()
 
-    def get_connection_group_by_id(self, group_id: int) -> Optional[Dict[str, Dict[str, Any]]]:
+    def get_connection_group_by_id(
+        self, group_id: int
+    ) -> Optional[Dict[str, Dict[str, Any]]]:
         """Get a specific connection group by its ID."""
         return self.connection_groups.get_connection_group_by_id(group_id)
 
@@ -408,7 +418,9 @@ class GuacamoleDB:
             username, conngroup_name
         )
 
-    def _atomic_permission_operation(self, operation_func: Any, *args: Any, **kwargs: Any) -> Any:
+    def _atomic_permission_operation(
+        self, operation_func: Any, *args: Any, **kwargs: Any
+    ) -> Any:
         """Execute a database operation with proper error handling."""
         return self.connection_groups._atomic_permission_operation(
             operation_func, *args, **kwargs
@@ -440,7 +452,9 @@ class GuacamoleDB:
         return BaseGuacamoleRepository.read_config(config_file)
 
     @staticmethod
-    def validate_positive_id(id_value: Optional[int], entity_type: str = "entity") -> Optional[int]:
+    def validate_positive_id(
+        id_value: Optional[int], entity_type: str = "entity"
+    ) -> Optional[int]:
         """Validate that ID is a positive integer."""
         return BaseGuacamoleRepository.validate_positive_id(id_value, entity_type)
 

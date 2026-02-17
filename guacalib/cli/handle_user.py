@@ -1,9 +1,46 @@
+import re
 import sys
 from argparse import Namespace
 from typing import NoReturn
 
 from guacalib import GuacamoleDB
 from guacalib.exceptions import GuacalibError
+
+# Guacamole entity name constraints (from schema: varchar(128) NOT NULL)
+USERNAME_MAX_LENGTH = 128
+# Allow alphanumeric, underscore, hyphen, period, and @ (common in email-style usernames)
+USERNAME_PATTERN = re.compile(r"^[a-zA-Z0-9_.@-]+$")
+
+
+def validate_username(username: str) -> None:
+    """Validate username according to Guacamole constraints.
+
+    Args:
+        username: Username to validate
+
+    Raises:
+        SystemExit: If validation fails
+    """
+    if not username or not isinstance(username, str):
+        print("Error: Username must be a non-empty string")
+        sys.exit(1)
+
+    username = username.strip()
+    if not username:
+        print("Error: Username cannot be empty or whitespace only")
+        sys.exit(1)
+
+    if len(username) > USERNAME_MAX_LENGTH:
+        print(
+            f"Error: Username exceeds maximum length of {USERNAME_MAX_LENGTH} characters"
+        )
+        sys.exit(1)
+
+    if not USERNAME_PATTERN.match(username):
+        print(
+            "Error: Username can only contain letters, numbers, underscore (_), hyphen (-), period (.), and @"
+        )
+        sys.exit(1)
 
 
 def handle_user_command(args: Namespace, guacdb: GuacamoleDB) -> None:
@@ -24,6 +61,8 @@ def handle_user_command(args: Namespace, guacdb: GuacamoleDB) -> None:
 
 
 def handle_user_new(args: Namespace, guacdb: GuacamoleDB) -> None:
+    validate_username(args.name)
+
     if guacdb.user_exists(args.name):
         print(f"Error: User '{args.name}' already exists")
         sys.exit(1)
@@ -62,6 +101,8 @@ def handle_user_list(args: Namespace, guacdb: GuacamoleDB) -> None:
 
 
 def handle_user_delete(args: Namespace, guacdb: GuacamoleDB) -> None:
+    validate_username(args.name)
+
     try:
         guacdb.delete_existing_user(args.name)
         guacdb.debug_print(f"Successfully deleted user '{args.name}'")
@@ -71,6 +112,8 @@ def handle_user_delete(args: Namespace, guacdb: GuacamoleDB) -> None:
 
 
 def handle_user_exists(args: Namespace, guacdb: GuacamoleDB) -> NoReturn:
+    validate_username(args.name)
+
     if guacdb.user_exists(args.name):
         sys.exit(0)
     else:
@@ -78,6 +121,7 @@ def handle_user_exists(args: Namespace, guacdb: GuacamoleDB) -> NoReturn:
 
 
 def handle_user_modify(args: Namespace, guacdb: GuacamoleDB) -> None:
+    # Show usage if no arguments provided
     if not args.name or (not args.set and not args.password):
         print(
             "Usage: guacaman user modify --name USERNAME [--set PARAMETER=VALUE] [--password NEW_PASSWORD]"
@@ -105,6 +149,8 @@ def handle_user_modify(args: Namespace, guacdb: GuacamoleDB) -> None:
             '  guacaman user modify --name john.doe --set "organization=Example Corp"'
         )
         sys.exit(0)
+
+    validate_username(args.name)
 
     try:
         if not guacdb.user_exists(args.name):
