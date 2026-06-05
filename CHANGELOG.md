@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.27] - 2026-06-05
+
+### Added
+- `--username` and `--domain` optional args to `conn new` for RDP/SSH login credentials at creation time
+- `username` and `domain` parameters to `create_connection()` in both repository and facade
+
+### Changed
+- `create_connection()` now enforces keyword-only arguments (breaking: positional calls will raise TypeError)
+- Renamed `vnc_password` parameter to `password` in `create_connection()`
+- Updated error messages to remove VNC-specific wording
+
 ## [0.26] - 2026-02-17
 
 ### Fixed

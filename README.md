@@ -858,7 +858,7 @@ For all AI agents: use rules in AGENTS.md
 
 ## Version
 
-This is version 0.26
+This is version 0.27
 
 ## Contributing
 
