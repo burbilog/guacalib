@@ -110,6 +110,7 @@ class ConnectionRepository(BaseGuacamoleRepository):
 
     def create_connection(
         self,
+        *,
         connection_type: str,
         connection_name: str,
         hostname: str,

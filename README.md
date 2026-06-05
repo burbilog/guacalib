@@ -161,11 +161,22 @@ guacdb.delete_existing_usergroup('developers')
 ```python
 # Create VNC connection
 conn_id = guacdb.create_connection(
-    'vnc',
-    'dev-server',
-    '192.168.1.100',
-    5901,
-    'vncpass'
+    connection_type='vnc',
+    connection_name='dev-server',
+    hostname='192.168.1.100',
+    port=5901,
+    password='vncpass'
+)
+
+# Create RDP connection with username and domain
+conn_id = guacdb.create_connection(
+    connection_type='rdp',
+    connection_name='win-server',
+    hostname='192.168.1.200',
+    port=3389,
+    password='rdppass',
+    username='administrator',
+    domain='MYDOMAIN'
 )
 
 # Grant connection to group
@@ -410,9 +421,18 @@ guacaman conn new \
     --password vncpass \
     --usergroup developers,qa  # Comma-separated list of groups
 
+# Create an RDP connection with username and domain
+guacaman conn new \
+    --type rdp \
+    --name win-server \
+    --hostname 192.168.1.200 \
+    --port 3389 \
+    --password rdppass \
+    --username administrator \
+    --domain MYDOMAIN
+
 # Create other types of connections
-guacaman conn new --type rdp ...
-guacaman conn new --type ssh ...  # Basic support available
+guacaman conn new --type ssh ...
 ```
 
 #### List all connections
@@ -796,7 +816,7 @@ Current limitations and planned improvements:
   - Implemented in `conn` command:
     ```bash
     # Create VNC connection
-    guacaman conn new --type vnc --name dev-server --hostname 192.168.1.100 --port 5901 --password somepass
+    guacaman conn new --type vnc --name dev-server --hostname 192.168.1.100 --port 5901 --password somepass --username admin
     
     # List connections
     guacaman conn list

@@ -243,6 +243,7 @@ class GuacamoleDB:
 
     def create_connection(
         self,
+        *,
         connection_type: str,
         connection_name: str,
         hostname: str,
@@ -254,12 +255,12 @@ class GuacamoleDB:
     ) -> int:
         """Create a new connection."""
         return self.connections.create_connection(
-            connection_type,
-            connection_name,
-            hostname,
-            port,
-            password,
-            parent_group_id,
+            connection_type=connection_type,
+            connection_name=connection_name,
+            hostname=hostname,
+            port=port,
+            password=password,
+            parent_group_id=parent_group_id,
             username=username,
             domain=domain,
         )
