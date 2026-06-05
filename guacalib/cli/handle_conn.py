@@ -83,7 +83,13 @@ def handle_conn_new(args: Namespace, guacdb: GuacamoleDB) -> None:
         connection_id = None
 
         connection_id = guacdb.create_connection(
-            args.type, args.name, args.hostname, args.port, args.password
+            args.type,
+            args.name,
+            args.hostname,
+            args.port,
+            args.password,
+            username=getattr(args, "username", None),
+            domain=getattr(args, "domain", None),
         )
         guacdb.debug_print(f"Successfully created connection '{args.name}'")
 

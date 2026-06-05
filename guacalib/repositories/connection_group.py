@@ -18,7 +18,9 @@ from ..exceptions import (
 class ConnectionGroupRepository(BaseGuacamoleRepository):
     """Repository for connection group-related database operations."""
 
-    def get_connection_group_id_by_name(self, group_name: str, parent_id: Optional[int] = None) -> Optional[int]:
+    def get_connection_group_id_by_name(
+        self, group_name: str, parent_id: Optional[int] = None
+    ) -> Optional[int]:
         """Get connection_group_id by name from guacamole_connection_group.
 
         Args:
@@ -290,7 +292,9 @@ class ConnectionGroupRepository(BaseGuacamoleRepository):
 
             existing = self.cursor.fetchone()
             if existing:
-                self.debug_print(f"Connection group '{group_name}' already exists with ID {existing[0]}")
+                self.debug_print(
+                    f"Connection group '{group_name}' already exists with ID {existing[0]}"
+                )
                 return True
 
             # Create the new connection group

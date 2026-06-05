@@ -247,8 +247,10 @@ class GuacamoleDB:
         connection_name: str,
         hostname: str,
         port: int,
-        vnc_password: str,
+        password: str,
         parent_group_id: Optional[int] = None,
+        username: Optional[str] = None,
+        domain: Optional[str] = None,
     ) -> int:
         """Create a new connection."""
         return self.connections.create_connection(
@@ -256,8 +258,10 @@ class GuacamoleDB:
             connection_name,
             hostname,
             port,
-            vnc_password,
+            password,
             parent_group_id,
+            username=username,
+            domain=domain,
         )
 
     def delete_existing_connection(
@@ -333,14 +337,18 @@ class GuacamoleDB:
 
     # ==================== Connection group methods ====================
 
-    def get_connection_group_id_by_name(self, group_name: str, parent_id: Optional[int] = None) -> Optional[int]:
+    def get_connection_group_id_by_name(
+        self, group_name: str, parent_id: Optional[int] = None
+    ) -> Optional[int]:
         """Get connection group ID by name.
 
         Args:
             group_name: Group name
             parent_id: Parent group ID (optional, None for root-level groups)
         """
-        return self.connection_groups.get_connection_group_id_by_name(group_name, parent_id)
+        return self.connection_groups.get_connection_group_id_by_name(
+            group_name, parent_id
+        )
 
     def get_connection_group_id(self, group_path: str) -> int:
         """Resolve nested connection group path to group ID."""

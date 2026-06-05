@@ -114,18 +114,22 @@ class ConnectionRepository(BaseGuacamoleRepository):
         connection_name: str,
         hostname: str,
         port: str,
-        vnc_password: str,
+        password: str,
         parent_group_id: Optional[int] = None,
+        username: Optional[str] = None,
+        domain: Optional[str] = None,
     ) -> int:
         """Create a new connection.
 
         Args:
-            connection_type: Protocol type (e.g., 'vnc')
+            connection_type: Protocol type (e.g., 'vnc', 'rdp', 'ssh')
             connection_name: Name for the connection
             hostname: Hostname or IP address
             port: Port number
-            vnc_password: VNC password
+            password: Connection password
             parent_group_id: Parent group ID (optional)
+            username: Login username (optional)
+            domain: RDP domain (optional)
 
         Returns:
             int: Connection ID
@@ -165,8 +169,12 @@ class ConnectionRepository(BaseGuacamoleRepository):
             params = [
                 ("hostname", hostname),
                 ("port", port),
-                ("password", vnc_password),
+                ("password", password),
             ]
+            if username:
+                params.append(("username", username))
+            if domain:
+                params.append(("domain", domain))
 
             for param_name, param_value in params:
                 self.cursor.execute(
@@ -181,7 +189,7 @@ class ConnectionRepository(BaseGuacamoleRepository):
             return connection_id
 
         except mysql.connector.Error as e:
-            raise DatabaseError(f"Error creating VNC connection: {e}") from e
+            raise DatabaseError(f"Error creating connection: {e}") from e
 
     def delete_existing_connection(
         self,

@@ -229,6 +229,8 @@ def setup_conn_subcommands(subparsers: argparse._SubParsersAction) -> None:
     new_conn.add_argument("--hostname", required=True, help="Server hostname/IP")
     new_conn.add_argument("--port", required=True, help="Server port")
     new_conn.add_argument("--password", help="Connection password")
+    new_conn.add_argument("--username", help="Login username for RDP/SSH")
+    new_conn.add_argument("--domain", help="RDP domain (optional)")
     new_conn.add_argument(
         "--usergroup", help="Comma-separated list of user groups to grant access to"
     )
