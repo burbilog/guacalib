@@ -515,6 +515,20 @@ CONNECTION_PARAMETERS = {
         "ref": "https://guacamole.apache.org/doc/gug/configuring-guacamole.html#authentication-and-security",
         "table": "parameter",
     },
+    "cert-tofu": {
+        "type": "boolean",
+        "description": "If set to “true”, enables FreeRDP’s “Trust on First Use” (TOFU) policy for certificate management: an unknown certificate is trusted the first time and added to the list of known hosts; on subsequent connections the certificate is checked to validate a match. Similar to SSH client behavior.",
+        "default": "false",
+        "ref": "https://guacamole.apache.org/doc/gug/configuring-guacamole.html#authentication-and-security",
+        "table": "parameter",
+    },
+    "cert-fingerprints": {
+        "type": "string",
+        "description": "A comma-separated list of certificate fingerprint and hash combinations checked upon connection. If the remote server certificate matches one present in this option, the connection is allowed; otherwise it is denied. Format is identical to the xfreerdp “/cert:fingerprint” option.",
+        "default": "NULL",
+        "ref": "https://guacamole.apache.org/doc/gug/configuring-guacamole.html#authentication-and-security",
+        "table": "parameter",
+    },
     "domain": {
         "type": "string",
         "description": "The domain to use when attempting authentication, if any. This parameter is optional",
@@ -842,9 +856,9 @@ CONNECTION_PARAMETERS = {
     },
     "ignore-cert": {
         "type": "boolean",
-        "description": "If set to “true”, the validity of the SSL/TLS certificate used by the Kubernetes server will be ignored if it cannot be validated. Optional.",
+        "description": "If set to “true”, the certificate returned by the server will be ignored, even if that certificate cannot be validated. This is useful if you universally trust the server and your connection to the server, and you know that the server’s certificate cannot be validated (for example, if it is self-signed).",
         "default": "NULL",
-        "ref": "https://guacamole.apache.org/doc/gug/configuring-guacamole.html#authentication-and-ssl-tls",
+        "ref": "https://guacamole.apache.org/doc/gug/configuring-guacamole.html#authentication-and-security",
         "table": "parameter",
     },
     "ca-cert": {
